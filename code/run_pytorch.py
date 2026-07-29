@@ -48,6 +48,62 @@ MODEL_PARAMS = {
 
 DT = 0.1  # Simulation timestep in ms (matches Brian2 defaultclock.dt)
 
+# Integration scheme.
+#
+# 'euler' reproduces the original forward-Euler update exactly (bit-identical).
+# 'exact' uses the Rotter & Diesmann (1999) matrix-exponential propagator.
+#
+# Why 'exact' matters: the subthreshold system is linear and time-invariant, so
+# it has a closed-form propagator. Brian2 -- which the reference Shiu et al.
+# model was run in -- selects that automatically for linear equations
+# (method='auto' -> 'exact'). Forward Euler is therefore NOT the published
+# baseline: it is the exact solution of a slightly different model.
+#
+# Forward Euler at dt=0.1 ms shortens every time constant by exactly dt/2:
+#     tau_syn 5.000 -> 4.950 ms  (-1.00%)
+#     tau_mem 20.000 -> 19.950 ms (-0.25%)
+# and inflates the g->v coupling from the true 0.00493794 to 0.005 (+1.26%).
+# Net effect: total synaptic charge is preserved to ~1e-5 (so firing *rates*
+# are fine), but PSP peak amplitude is +0.47% and the whole simulation runs
+# 0.25-1% fast -- a 0.25-0.5 ms timing error over a 50 ms response, which is an
+# order of magnitude larger than the dt/2 grid quantisation.
+#
+# The exact form costs the same number of FLOPs (3 mul + 2 add vs 2 mul +
+# 3 add), so there is no performance reason to keep Euler.
+#
+# NOTE: 'exact' deliberately changes numerics, so it is NOT bit-identical to
+# 'euler'. It is opt-in for that reason; flipping the default is a decision for
+# the maintainers, ideally after a compare_ground_truth.py run against Brian2.
+INTEGRATION = 'euler'
+
+
+def propagator_constants(dt, params):
+    """Rotter & Diesmann (1999) propagator for the (v, g) subsystem.
+
+    The Jacobian is lower-triangular (g drives v, v does not drive g), so the
+    matrix exponential has a closed form:
+
+        alpha_m = exp(-dt / tauMem)
+        alpha_s = exp(-dt / tauSyn)
+        P_vg    = tauSyn / (tauMem - tauSyn) * (alpha_m - alpha_s)
+
+    Update:  g <- alpha_s * g
+             v <- alpha_m * v + P_vg * g + vRest * (1 - alpha_m)
+
+    P_vg is a difference of two nearly equal exponentials (~6 bits of
+    cancellation), so it must be evaluated in double precision on the host and
+    passed down as a constant -- never recomputed in reduced precision.
+    """
+    import math
+    tau_m, tau_s = float(params['tauMem']), float(params['tauSyn'])
+    alpha_m = math.exp(-dt / tau_m)
+    alpha_s = math.exp(-dt / tau_s)
+    if abs(tau_m - tau_s) < 1e-12:          # degenerate tau_m == tau_s limit
+        p_vg = (dt / tau_m) * alpha_m
+    else:
+        p_vg = tau_s / (tau_m - tau_s) * (alpha_m - alpha_s)
+    return alpha_m, alpha_s, p_vg
+
 # ============================================================================
 # Model Classes
 # ============================================================================
