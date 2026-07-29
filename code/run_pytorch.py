@@ -124,9 +124,16 @@ class PoissonSpikeGenerator(nn.Module):
 class AlphaSynapse(nn.Module):
     """Alpha-function synapse dynamics with configurable delay."""
 
-    def __init__(self, batch, size, dt, params, device='cpu'):
+    def __init__(self, batch, size, dt, params, device='cpu',
+                 integration=None):
         super().__init__()
         self.time_factor = dt / params['tauSyn']
+        # Decay per timestep. Euler uses the first-order (1 - dt/tau); 'exact'
+        # uses exp(-dt/tau), which is the true solution of dg/dt = -g/tau.
+        if (integration or INTEGRATION) == 'exact':
+            self.decay = propagator_constants(dt, params)[1]
+        else:
+            self.decay = 1 - self.time_factor
         self.steps_delay = int(params['tDelay'] / dt)
         self.size = size
         self.device = device
@@ -149,7 +156,7 @@ class AlphaSynapse(nn.Module):
         # roll would move to the end, so reading and then overwriting it in
         # place is equivalent and costs O(size) instead of O(size*steps_delay).
         conductance_new = (
-            conductance * (1 - self.time_factor)
+            conductance * self.decay
             + delay_buffer[:, self.head, :] * refrac
         )
         delay_buffer[:, self.head, :] = input_
@@ -160,7 +167,8 @@ class AlphaSynapse(nn.Module):
 class LIFNeuron(nn.Module):
     """Leaky Integrate-and-Fire neuron with surrogate gradient (ATan)."""
 
-    def __init__(self, batch, size, dt, params, device='cpu'):
+    def __init__(self, batch, size, dt, params, device='cpu',
+                 integration=None):
         super().__init__()
         self.size = size
         self.dt = dt
@@ -170,6 +178,11 @@ class LIFNeuron(nn.Module):
         self.v_threshold = params['vThreshold']
         self.v_0 = params['v0']
         self.time_factor = dt / self.tau_mem
+        self.integration = integration or INTEGRATION
+        if self.integration == 'exact':
+            # v <- alpha_m*v + P_vg*g + vRest*(1 - alpha_m)
+            self.alpha_m, _, self.p_vg = propagator_constants(dt, params)
+            self.v_offset = self.v_rest * (1 - self.alpha_m)
         self.spike_gradient = self.ATan.apply
         self.device = device
         self.batch = batch
@@ -185,7 +198,13 @@ class LIFNeuron(nn.Module):
         # V += MemFactor * (G - (V - Vrest))
 
         v = v + voltage_stim
-        v = v + self.time_factor * (conductance - (v - self.v_rest))
+        if self.integration == 'exact':
+            # Rotter & Diesmann propagator. Same FLOP count as the Euler line
+            # below (3 mul + 2 add vs 2 mul + 3 add) but exact for the linear
+            # subthreshold flow, so no time-constant distortion.
+            v = self.alpha_m * v + self.p_vg * conductance + self.v_offset
+        else:
+            v = v + self.time_factor * (conductance - (v - self.v_rest))
 
         spike = self.spike_gradient(v - self.v_threshold)
 
@@ -219,12 +238,15 @@ class AlphaLIF(nn.Module):
         dt,
         params,
         exc_indices=None,
-        device='cpu'
+        device='cpu',
+        integration=None
     ):
         super().__init__()
         self.size = size
-        self.synapse = AlphaSynapse(batch, size, dt, params, device=device)
-        self.neuron = LIFNeuron(batch, size, dt, params, device=device)
+        self.synapse = AlphaSynapse(batch, size, dt, params, device=device,
+                                    integration=integration)
+        self.neuron = LIFNeuron(batch, size, dt, params, device=device,
+                                integration=integration)
         base_refrac = int(round(params['tRefrac'] / dt))
 
         self.refrac_steps = torch.full(
@@ -291,7 +313,8 @@ class TorchModel(nn.Module):
             params,
             weights,
             exc_indices=None,
-            device='cpu'
+            device='cpu',
+            integration=None
         ):
         super().__init__()
         self.neurons = AlphaLIF(
@@ -300,7 +323,8 @@ class TorchModel(nn.Module):
             dt,
             params,
             exc_indices=exc_indices,
-            device=device
+            device=device,
+            integration=integration
         )
         self.weights = weights
         self.poisson = PoissonSpikeGenerator(dt, params['scalePoisson'], device=device)
