@@ -104,6 +104,22 @@ class BrainEngine:
         self._spb = z(torch.bool)     # spike mask
         self._gb = z(torch.bool)      # refractory gate mask
         self.inplace = True
+
+        # (9) STATE PACKING: keep the four per-neuron arrays in one (4,N)
+        # tensor. The active path then does 1 gather + 1 scatter instead of
+        # 4 + 3 -- which matters because that path is dominated by PyTorch
+        # per-op dispatch (~45us/op), not by arithmetic. v/g/refrac/refrac_steps
+        # become views, so the dense kernel is untouched.
+        self.state = torch.zeros(4, self.N, device=self.device)
+        self.state[0] = self.v
+        self.state[1] = self.g
+        self.state[2] = self.refrac
+        self.state[3] = self.refrac_steps.to(torch.float32)
+        self.v = self.state[0]
+        self.g = self.state[1]
+        self.refrac = self.state[2]
+        self.refrac_steps = self.state[3]
+
         self.active_mode = True
         self._init_active()
 
@@ -227,7 +243,14 @@ class BrainEngine:
         self._idx = self.active.nonzero(as_tuple=True)[0]
         self._spike_idx = torch.empty(0, dtype=torch.long, device=self.device)
         self.prune_every = 64
-        self.dense_switch = 0.25      # >25% active -> dense is cheaper
+        # Empirical crossover. Measured on 8 regimes: the sparse path wins
+        # decisively below ~8% active, but once the active set (or the spike
+        # rate feeding it) grows, gather/scatter + index rebuilding costs more
+        # than the dense kernel -- at 26% active with a high firing rate it was
+        # 2.3x SLOWER. Switching early costs a little upside on mid-density
+        # runs and buys a hard no-regression guarantee.
+        self.dense_switch = 0.08
+        self.spike_switch = 0.004     # >0.4% of N spiking per step -> dense
         self._since_prune = 0
         # Once the network is broadly active it tends to stay that way, so the
         # fallback latches rather than flip-flopping (and re-syncing state)
@@ -269,7 +292,8 @@ class BrainEngine:
         idx = self._idx
         # Decide BEFORE doing any work -- otherwise the fan-out is computed
         # twice and the fallback ends up slower than plain dense.
-        if idx.numel() > self.dense_switch * N:
+        if (idx.numel() > self.dense_switch * N
+                or self._spike_idx.numel() > self.spike_switch * N):
             self._dense_fallback = True
             return self.step_inplace(record=record)
 
@@ -304,13 +328,13 @@ class BrainEngine:
             rec.scatter_add_(0, torch.searchsorted(idx, tgt), vals)
             rec.mul_(wS)
 
-        # --- gather ---
-        v = self.v[idx]
-        g = self.g[idx]
-        rf = self.refrac[idx].add_(1)
+        # --- gather: ONE indexing op for all four state arrays (9) ---
+        s = self.state[:, idx]                  # (4, na): v, g, refrac, refrac_steps
+        v, g, rf, rs = s[0], s[1], s[2], s[3]   # views into s
+        rf.add_(1)
         if src.numel():
             rf[torch.searchsorted(idx, src)] = 0.0
-        gate = (rf >= self.refrac_steps[idx]).to(v.dtype)
+        gate = (rf >= rs).to(v.dtype)
 
         # --- Poisson (stim neurons are always in the active set) ---
         if self.stim_idx.numel():
@@ -328,11 +352,10 @@ class BrainEngine:
         spb = v > p["vThreshold"]
         v.masked_fill_(spb, p["vReset"])
         gnew.masked_fill_(spb, 0.0)
+        g.copy_(gnew)
 
-        # --- scatter back ---
-        self.v[idx] = v
-        self.g[idx] = gnew
-        self.refrac[idx] = rf
+        # --- scatter back: ONE indexing op ---
+        self.state[:, idx] = s
         self._spike_idx = idx[spb]
         self.t_ms += dt
 
