@@ -16,3 +16,9 @@ data/results/nature_2026_07/archive*
 # PyTorch cached weight matrices (generated from connectivity data)
 data/weight_coo.pkl
 data/weight_csr.pkl
+
+# Native kernel build artifacts
+flyloop/native/*.dll
+flyloop/native/*.lib
+flyloop/native/*.exp
+flyloop/native/*.pdb
