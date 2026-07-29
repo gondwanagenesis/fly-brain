@@ -396,6 +396,57 @@ They also validate against Brian 2 as ground truth — reinforcing §4.
 
 ---
 
+## 8.5 Delay-window stepping — measured results (2026-07-29)
+
+Implemented in `code/window_step.py` (kernels), `code/window_sim.py` (prototype)
+and `code/window_fast.py` (vectorised). Validation in `code/validate_window_*.py`.
+
+### Accuracy — the strong result
+
+Deterministic 400-neuron network, fixed initial condition (no RNG), reference is
+a dt = 0.002 ms grid:
+
+| Method | Spikes | Count error | mean &#124;rate − truth&#124; |
+|---|---|---|---|
+| truth (dt = 0.002 ms) | 158 | — | — |
+| **grid dt = 0.1 ms** (their default) | 159 | **+1** | 0.0463 Hz |
+| **window dt = 1.8 ms** | **158** | **0** | **0.0000 Hz** |
+
+Window stepping matches the fine reference **exactly**; the dt = 0.1 ms grid does
+not. A separate sweep shows the grid error is systematic, not a fluke: dt = 0.1 ms
+lost ~10% of spikes (42 vs 47) and dt = 0.2 ms lost ~17% (39 vs 47). Coarse grids
+miss brief superthreshold excursions; off-grid spike times cannot.
+
+### Speed — activity-dependent, and honestly mixed
+
+Cost per window is `O(N)` predict + `O(segments × candidates)` repair, where
+**segments = spikes per window**. The grid is `O(18 × N)`, fully vectorised.
+So the window method wins only while spikes/window stays low:
+
+| Activity (spikes/window) | Speedup vs grid | Spike counts | Certified silent |
+|---|---|---|---|
+| 0.3 | **3.4 – 5.6×** | identical | 99.2 – 99.7% |
+| ~480 (cascading toy net) | **0.002×** (much slower) | identical | 91% |
+
+⚠️ **The real connectome sits at ~31 spikes/window** (1.75 spikes/step × 18) —
+*between* the two regimes tested, and **not yet measured**. The toy network could
+not be driven into that regime (it either dies out at ~0.3 or cascades to ~480),
+so the real-brain speedup is **unknown**, not established. Do not quote a number
+for it until measured on the actual connectome.
+
+### What would fix the high-activity regime
+
+The `O(segments × candidates)` term is the whole problem. Options, untried:
+- Bucket arrivals into a fixed small number of sub-slots per window instead of
+  one segment per distinct arrival time (introduces controlled error — needs a
+  bound before use).
+- Process only the candidates that actually receive an arrival in a given
+  segment, rather than all candidates every segment.
+- Move the segment loop into a compiled kernel (numba/C++), since the inner work
+  is already fully vectorised and the loop itself is the overhead.
+
+---
+
 ## 9. Method — how to work on this
 
 **Rule 1: every performance change must be proven bit-identical.**
