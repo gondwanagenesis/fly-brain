@@ -86,7 +86,13 @@ def spike_time(u0, g0, theta, tau_mem=20.0, max_iter=60):
     g0 = np.asarray(g0, dtype=np.float64)
     h = np.full(u0.shape, np.inf, dtype=np.float64)
 
-    live = ~certified_silent(u0, g0, theta) & (g0 > 0)
+    # Already at or above threshold: fires immediately, no root to find.
+    # (Without this a neuron with u0 >= theta and g0 <= 0 would never spike,
+    # because the quartic branch below needs a rising trajectory.)
+    now = u0 >= theta
+    h[now] = 0.0
+
+    live = ~certified_silent(u0, g0, theta) & (g0 > 0) & ~now
     if not np.any(live):
         return h
 
