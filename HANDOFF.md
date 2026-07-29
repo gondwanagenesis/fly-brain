@@ -240,6 +240,31 @@ by grid detection.
 **Refractory 2.2 ms > delay 1.8 ms ⇒ at most one spike per neuron per window**,
 which makes the window map single-valued and bounds repair work at one root-find.
 
+#### Preconditions — VERIFIED against the actual data (2026-07-29)
+
+Method of steps is sound (Bellman & Cooke 1963; Hairer/Nørsett/Wanner ch. II.17)
+but fails on zero-delay coupling. All blockers checked and cleared:
+
+| Precondition | Check | Result |
+|---|---|---|
+| No autapses | scanned all 15,091,983 edges for `pre == post` | **0** ✅ |
+| No zero-delay synapses | `delay=params['t_dly']` is a **single scalar** on the whole synapse population — no per-synapse delays | uniform 1.8 ms ✅ |
+| No gap junctions | model uses `Synapses` (chemical) only | none ✅ |
+| Refractory is **absolute** | Brian2 marks **both** `dv/dt` *and* `dg/dt` `(unless refractory)` — state frozen, neuron provably cannot fire | absolute, 2.2 > 1.8 ms ✅ |
+
+⚠️ **Re-run these checks if the connectome or model is ever changed.** A single
+zero-delay edge or autapse invalidates the entire window decoupling.
+
+#### Novelty status
+
+NEST/NEURON separate the *integration* step `h` from the *communication* step
+`d_min`, and use `d_min` only for **spike batching / MPI parallelisation** — they
+keep `h` small. A literature sweep found **no simulator that raises the
+integration timestep to `d_min`**. The decoupling itself is stated in the
+literature as the *theoretical basis for parallelisation*
+([Front. Neuroinform. 2017](https://www.frontiersin.org/journals/neuroinformatics/articles/10.3389/fninf.2017.00034/full)),
+never as a licence to enlarge `dt`. **That gap is the contribution.**
+
 ### 5.5 σ-factorisation of spike delivery
 
 For a spike at `t_k` arriving at `t_k + D`, the contribution at window end is
