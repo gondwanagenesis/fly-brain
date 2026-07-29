@@ -1,40 +1,54 @@
 # Accelerating the whole-brain *Drosophila* LIF connectome simulation
 
-**A complete working record: measurements, reasoning, literature, dead ends, and next steps.**
+**Complete working record — measurements, reasoning, dead ends, corrections, next steps.**
 
-Written to be picked up cold by another engineer or AI. Everything here is either
-measured on this machine, cited, or explicitly labelled as a projection.
+Written for cold pickup by another engineer or AI. Everything is either measured
+on this machine, cited, or explicitly flagged as a projection.
 
-Last updated: 2026-07-29 · Repo: `Documents/FlyBrain` (clone of
-[eonsystemspbc/fly-brain](https://github.com/eonsystemspbc/fly-brain))
-· Work branch: `perf/event-driven-pytorch`
+- Last updated: 2026-07-29
+- Upstream: [eonsystemspbc/fly-brain](https://github.com/eonsystemspbc/fly-brain)
+- **Our fork: [gondwanagenesis/fly-brain](https://github.com/gondwanagenesis/fly-brain)**, branch `perf/event-driven-pytorch` (all work pushed)
+- Local: `Documents/FlyBrain`, venv at `.venv/` (Python 3.12, torch CPU, numpy, scipy)
 
 ---
 
-## 0. TL;DR for whoever picks this up
+## 0. Read this first — the strategic conclusion
 
-1. **The bottleneck is not where the field usually looks.** Synaptic propagation is
-   **0.14%** of runtime for this workload; the dense per-timestep neuron update is
-   **99.86%**. Ratio 728:1. Optimising spike delivery — the thing GeNN is built
-   for — is nearly worthless here.
-2. **91.2% of neurons are provably inert** (at exactly `v=vRest, g=0`) and can be
-   skipped losslessly.
-3. **τ_mem/τ_syn = 20/5 = 4 EXACTLY.** This is a gift: the propagator becomes a
-   polynomial, and exact spike times solve as a quartic (solvable in radicals;
-   ratio 5 would be a general quintic — unsolvable).
-4. **The uniform 1.8 ms delay decouples the network into 18-step windows.** This
-   is the largest single remaining win (18×) and is *exact*.
-5. **Their PyTorch backend does not reproduce the published Brian 2 baseline** —
-   it uses forward Euler where Brian 2 uses exact integration. This may matter
-   more than any speedup.
+**Large speedups in this problem are activity-dependent, not general.** The work
+is proportional to activity. At full activity every neuron must be advanced every
+timestep and you are pinned to memory bandwidth; no algorithm makes updating
+138,639 neurons cost less than reading and writing 138,639 neurons' state.
+
+| Optimisation | 100% brain active | Sparse activity |
+|---|---|---|
+| Event-driven fan-out **(banked, bit-identical)** | ~1× | **3.2–5.2×** |
+| Delay-window stepping | 1.00× (auto-falls back) | **26×** |
+| σ removes the delay ring buffer | **1.16×** | 1.16× |
+| Exact integration | 1× (free *accuracy*) | 1× |
+| State packing | ~1.5× | ~1.5× |
+
+**Unconditional total ≈ 1.5–2×. Everything larger requires sparse firing.**
+
+This is not a limitation of the approach — it is the structure of the problem, and
+the field agrees. Sandia's Loihi 2 paper reports *"performance advantages increase
+with sparser activity"* and reaches 100×+ only in the sparse regime. Twelve
+neuromorphic chips obey the same law.
+
+The consolation: **real brains are sparse.** We measured 1.75 spikes/step and 91%
+of neurons at exact rest under localised stimulation. An embodied model with all
+senses will have *more active regions*, not a saturated brain. The auto-tuner
+(§5.4) handles wherever it lands — window mode when it pays, grid when it does
+not, never worse.
+
+**The most valuable single finding is probably not speed at all — see §4.**
 
 ---
 
 ## 1. The model
 
-From [Shiu et al. 2024, *Nature*](https://www.nature.com/articles/s41586-024-07763-9)
-([methods, PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC10187186/)), on the
-[FlyWire](https://codex.flywire.ai/) v783 connectome
+[Shiu et al. 2024, *Nature*](https://www.nature.com/articles/s41586-024-07763-9)
+([methods](https://pmc.ncbi.nlm.nih.gov/articles/PMC10187186/)) on
+[FlyWire](https://codex.flywire.ai/) v783
 ([Dorkenwald et al. 2024](https://www.nature.com/articles/s41586-024-07558-y)).
 
 ```
@@ -45,440 +59,340 @@ spike if v > v_th; then v = v_reset, g = 0
 
 | Parameter | Value |
 |---|---|
-| neurons | 138,639 (139,255 incl. unreconstructed) |
+| neurons | 138,639 |
 | connections | 15,091,983 edges / 54,492,922 synapses |
-| excitatory : inhibitory | 60 : 40 |
 | `v_rest` = `v_reset` | −52 mV |
 | `v_threshold` | −45 mV (θ = 7 mV above rest) |
-| `tau_mem` / `tau_syn` | 20 ms / 5 ms — **ratio exactly 4** |
-| refractory | 2.2 ms |
+| `tau_mem` / `tau_syn` | 20 / 5 ms — **ratio exactly 4** |
+| refractory | 2.2 ms (**absolute**) |
 | **axonal delay** | **1.8 ms, uniform on every synapse** |
 | `dt` | 0.1 ms |
 | `w_syn` | 0.275 mV × integer synapse count |
 
-⚠️ **The model is current-based, not conductance-based.** `g` enters *additively*
-(`dv/dt = (g − (v−v_rest))/tau_mem`), not as `g·(E_rev − v)`. This linearity is
-what makes exact integration and the whole approach below valid. If the model
-ever moves to true conductance coupling, most of this breaks — see §7.
+⚠️ **Current-based, not conductance-based.** `g` enters *additively*, not as
+`g·(E_rev − v)`. That linearity is what makes exact integration valid. If the
+model ever moves to true conductance coupling, most of §5 breaks (see §7).
 
 ---
 
-## 2. What we measured (on this machine, reproducible)
+## 2. Measured facts (reproducible on this machine)
 
-### 2.1 The cost distribution — the central finding
-
-Sugar-GRN experiment (21 gustatory neurons @ 200 Hz), instrumented:
+### 2.1 Cost distribution
+Sugar-GRN experiment (21 neurons @ 200 Hz):
 
 | Component | Ops/step | Share |
 |---|---|---|
 | Dense neuron update (all 138,639) | 138,639 | **99.86%** |
 | Event-driven synaptic propagation | ~190 | 0.14% |
-| Poisson input (21 neurons) | 21 | ~0% |
 
-**Ratio 728 : 1.** Mean activity is **1.75 spikes/step** = 0.0013% of neurons.
+**728 : 1.** Mean activity **1.75 spikes/step** (0.0013%).
+⇒ optimising spike delivery — GeNN's core strength — is nearly worthless *here*.
 
 ### 2.2 Quiescence
-
-| Time | Neurons ever perturbed | Provably inert |
+| Time | Ever perturbed | Provably inert |
 |---|---|---|
-| 100 ms | 7,232 (5.22%) | 94.78% |
-| 300 ms | 11,136 (8.03%) | 91.97% |
-| 500 ms | 12,251 (8.84%) | **91.16%** |
+| 100 ms | 5.22% | 94.78% |
+| 500 ms | 8.84% | **91.16%** |
 
-Not a topology limit — **96.8% of the brain is reachable within 4 hops** of the
-21 sugar GRNs. It is *dynamical attenuation*: the connectome does not propagate a
-small taste input brain-wide.
+Not topological: **96.8% of the brain is within 4 hops** of the 21 sugar GRNs.
+It is dynamical attenuation. **Stimulus-dependent** — verified across 8 regimes.
 
-⚠️ **Stimulus-dependent.** Verified across 8 regimes (1 neuron → 40k neurons
-driven). Broad stimulation collapses the active set. Any claim must be re-checked
-per protocol.
+### 2.3 Roofline
+~10 FLOP / ~32 B per neuron-step ⇒ **~0.3 FLOP/byte**; A100 knee is ~12. Deeply
+memory-bound. ⚠️ **Flips at small scale**: once the working set shrinks to ~3k
+active neurons it becomes **dispatch-bound** (cProfile: 68% PyTorch per-op
+overhead). Both true at different scales.
 
-### 2.3 Arithmetic intensity / roofline
+### 2.4 τ-ratio identity (machine precision)
+With `x = exp(-dt/tau_mem)`: `exp(-dt/tau_syn) == x^4` (1.11e-16),
+`P_vg == (x - x^4)/3` (3.64e-17), `alpha_m == x` (0.00e+00).
 
-~10 FLOP against ~32 B traffic per neuron per step ⇒ **~0.3 FLOP/byte**. An
-A100's roofline knee is ~12, so the dense path is deeply memory-bound.
-Traffic: 44 GB/sim-second dense, 4 GB with quiescence skipped.
+### 2.5 Exact spike-time solver
+20,000 random states vs brute force at dt = 2e-4 ms:
+**20000/20000** agreement on whether a spike occurs; max |Δt| **2.0e-04 ms**
+(= the reference's own grid); **0 false-silence certifications** (safety-critical).
 
-⚠️ **This flips at small scale.** Once the working set shrinks to ~3k active
-neurons, it becomes **dispatch-bound**: cProfile shows **68% of runtime is
-PyTorch per-op overhead** (~45 µs × ~30 ops/step), while the arithmetic on 13 KB
-of state is sub-microsecond. *Both statements are true at different scales.*
+### 2.6 Full-scale per-window costs (138,639 neurons)
+```
+predict (free_window_map)   5.27 ms      certified-silent from rest: 86.67%
+certify (silence bound)     6.92 ms      grid dt=0.1ms: 5.43 ms/step
+deliver (event-driven)      4.14 ms                   = 54.30 s/sim-second
+```
 
-### 2.4 τ ratio identity — verified to machine precision
+### 2.7 Delivery: the trap I fell into
+```
+2 x full W @ sigma   142.45 ms   (30,183,966 ops)
+event-driven sigma     4.14 ms   (      7,174 ops)   34x cheaper
+```
 
-With `x = exp(-dt/tau_mem)`:
+### 2.8 Certify bound: total in-weight vs actual arrivals
+```
+bound on total in-weight     18,949 candidates (13.67%)
+bound on actual arrivals        184 candidates ( 0.13%)      103x fewer
+```
 
-| Identity | Agreement |
-|---|---|
-| `exp(-dt/tau_syn)` == `x^4` | 1.11e-16 |
-| `P_vg` == `(x - x^4)/3` | 3.64e-17 |
-| `alpha_m` == `x` | 0.00e+00 |
+### 2.9 Quartic vs cheap compare (per segment, 138,639 neurons)
+```
+quartic solve (60 bisection iters)   108.64 ms
+advance + compare                      2.88 ms      38x
+```
 
-### 2.5 Exact spike-time solver — validated against brute force
-
-20,000 random `(u0, g0)` states vs. brute-force integration of the exact
-propagator at dt = 2e-4 ms:
-
-| Check | Result |
-|---|---|
-| Agreement on *whether* a spike occurs | **20000 / 20000** |
-| max &#124;t_analytic − t_brute&#124; | 2.0e-04 ms (== brute grid step) |
-| **False silence certifications** | **0** ← safety-critical |
-
-The residual *is* the brute-force discretisation, i.e. the analytic solution is
-exact to the resolution the test can measure.
+### 2.10 Auto-tuner behaviour at full scale
+| active | window ms | grid ms | picked | effective |
+|---|---|---|---|---|
+| 0.88% | 3.71 | 97.74 | window | **26.4×** |
+| 5% | 19.13 | 97.74 | window | 5.1× |
+| 15% | 164.18 | 97.74 | grid | 1.00× |
+| 100% | 1252.29 | 97.74 | grid | 1.00× |
 
 ---
 
-## 3. What is implemented and committed
+## 3. Committed work
 
-Branch `perf/event-driven-pytorch`. **Every performance change is verified
-bit-identical** by `code/verify_pytorch_perf.py`.
+Branch `perf/event-driven-pytorch`. **Every performance change is gated on
+bit-identical spike trains** (`code/verify_pytorch_perf.py`).
 
-| Commit | Change | Result |
-|---|---|---|
-| `040f699` | Event-driven fan-out + ring-buffer delay line in `run_pytorch.py` | **3.2–5.2×, bit-identical** |
-| `0fa5b47` | Rotter–Diesmann propagator constants (opt-in) | accuracy fix |
-| `979f44b` | Wire `INTEGRATION='exact'` through the model classes | no regression |
-| `19ca262` | Exact spike-time solver + certified silence predicate | validated §2.5 |
-
-On `main`: `flyloop/` — a standalone steppable engine (active-set stepping, state
-packing) used as a research testbed, plus `flyloop/ROADMAP.md`.
-
-### Measured speedups (bit-identical, 4 regimes)
-
-| Regime | Speedup |
+| Commit | Change |
 |---|---|
-| sugar GRNs (21 @ 200 Hz) | 5.20× |
-| single neuron (1 @ 200 Hz) | 3.78× |
-| no drive (0 Hz) | 3.40× |
-| P9 walking (2 @ 100 Hz) | 3.19× |
+| `040f699` | Event-driven fan-out + ring buffer in `run_pytorch.py` — **3.2–5.2×, bit-identical** |
+| `0fa5b47` | Rotter–Diesmann propagator constants (opt-in) |
+| `979f44b` | Wire `INTEGRATION='exact'` through the model classes |
+| `19ca262` | Exact spike-time solver + certified silence predicate |
+| `6680779` | Delay-window stepping kernels |
+| `c891f81` | Window simulator + accuracy validation |
+| `bfd7a56` | Vectorised repair; activity crossover measured |
+| `b893905` | Real-connectome measurement (6.0×) |
+| `37ad1b4` | Certify against actual arrivals (103× fewer candidates) |
+| `c929b03` | Auto-tuned hybrid + generality analysis |
 
-⚠️ Timings taken on a loaded laptop CPU. **Ratios are stable; absolute seconds
-are inflated.** Re-measure on an idle machine before quoting publicly.
+Also on `main`: `flyloop/` (standalone research engine, active-set stepping).
+
+### Files
+| File | Purpose |
+|---|---|
+| `code/run_pytorch.py` | **their** backend, optimised in place |
+| `code/verify_pytorch_perf.py` | bit-identical gate — **run this before landing anything** |
+| `code/exact_spike_time.py` | quartic solver + certified silence |
+| `code/window_step.py` | window map, σ factors, silence bound |
+| `code/window_fast.py`, `window_opt.py` | vectorised window simulators |
+| `code/hybrid_step.py` | `ModeSelector` auto-tuner |
+| `code/bench_connectome_window.py` | full-scale cost breakdown |
+| `code/validate_window_exact.py` | accuracy head-to-head |
 
 ---
 
-## 4. The accuracy finding (possibly the most valuable result)
+## 4. The accuracy finding (likely the most valuable result)
 
-Their PyTorch backend uses **forward Euler**. Brian 2 — which the published
-Shiu et al. model was run in — selects **exact integration** automatically for
-linear equations (`method='auto'` → `'exact'`,
-[docs](https://brian2.readthedocs.io/en/stable/user/numerical_integration.html)).
+Their PyTorch backend uses **forward Euler**. Brian 2 — which the published model
+was run in — selects **exact integration** automatically for linear equations
+([docs](https://brian2.readthedocs.io/en/stable/user/numerical_integration.html)).
 
-Forward Euler shortens **every** time constant by exactly `dt/2`:
-
-| Coefficient | Exact | Euler | Relative error |
+| Coefficient | Exact | Euler | Rel. error |
 |---|---|---|---|
 | `alpha_m` (v→v) | 0.9950124792 | 0.9950000000 | −1.25e-05 |
 | `alpha_s` (g→g) | 0.9801986733 | 0.9800000000 | −2.03e-04 |
 | **`P_vg` (g→v)** | **0.0049379353** | **0.0050000000** | **+1.257e-02** |
 
-⇒ `tau_syn` 5.000 → 4.94983 ms (−1.003%), `tau_mem` 20.000 → 19.94996 ms (−0.250%).
-
-**Consequences:** total synaptic charge preserved to ~1e-5 (so firing *rates* are
-fine), but PSP peak +0.47%, peak time −0.066 ms, and the whole simulation runs
-**0.25–1% fast** — a 0.25–0.5 ms error over a 50 ms response, an order of
-magnitude larger than the dt/2 grid quantisation.
+Euler shortens **every** τ by exactly `dt/2`: τ_syn −1.003%, τ_mem −0.250%.
+Charge is preserved to 1e-5 (rates fine), but PSP peak +0.47% and the whole
+simulation runs **0.25–1% fast** — 0.25–0.5 ms over a 50 ms response.
 
 **The exact form costs the same FLOPs** (3 mul + 2 add vs 2 mul + 3 add).
 
-**Why this matters for their paper:** the repo is a *benchmark comparing
-simulators*. If one backend integrates differently from the reference, the
-comparison partly measures integration schemes rather than frameworks.
+Separately, grid detection **loses spikes**: vs a dt = 0.002 ms reference,
+dt = 0.1 ms lost ~10% (42 vs 47) and dt = 0.2 ms ~17% (39 vs 47), because coarse
+grids miss brief superthreshold excursions.
+
+Head-to-head, deterministic 400-neuron net (no RNG):
+
+| Method | Spikes | Count err | mean &#124;rate − truth&#124; |
+|---|---|---|---|
+| truth (dt = 0.002 ms) | 158 | — | — |
+| **grid dt = 0.1 ms** | 159 | **+1** | 0.0463 Hz |
+| **window dt = 1.8 ms** | **158** | **0** | **0.0000 Hz** |
+
+**Why it matters:** the repo is a *benchmark comparing simulators*. If one backend
+integrates differently from the reference, the comparison partly measures
+integration schemes rather than frameworks.
 
 ---
 
-## 5. The mathematical structure worth exploiting
+## 5. The mathematics
 
-### 5.1 Polynomial propagator (from τ ratio = 4)
-
-Let `u = v − v_rest`, `x = exp(-h/tau_mem)`. Then `exp(-h/tau_syn) = x^4` and:
-
+### 5.1 Polynomial propagator (τ ratio = 4)
+`u = v − v_rest`, `x = exp(-h/tau_mem)`, `exp(-h/tau_syn) = x^4`:
 ```
-u(h) = x*u0 + (g0/3)*(x - x^4)
-g(h) = x^4 * g0
+u(h) = x*u0 + (g0/3)*(x - x^4)        g(h) = x^4 * g0
 ```
+No transcendental beyond one `x`; `x^4 = (x*x)^2`. **Semigroup**
+`P(x1)P(x2) = P(x1*x2)` ⇒ advance a dormant neuron n steps with one `pow`.
+Contractive (‖P‖₁ = x < 1) ⇒ fp32 floor ≈ 200ε ≈ 2.4e-5 mV against θ = 7 mV.
 
-- **No transcendental beyond one `x`**; `x^4 = (x*x)^2`.
-- **Semigroup: P(x1)·P(x2) = P(x1·x2)** ⇒ advance a dormant neuron `n` steps with
-  one `pow`, not `n` matrix applications.
-- **Contractive** (‖P‖₁ = x < 1) ⇒ round-off does not accumulate; the fp32 floor
-  is ε/(1−x) ≈ 200ε ≈ 2.4e-5 mV against a 7 mV threshold. fp32 is provably safe.
-
-### 5.2 Certified silence predicate (exact, not heuristic)
-
-`sup_h u(h)` has a closed form (peak at `x* = ((3u0+g0)/(4g0))^(1/3)`), so we can
-**prove** a neuron cannot reach threshold before its next input. Cheap bound:
-
+### 5.2 Certified silence (exact)
+`sup_h u(h)` closed form, peak at `x* = ((3u0+g0)/(4g0))^(1/3)`:
 ```
-sup u(t) <= max(u0, 0) + 0.0720850 * (g0 + sum w+)
+sup u <= max(u0,0) + KAPPA_WINDOW_MAX * (g0 + w_positive_arriving)
+KAPPA_WINDOW_MAX = 0.0720849531   over (0, 1.8 ms]
 ```
-
-A resting neuron needs `sum w+ > 97` within one 1.8 ms window even to become a
-candidate. Implemented and validated (§2.5) in `code/exact_spike_time.py`.
+🔑 **Feed it the actual arrivals, not total in-weight** — legitimate because the
+delay means every spike that can land was emitted before the window began, so
+input is *already known exactly*. 103× fewer candidates (§2.8).
 
 ### 5.3 Quartic spike time
+`u(h) = θ` ⇒ `x^4 + p·x + q = 0`, `p = -(3u0+g0)/g0`, `q = 3θ/g0`. `f` is
+unimodal with peak at `x*`, `f(0)`,`f(1)` < 0, so the first crossing is the unique
+root in `(x*, 1)` where `f` is monotone — bisection cannot fail to bracket.
+Solvable in radicals only because the ratio is an integer ≤ 4; **ratio 5 → general
+quintic → unsolvable.** At the boundary by luck.
+⚠️ **38× more expensive than advance+compare** — use a compare to *detect*
+crossings, the quartic only to *time* the few that cross (refractory caps it at
+one per neuron per window).
 
-Setting `u(h) = θ` gives the depressed trinomial quartic `x^4 + p·x + q = 0`,
-`p = -(3u0+g0)/g0`, `q = 3θ/g0`. `f` is unimodal with peak at `x*`; `f(0)` and
-`f(1)` are both negative, so the first crossing is the unique root in `(x*, 1)`
-where `f` is strictly monotone — bisection cannot fail to bracket.
+### 5.4 Delay-window decoupling
+Uniform 1.8 ms delay ⇒ by the method of steps (Bellman & Cooke 1963;
+Hairer/Nørsett/Wanner II.17) the network decouples into N independent
+inhomogeneous linear ODEs per window ⇒ `dt` can be **1.8 ms (18 steps)**, exactly,
+if spike times are found analytically rather than by grid detection.
+Refractory 2.2 ms > delay 1.8 ms ⇒ **≤1 spike per neuron per window**.
 
-Only solvable in radicals because the ratio is an integer ≤ 4. **Ratio 5 → general
-quintic → not solvable.** We are at the boundary by luck.
-
-### 5.4 Delay-window decoupling — the biggest remaining win
-
-The uniform 1.8 ms delay means nothing emitted at time `t` affects anything before
-`t + 1.8 ms`. By the *method of steps* for delay differential equations, within
-one window the network is **N independent inhomogeneous linear ODEs** whose forcing
-is fully determined by history. ⇒ `dt` can be **1.8 ms (18×)** with *zero* accuracy
-loss, provided spike times inside the window are found exactly (§5.3) rather than
-by grid detection.
-
-**Refractory 2.2 ms > delay 1.8 ms ⇒ at most one spike per neuron per window**,
-which makes the window map single-valued and bounds repair work at one root-find.
-
-#### Preconditions — VERIFIED against the actual data (2026-07-29)
-
-Method of steps is sound (Bellman & Cooke 1963; Hairer/Nørsett/Wanner ch. II.17)
-but fails on zero-delay coupling. All blockers checked and cleared:
+**Preconditions — VERIFIED against the data. Re-run if the model changes; one
+zero-delay edge invalidates everything:**
 
 | Precondition | Check | Result |
 |---|---|---|
-| No autapses | scanned all 15,091,983 edges for `pre == post` | **0** ✅ |
-| No zero-delay synapses | `delay=params['t_dly']` is a **single scalar** on the whole synapse population — no per-synapse delays | uniform 1.8 ms ✅ |
-| No gap junctions | model uses `Synapses` (chemical) only | none ✅ |
-| Refractory is **absolute** | Brian2 marks **both** `dv/dt` *and* `dg/dt` `(unless refractory)` — state frozen, neuron provably cannot fire | absolute, 2.2 > 1.8 ms ✅ |
+| No autapses | scanned all 15,091,983 edges | **0** ✅ |
+| No zero-delay synapses | `delay=params['t_dly']` is a single scalar | uniform 1.8 ms ✅ |
+| No gap junctions | chemical `Synapses` only | none ✅ |
+| Refractory **absolute** | Brian2 marks *both* `dv/dt` and `dg/dt` `(unless refractory)` | ✅ |
 
-⚠️ **Re-run these checks if the connectome or model is ever changed.** A single
-zero-delay edge or autapse invalidates the entire window decoupling.
+**Novelty:** NEST/NEURON use `d_min` only to batch spike *communication* and keep
+`h` small. A literature sweep found **no simulator that raises the integration
+timestep to `d_min`**. The decoupling appears only as a justification for
+parallelisation ([Front. Neuroinform. 2017](https://www.frontiersin.org/journals/neuroinformatics/articles/10.3389/fninf.2017.00034/full)).
 
-#### Novelty status
-
-NEST/NEURON separate the *integration* step `h` from the *communication* step
-`d_min`, and use `d_min` only for **spike batching / MPI parallelisation** — they
-keep `h` small. A literature sweep found **no simulator that raises the
-integration timestep to `d_min`**. The decoupling itself is stated in the
-literature as the *theoretical basis for parallelisation*
-([Front. Neuroinform. 2017](https://www.frontiersin.org/journals/neuroinformatics/articles/10.3389/fninf.2017.00034/full)),
-never as a licence to enlarge `dt`. **That gap is the contribution.**
-
-### 5.5 σ-factorisation of spike delivery
-
-For a spike at `t_k` arriving at `t_k + D`, the contribution at window end is
-
-```
-Δg_i = Σ_j W_ij · e^(-s/tau_s)                 s = t0 - t_k
-Δu_i = Σ_j W_ij · κ(s),  κ(s) = (1/3)(e^(-s/tau_m) - e^(-s/tau_s))
-```
-
-`s` is **target-independent**, so define per-source scalars `σ_j` and get
-`Δg = W σ^(g)`, `Δu = W σ^(u)` — **one sparse mat-mul with a 2-column right factor
-per window**, replacing 18 rounds of irregular atomic scatter. Exact, works with
-fully off-grid spike times.
-
-⚠️ Exact only for targets that do **not** spike inside the window (a spike resets
-`g=0`, wiping accumulated pre-spike contribution) ⇒ predict-and-repair (§5.2/5.3).
+### 5.5 σ-factorisation
+A spike from `j` at `t_k` contributes at window end via `exp(-s/tau_s)` and
+`kappa(s)` with `s = t_end - (t_k + D)` — **target-independent**, so per-source
+scalars push through the connectome once. 18 delivery rounds → 1.
+⚠️ **Apply event-driven, never as `W @ sigma`** (§2.7).
+✅ **Eliminates the delay ring buffer entirely**: 21.1 MB of state and ~40 MB/window
+of traffic → ~0.5 KB. **This is the one unconditional algorithmic win** (1.16× at
+100% activity).
 
 ---
 
-## 6. Ruled out — with reasons, so nobody re-treads these
+## 6. Ruled out — with reasons, so nobody re-treads them
 
-| Technique | Verdict | Why |
-|---|---|---|
-| **SparseProp global rescale** ([arXiv:2312.17216](https://arxiv.org/abs/2312.17216)) | ❌ | Math *does* generalise to our 2-state system (v_rest absorbs by translation; Jacobian is triangular), but it is O(N)→O(N), not O(N)→O(log N). SparseProp's win needs univariate + delta-synapse + event-driven; we violate all three. Also drives quiet neurons into **denormals** (~100+ cycles/op on x86) — likely a net loss. |
-| **Multirate RK / IMEX / implicit** | ❌ | Stiffness ratio is 4. Not stiff. dt sits 100× below the FE stability limit — the step is set by accuracy, not stability. Every stiffness-motivated method targets a problem we don't have. |
-| **Krylov / Arnoldi / Lanczos on the network matrix** | ❌ | The positive delay means coupling never enters the generator; `A_net` is **block-diagonal with 2×2 blocks**, so `exp(A_net·h)` *is* the per-neuron propagator. One Arnoldi step costs more than the exact answer. |
-| **Magnus expansion** | ❌ | `A` is constant ⇒ Ω₁ = A·h and all commutator terms vanish. Reduces to `exp(Ah)`. (Would become relevant *if* the model went conductance-based.) |
-| **Exponential Rosenbrock** | ❌ | Linearises the nonlinearity via a Jacobian; our only nonlinearity is the reset, which is discontinuous and non-differentiable. No Jacobian to expand. |
-| **Strang splitting (flow vs reset)** | ❌ | Order-2 needs both operators to be C₀-semigroups with bounded commutators. The reset is a projection at a state-dependent event time, not the flow of any vector field. **No generator ⇒ no commutator ⇒ no h² term to cancel.** Correct framework is impulsive/hybrid ODE with event location: global order = min(p, q) where q is event-location order. |
-| **Delta-synapse (singular perturbation) limit** | ❌ | Needs ε = tau_s/tau_m ≪ 1; here ε = 0.25. Gives 59% amplitude error and 9.2 ms timing error. |
-| **Graph reordering (RCM / METIS)** | ❌ | Connectomes are hub-dominated scale-free graphs; bandwidth reduction is not the bottleneck. RCM excels on banded FEM matrices. Not cited as a win in the Loihi 2 work. |
-| **Synapse pruning / weight compression / faster SpMV** | ❌ | All attack the 0.14%. The obvious optimisation is the trap. |
-| **Quantising neuron state (fp16/bf16/int8)** | ❌ | State is only ~1.1 MB and cache-resident — wrong target. Also, `v ∈ [−52,−45]` sits in one binade so the −48 offset burns ~5 mantissa bits: fp16 ULP = 0.03125 mV vs a 5 µV per-step increment ⇒ **updates silently dropped entirely**. bf16 gives 28 levels across the whole range. *If ever needed:* shift to `u = v − v_rest` first (worth ~3 bits), use fp32 accumulators, or int16 Q3.13 (~15 usable bits). |
-| **Parareal / MGRIT** | ❌ | No SNN application exists; converges poorly on discontinuous systems and spike-reset is a hard discontinuity. *Possible* reframing: mean-field coarse propagator + exact fine, converging in Wasserstein rather than sup-norm — genuinely open, but speculative. |
-| **PSN / PSU / SPSN / DSN / SpikingSSMs** | ❌ | All obtain parallelism by **removing or approximating the reset** (stochastic firing, probabilistic reset, learned surrogate reset, dynamic decay). Fine for ML accuracy; **fatal for simulation fidelity**. |
+| Technique | Why not |
+|---|---|
+| **SparseProp rescale** ([arXiv:2312.17216](https://arxiv.org/abs/2312.17216)) | Math generalises (v_rest absorbs by translation; Jacobian triangular) but it is O(N)→O(N), not O(N)→O(log N). Needs univariate + delta-synapse + event-driven; we violate all three. Drives quiet neurons into **denormals** (~100+ cycles/op). |
+| **Multirate RK / IMEX / implicit** | Stiffness ratio is 4. Not stiff. dt sits ~100× below the FE stability limit — accuracy-bound, not stability-bound. |
+| **Krylov / Arnoldi / Lanczos** | The positive delay keeps coupling out of the generator; `A_net` is **block-diagonal with 2×2 blocks**, so `exp(A_net·h)` *is* the per-neuron propagator. |
+| **Magnus expansion** | `A` constant ⇒ Ω₁ = A·h, all commutators vanish. Reduces to `exp(Ah)`. |
+| **Exponential Rosenbrock** | Linearises via a Jacobian; our only nonlinearity is the reset — discontinuous, non-differentiable. |
+| **Strang splitting** | Order-2 needs two C₀-semigroups with bounded commutators. The reset is a projection at a state-dependent event time, not a flow. No generator ⇒ no commutator ⇒ no h² term. |
+| **Delta-synapse limit** | Needs ε = τ_s/τ_m ≪ 1; here ε = 0.25 ⇒ 59% amplitude error. |
+| **Graph reordering (RCM/METIS)** | Connectomes are hub-dominated scale-free; bandwidth reduction is not the bottleneck. Not cited as a win in the Loihi 2 work. |
+| **Synapse pruning / faster SpMV** | Attacks the 0.14%. The obvious optimisation is the trap. |
+| **Quantising neuron state to fp16/bf16** | `v ∈ [−52,−45]` sits in one binade; the −48 offset burns ~5 mantissa bits ⇒ fp16 ULP 0.03125 mV vs a 5 µV per-step increment ⇒ **updates silently dropped**. bf16 gives 28 levels total. *If needed:* shift to `u = v − v_rest` first, use int16 Q3.13 (~15 usable bits). |
+| **Parareal / MGRIT** | No SNN application; converges poorly on discontinuous systems and the reset is a hard discontinuity. |
+| **PSN / PSU / SPSN / DSN / SpikingSSMs** | All achieve parallelism by **removing or approximating the reset**. Fine for ML accuracy, fatal for simulation fidelity. |
+| **Static cost model for mode selection** | Calibrated at 18,548 candidates it was **11× wrong** at 69,000 (cache effects). Replaced by runtime measurement. |
 
 ---
 
-## 7. Assumptions that would invalidate this work
+## 7. What would invalidate this work
 
 Ranked by likelihood:
-
-1. **Tonic/background Poisson drive to *all* neurons** destroys the active set —
-   every neuron becomes an event. SparseProp names this explicitly. We are safe
-   only because Poisson hits 21 neurons.
-2. **High-firing protocols.** The 1.75 spikes/step figure is stimulus-specific.
-3. **Heterogeneous delays** collapse the 18-step window to the *minimum* delay.
-4. **True conductance coupling** `g·(E_rev − v)` makes the v-equation
-   non-autonomous with a per-neuron effective time constant ⇒ exact propagator
-   invalid, and the SparseProp-style rescale definitively dies.
-5. **Brief superthreshold excursions.** If staying hybrid rather than fully
-   event-driven, add the [Kunkel et al. 2011](https://pmc.ncbi.nlm.nih.gov/articles/PMC3240333/)
-   fail-safe cascade; miss probability ≤2.3e-4, but **worst in exactly our regime**
-   (low firing rate, low connectivity, strong coupling).
-6. **GPU at small active-set sizes** — compaction may cost more than a dense
-   139k-wide kernel. Measure before porting.
+1. **Tonic/background drive to all neurons** destroys the active set — SparseProp names this explicitly. Safe only because Poisson hits 21 neurons.
+2. **High-firing protocols** — 1.75 spikes/step is stimulus-specific.
+3. **Heterogeneous delays** collapse the window to the *minimum* delay.
+4. **True conductance coupling** `g·(E_rev − v)` makes the v-equation non-autonomous with per-neuron effective τ ⇒ exact propagator invalid.
+5. **Brief superthreshold excursions** — if hybrid rather than fully event-driven, add the [Kunkel et al. 2011](https://pmc.ncbi.nlm.nih.gov/articles/PMC3240333/) fail-safe cascade; miss probability ≤2.3e-4 but **worst in exactly our regime**.
+6. **GPU at small active sets** — compaction may cost more than a dense 139k-wide kernel. Measure before porting.
 
 ---
 
-## 8. Prior art and comparison
+## 8. Prior art
 
-### 8.1 Existing whole-brain *Drosophila* simulations
+[Wang et al. 2025, *Neuromorphic Simulation of Drosophila on Loihi 2*](https://arxiv.org/abs/2508.16792)
+(Sandia) — 140K neurons, 50M synapses, 12 chips. Wall-clock per simulated second:
 
-[Wang et al. 2025, *Neuromorphic Simulation of Drosophila Melanogaster Brain
-Connectome on Loihi 2*](https://arxiv.org/abs/2508.16792) (Sandia National Labs)
-— 140K neurons, 50M synapses on 12 Loihi 2 chips. Wall-clock per 1 s simulated,
-sugar-neuron experiment:
-
-| Simulator | s / sim-second |
+| Simulator | s/sim-second |
 |---|---|
-| Brian 2 (their reference) | 4419 ± 236 |
-| STACS (Sandia) | 2656 ± 80 |
-| Loihi 2 @ 0.1 ms | — |
+| Brian 2 (reference) | 4419 ± 236 |
+| STACS (Sandia, Charm++, 64 Summit nodes) | 2656 ± 80 |
+| **Eon PyTorch** (our measurement) | ~487 |
 | **Loihi 2 @ 1 ms** | **53.76 ± 0.9** |
 
-Reported **~3× to ~350× over Brian 2**, and — critically —
-*"speedups over 100× at **sparser** activity levels"* and *"performance advantages
-**increase with sparser activity**."* **This independently confirms our central
-thesis.**
-
+Reports ~3–350× over Brian 2, and *"speedups over 100× at sparser activity"*.
 🔑 **Their compromise is our opportunity:** at dt = 1 ms they rounded *both* the
-1.8 ms delay and 2.2 ms refractory to 2 ms (+11% / −9% error). Method-of-steps at
-dt = 1.8 ms keeps the delay exact by construction, and off-grid spike times (§5.3)
-keep refractory exact. **Same speed, without the accuracy loss.**
+1.8 ms delay and 2.2 ms refractory to 2 ms (+11% / −9% error). Method of steps at
+dt = 1.8 ms keeps the delay exact by construction.
+Note STACS gets only **1.66×** over Brian 2 on 64 HPC nodes — algorithmic structure
+matters far more than parallelism here. [STACS is open source](https://github.com/sandialabs/STACS).
 
-They also validate against Brian 2 as ground truth — reinforcing §4.
+### Key references
+**Exact integration & spike timing** — [Rotter & Diesmann 1999](https://link.springer.com/article/10.1007/s004220050570) · [Brette 2006](https://direct.mit.edu/neco/article/18/8/2004/7067/) · [Brette 2007](https://pubmed.ncbi.nlm.nih.gov/17716004/) · [Morrison et al. 2007](https://direct.mit.edu/neco/article/19/1/47/7159) · [Hanuschkin et al. 2010](https://www.frontiersin.org/journals/neuroinformatics/articles/10.3389/fninf.2010.00113/full) · [Hansel et al. 1998](https://direct.mit.edu/neco/article/10/2/467/6140/) · [Kunkel et al. 2011](https://pmc.ncbi.nlm.nih.gov/articles/PMC3240333/)
 
-### 8.2 Key references
+**Event-driven / sparsity** — [SparseProp](https://arxiv.org/abs/2312.17216) · [Mattia & Del Giudice 2000](https://pubmed.ncbi.nlm.nih.gov/11032036/) · [Cessac et al. 2008](https://arxiv.org/abs/0810.3992) · [Bautembach et al. 2021](https://arxiv.org/abs/2107.04092) · [Magalhães et al. 2020](https://arxiv.org/abs/1907.00670) · [EDLUT](https://direct.mit.edu/neco/article/18/12/2959/7115/)
 
-**Exact integration & spike timing**
-- [Rotter & Diesmann 1999, *Biol Cybern* 81:381](https://link.springer.com/article/10.1007/s004220050570) — matrix-exponential propagator (what NEST uses)
-- [Brette 2006, *Neural Comput* 18:2004](https://direct.mit.edu/neco/article/18/8/2004/7067/) — exact event-driven IF with exponential conductances
-- [Brette 2007, *Neural Comput* 19:2604](https://pubmed.ncbi.nlm.nih.gov/17716004/) — exponential currents via polynomial root-finding
-- [Morrison et al. 2007, *Neural Comput* 19:47](https://direct.mit.edu/neco/article/19/1/47/7159) — exact subthreshold integration + continuous spike times
-- [Hanuschkin et al. 2010, *Front Neuroinform* 4:113](https://www.frontiersin.org/journals/neuroinformatics/articles/10.3389/fninf.2010.00113/full) — precise spike times in time-driven simulation
-- [Krishnan et al. 2017, *Front Neuroinform*](https://arxiv.org/abs/1706.05702) — **perfect spike detection via time reversal** (necessary+sufficient crossing test)
-- [Hansel et al. 1998, *Neural Comput* 10:467](https://direct.mit.edu/neco/article/10/2/467/6140/) — grid detection destroys synchrony; interpolation restores O(h²)
-- [Kunkel et al. 2011](https://pmc.ncbi.nlm.nih.gov/articles/PMC3240333/) — fail-safe threshold-crossing detection
+**Parallel scan / SSM** — [Bullet Trains ICML 2026](https://arxiv.org/abs/2603.13283) (affine-map scan, **exact** reset via speculation, 44×) · [FPT ICML 2025](https://arxiv.org/abs/2506.12087) (fixed-point reset, K≈3) · [SPSN](https://arxiv.org/abs/2306.12666) · [PSN](https://arxiv.org/abs/2304.12760) · [SpikingSSMs](https://arxiv.org/abs/2408.14909)
 
-**Event-driven / sparse-activity**
-- [SparseProp, Engelken NeurIPS 2023](https://arxiv.org/abs/2312.17216)
-- [Mattia & Del Giudice 2000](https://pubmed.ncbi.nlm.nih.gov/11032036/) — min-delay as causality horizon
-- [Cessac et al. 2008](https://arxiv.org/abs/0810.3992) — numerical bounds to prune events
-- [Bautembach et al. HPEC 2021](https://arxiv.org/abs/2107.04092) — GPU lazy + work queues
-- [Magalhães et al. ICCS 2020](https://arxiv.org/abs/1907.00670) — async variable timestep, 24.6–228.5×
-- [Ros et al. 2006, EDLUT](https://direct.mit.edu/neco/article/18/12/2959/7115/)
+**Simulators** — [GeNN](https://www.nature.com/articles/srep18854) · [PyGeNN](https://www.frontiersin.org/articles/10.3389/fninf.2021.659005/full) · [Brian2CUDA](https://www.frontiersin.org/journals/neuroinformatics/articles/10.3389/fninf.2022.883700/full) · [Brian2GeNN](https://www.nature.com/articles/s41598-019-54957-7) · [Procedural connectivity](https://www.nature.com/articles/s43588-020-00022-7) · [NEST iaf_psc_exp](https://nest-simulator.readthedocs.io/en/latest/models/iaf_psc_exp.html)
 
-**Parallel scan / SSM**
-- [Bullet Trains, Morrill/Pehle/Zador ICML 2026](https://arxiv.org/abs/2603.13283) — affine-map scan, **exact** hard reset via speculation, 44×
-- [FPT, Feng et al. ICML 2025](https://arxiv.org/abs/2506.12087) — fixed-point reset iteration, O(K), K≈3
-- [SPSN, Yarga & Wood 2023](https://arxiv.org/abs/2306.12666) · [PSN, Fang et al. 2023](https://arxiv.org/abs/2304.12760) · [SpikingSSMs](https://arxiv.org/abs/2408.14909) — *all drop/approximate reset*
-
-**Simulators**
-- [GeNN, Nature Sci Rep 2016](https://www.nature.com/articles/srep18854) · [PyGeNN](https://www.frontiersin.org/articles/10.3389/fninf.2021.659005/full)
-- [Brian2CUDA](https://www.frontiersin.org/journals/neuroinformatics/articles/10.3389/fninf.2022.883700/full) · [Brian2GeNN](https://www.nature.com/articles/s41598-019-54957-7)
-- [Procedural connectivity, Knight & Nowotny 2021](https://www.nature.com/articles/s43588-020-00022-7)
-- [NEST `iaf_psc_exp`](https://nest-simulator.readthedocs.io/en/latest/models/iaf_psc_exp.html) · [Brian2 numerical integration](https://brian2.readthedocs.io/en/stable/user/numerical_integration.html)
-
-**Hardware / precision**
-- [Hopkins et al. 2020, *Phil Trans R Soc A*](https://arxiv.org/abs/1904.11263) — stochastic rounding beats fp32
-- [FeNN, Knight & Nowotny 2025](https://arxiv.org/html/2506.11760v1) — 16-bit fixed point, 79.5% vs 79.6% fp32
-- [Gupta et al. ICML 2015](https://arxiv.org/abs/1502.02551) — limited numerical precision / update swamping
+**Precision / hardware** — [Hopkins et al. 2020](https://arxiv.org/abs/1904.11263) (stochastic rounding beats fp32) · [FeNN 2025](https://arxiv.org/html/2506.11760v1) (16-bit fixed point, 79.5% vs 79.6%) · [Gupta et al. 2015](https://arxiv.org/abs/1502.02551)
 
 **Novelty gaps found (no hits across multiple query formulations)**
-1. Uniform delay as the **parallel-scan block length** ← strongest claim
+1. Uniform delay as the **integration timestep** / parallel-scan block ← strongest
 2. Parallel scan inside a fixed-Δt **simulator** (all scan work is ML training)
 3. **Two-state (V,G)** scan — published scans are scalar-V
 4. Exactness-preserving parallel simulation (only Bullet Trains qualifies)
 
 ---
 
-## 8.5 Delay-window stepping — measured results (2026-07-29)
+## 9. Method — rules that earned their place
 
-Implemented in `code/window_step.py` (kernels), `code/window_sim.py` (prototype)
-and `code/window_fast.py` (vectorised). Validation in `code/validate_window_*.py`.
+**Rule 1 — every performance change must be proven bit-identical.**
+`code/verify_pytorch_perf.py` (4 regimes), `flyloop/verify.py` (8 regimes). A
+change that alters output is an *accuracy* change and must be argued separately.
 
-### Accuracy — the strong result
-
-Deterministic 400-neuron network, fixed initial condition (no RNG), reference is
-a dt = 0.002 ms grid:
-
-| Method | Spikes | Count error | mean &#124;rate − truth&#124; |
-|---|---|---|---|
-| truth (dt = 0.002 ms) | 158 | — | — |
-| **grid dt = 0.1 ms** (their default) | 159 | **+1** | 0.0463 Hz |
-| **window dt = 1.8 ms** | **158** | **0** | **0.0000 Hz** |
-
-Window stepping matches the fine reference **exactly**; the dt = 0.1 ms grid does
-not. A separate sweep shows the grid error is systematic, not a fluke: dt = 0.1 ms
-lost ~10% of spikes (42 vs 47) and dt = 0.2 ms lost ~17% (39 vs 47). Coarse grids
-miss brief superthreshold excursions; off-grid spike times cannot.
-
-### Speed — activity-dependent, and honestly mixed
-
-Cost per window is `O(N)` predict + `O(segments × candidates)` repair, where
-**segments = spikes per window**. The grid is `O(18 × N)`, fully vectorised.
-So the window method wins only while spikes/window stays low:
-
-| Activity (spikes/window) | Speedup vs grid | Spike counts | Certified silent |
-|---|---|---|---|
-| 0.3 | **3.4 – 5.6×** | identical | 99.2 – 99.7% |
-| ~480 (cascading toy net) | **0.002×** (much slower) | identical | 91% |
-
-⚠️ **The real connectome sits at ~31 spikes/window** (1.75 spikes/step × 18) —
-*between* the two regimes tested, and **not yet measured**. The toy network could
-not be driven into that regime (it either dies out at ~0.3 or cascades to ~480),
-so the real-brain speedup is **unknown**, not established. Do not quote a number
-for it until measured on the actual connectome.
-
-### What would fix the high-activity regime
-
-The `O(segments × candidates)` term is the whole problem. Options, untried:
-- Bucket arrivals into a fixed small number of sub-slots per window instead of
-  one segment per distinct arrival time (introduces controlled error — needs a
-  bound before use).
-- Process only the candidates that actually receive an arrival in a given
-  segment, rather than all candidates every segment.
-- Move the segment loop into a compiled kernel (numba/C++), since the inner work
-  is already fully vectorised and the loop itself is the overhead.
-
----
-
-## 9. Method — how to work on this
-
-**Rule 1: every performance change must be proven bit-identical.**
-`code/verify_pytorch_perf.py` compares spike trains (time + neuron index) between
-old and new paths across 4 regimes. `flyloop/verify.py` does the same for the
-research engine across 8 regimes. A change that alters output is an *accuracy*
-change and must be argued separately (as §4 is).
-
-**Rule 2: measure before believing.** Two of my own confident claims were wrong:
+**Rule 2 — measure, don't model.** Things I was confidently wrong about:
 - "memory-bound" — true densely, false at active-set scale (dispatch-bound)
-- "SparseProp will give ~11×" — the math says it won't; a scout caught it *before*
-  implementation.
+- "SparseProp gives ~11×" — the math says no
+- "window stepping gives 18×" — real-scale measurement said 0.77×, then 1.05×, then 5.7×
+- static cost model — 11× wrong one operating point away
 
-**Rule 3: ask research questions that can come back negative.** The SparseProp and
-graph-reordering investigations both returned "don't do this", each saving days.
+**Rule 3 — ask research questions that can come back negative.** SparseProp and
+graph-reordering both returned "don't", each saving days.
 
-**Rule 4: sparsity is stimulus-dependent.** Always test the broad-stimulation and
+**Rule 4 — sparsity is stimulus-dependent.** Always test broad-stimulation and
 whole-brain regimes, not just sugar.
+
+**Rule 5 — the same mistake twice: worst case where the exact value was available.**
+Delivery bounded over all 15.1M synapses when 31 neurons fired; the silence bound
+assumed every synapse could fire when the delay makes arrivals *exactly known*.
+Look for this pattern.
 
 ---
 
 ## 10. Next steps, in order
 
-1. **Exact propagator + dt = 0.2 ms.** `gcd(1.8, 2.2) = 0.2`, so 0.2 ms is the
-   largest step keeping delay *and* refractory exact integers. **Free 2×.**
-2. **dt = 1.8 ms via method of steps** (§5.4) + the quartic solver (already built
-   and validated). **18×.** Requires off-grid refractory handling.
-3. **σ-factorised delivery** (§5.5) — 18 scatter rounds → 2 sparse mat-muls.
-4. **Validate against Brian 2** using their own `code/compare_ground_truth.py`.
-   *This is the gate that turns our numbers into a mergeable PR.*
-5. Re-time on an **idle** machine before quoting anything publicly.
-6. Only then: GPU port, warp-aggregated atomics, CUDA Graphs / persistent kernels.
+**General (help at any activity — prioritise these):**
+1. **Compiled kernel (numba/C++)** — removes numpy dispatch. Unmeasured, plausibly 2–5×. **Largest untapped item.**
+2. **int16 state in shifted coords** `u = v − v_rest ∈ [0,7]`, Q3.13 (~15 usable bits vs fp16's 7.8). Halves the dominant traffic.
+3. **uint16 connectome weights** — counts are small integers ⇒ **lossless**, halves ~200 MB of connectome traffic.
+4. Finish wiring σ-factorisation into `run_pytorch.py` to delete the delay buffer there (1.16×, unconditional).
 
-**Not yet done:** fork not created (`gh auth login` pending — **use HTTPS**, Git
-Credential Manager is already configured). No PR opened. Nothing pushed publicly.
+**Conditional (sparse regimes):**
+5. Wire `ModeSelector` into a single production stepper.
+6. Use cheap advance+compare per segment; quartic only to time actual crossings (38× per §2.9).
+
+**Validation (gates a PR):**
+7. **Validate against Brian 2 via their own `code/compare_ground_truth.py`.** Not yet done. This is the gate.
+8. End-to-end wall-clock of the full sugar experiment (current 5.7× is a *cost-model composition* of measured parts, not one run).
+9. Re-time on an **idle** machine — all timings here are from a loaded laptop; ratios are stable, absolute seconds inflated.
+
+**Not done deliberately:** no PR opened to Eon. Their repo is a benchmark;
+changing one backend's numbers alters their published comparison, which is a
+conversation to have with them, not something to slip in.
