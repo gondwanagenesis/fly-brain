@@ -145,7 +145,10 @@ def _load(force_build=False):
     lib.lif_step.restype = ctypes.c_int
     lib.lif_step.argtypes = [
         ctypes.c_int,                                    # n
-        c_f32p, c_f32p, c_f32p, c_f32p,                  # v g refrac refrac_steps
+        c_f32p, c_f32p,                                  # v, g
+        c_u64p, c_u64p,                                  # gate_bits, in_ref
+        c_i32p, c_i32p, ctypes.POINTER(ctypes.c_int),    # rc_idx, rc_cnt, n_ref
+        c_i32p,                                          # refrac_steps (int32)
         c_u64p, c_u64p,                                  # sp_bits, sp_scratch
         ctypes.c_float, ctypes.c_float,                  # c_decay c_mem
         ctypes.c_float, ctypes.c_float, ctypes.c_float,  # v_rest v_reset v_th
@@ -232,8 +235,19 @@ class NativeBrainEngine:
         self.v = np.full(N, np.float32(self.p["v0"]), dtype=np.float32)
         self.g = np.zeros(N, dtype=np.float32)
         base_refrac = int(round(self.p["tRefrac"] / dt))
-        self.refrac = np.full(N, np.float32(base_refrac), dtype=np.float32)
-        self.refrac_steps = np.full(N, np.float32(base_refrac), dtype=np.float32)
+        self.refrac_steps = np.full(N, base_refrac, dtype=np.int32)
+        # Refractory state as a gate bitset plus a compact countdown list. Only
+        # ~40 neurons are refractory at once (1.75 spikes/step x 22 steps), so a
+        # dense fp32 counter cost 554 KB of sweep traffic each way for nothing.
+        # All gates start OPEN, matching the reference's initial
+        # refrac == refrac_steps.
+        _nw = (N + 63) >> 6
+        self.gate_bits = np.full(_nw + 1, np.uint64(0xFFFFFFFFFFFFFFFF),
+                                 dtype=np.uint64)
+        self.in_ref = np.zeros(_nw + 1, dtype=np.uint64)
+        self.rc_idx = np.zeros(N, dtype=np.int32)
+        self.rc_cnt = np.zeros(N, dtype=np.int32)
+        self.n_ref = ctypes.c_int(0)
 
         # Mirror ATen's at::parallel_for partition of an N-element tensor, so
         # the kernel's scalar tails land on the same neurons as the reference's
@@ -349,8 +363,11 @@ class NativeBrainEngine:
         f, i32, u64 = ctypes.c_float, ctypes.c_int32, ctypes.c_uint64
         self._pv = _p(self.v, f)
         self._pg = _p(self.g, f)
-        self._prf = _p(self.refrac, f)
-        self._prs = _p(self.refrac_steps, f)
+        self._pgate = _p(self.gate_bits, u64)
+        self._pinref = _p(self.in_ref, u64)
+        self._prci = _p(self.rc_idx, i32)
+        self._prcc = _p(self.rc_cnt, i32)
+        self._prs = _p(self.refrac_steps, i32)
         self._pspb = _p(self.sp_bits, u64)
         self._pspc = _p(self._sp_scratch, u64)
         self._pchunk = _p(self.chunks, i32)
@@ -397,7 +414,7 @@ class NativeBrainEngine:
     def set_stim_neurons(self, flywire_ids):
         idx = [self.flyid2i[int(i)] for i in flywire_ids if int(i) in self.flyid2i]
         self.stim_idx = np.asarray(idx, dtype=np.int32)
-        self.refrac_steps[self.stim_idx] = np.float32(0.0)
+        self.refrac_steps[self.stim_idx] = 0
         self._stim_val = np.zeros(len(idx), dtype=np.float32)
         self._rates = torch.zeros(len(idx))
         self._poi_block = None
@@ -437,7 +454,10 @@ class NativeBrainEngine:
         cf = self._cf
         nsp = self.lib.lif_step(
             N,
-            self._pv, self._pg, self._prf, self._prs,
+            self._pv, self._pg,
+            self._pgate, self._pinref,
+            self._prci, self._prcc, ctypes.byref(self.n_ref),
+            self._prs,
             self._pspb, self._pspc,
             cf["c_decay"], cf["c_mem"], cf["v_rest"], cf["v_reset"], cf["v_th"],
             self._pdel_i[h], self._pdel_v[h], self._del_n[h],

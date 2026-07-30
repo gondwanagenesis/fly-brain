@@ -84,7 +84,7 @@
 /* neighbouring chunk, so those are OR-ed atomically -- two atomics per chunk */
 /* rather than one per vector group.                                          */
 /* ------------------------------------------------------------------------ */
-static inline uint32_t get_bits(const uint64_t *b, int i, int n)
+__attribute__((unused)) static inline uint32_t get_bits(const uint64_t *b, int i, int n)
 {
     const int w = i >> 6, s = i & 63;
     uint64_t x = b[w] >> s;
@@ -120,8 +120,6 @@ static inline void put_bits(uint64_t *b, int i, uint32_t m, int n, int wf, int w
 /* ------------------------------------------------------------------------ */
 #define LIF_BODY(USE_FMA)                                                     \
     for (int i = lo; i < hi; ++i) {                                           \
-        const uint64_t was = BIT_GET(sp_in, i);                               \
-        const float r = was ? 0.0f : refrac[i] + 1.0f;                        \
         const float gi = g[i];                                                \
         const float gn = gi * c_decay;                                        \
         const float vv = v[i];                                                \
@@ -132,7 +130,6 @@ static inline void put_bits(uint64_t *b, int i, uint32_t m, int n, int wf, int w
         const uint64_t sp = (vn > v_th) ? 1ULL : 0ULL;                        \
         v[i] = sp ? v_reset : vn;                                             \
         g[i] = sp ? 0.0f : gn;                                                \
-        refrac[i] = r;                                                        \
         if (sp) or_word(sp_out, i >> 6, 1ULL << (i & 63), wf, wl);            \
     }
 
@@ -140,8 +137,7 @@ static inline void put_bits(uint64_t *b, int i, uint32_t m, int n, int wf, int w
  * ATen's non-fused scalar tail, and the fallback on hosts without AVX2. */
 static void sweep_scalar(int lo, int hi, int use_fma,
                          float *restrict v, float *restrict g,
-                         float *restrict refrac,
-                         const uint64_t *restrict sp_in, uint64_t *restrict sp_out,
+                         uint64_t *restrict sp_out,
                          float c_decay, float c_mem,
                          float v_rest, float v_reset, float v_th,
                          int wf, int wl)
@@ -159,8 +155,7 @@ static void sweep_scalar(int lo, int hi, int use_fma,
 __attribute__((target("avx512f,avx512bw,avx512dq")))
 static int sweep_avx512(int lo, int hi,
                         float *restrict v, float *restrict g,
-                        float *restrict refrac,
-                        const uint64_t *restrict sp_in, uint64_t *restrict sp_out,
+                        uint64_t *restrict sp_out,
                         float c_decay, float c_mem,
                         float v_rest, float v_reset, float v_th,
                         int wf, int wl)
@@ -168,16 +163,13 @@ static int sweep_avx512(int lo, int hi,
     const __m512 vc_decay = _mm512_set1_ps(c_decay), vc_mem = _mm512_set1_ps(c_mem);
     const __m512 vv_rest = _mm512_set1_ps(v_rest), vv_reset = _mm512_set1_ps(v_reset);
     const __m512 vv_th = _mm512_set1_ps(v_th);
-    const __m512 vone = _mm512_set1_ps(1.0f), vzero = _mm512_setzero_ps();
+    const __m512 vzero = _mm512_setzero_ps();
 
     int i = lo;
     for (; i + 16 <= hi; i += 16) {
-        const __mmask16 was = (__mmask16)get_bits(sp_in, i, 16);
-        const __m512 rf = _mm512_loadu_ps(refrac + i);
         const __m512 gi = _mm512_loadu_ps(g + i);
         const __m512 vv = _mm512_loadu_ps(v + i);
 
-        const __m512 r  = _mm512_mask_blend_ps(was, _mm512_add_ps(rf, vone), vzero);
         const __m512 gn = _mm512_mul_ps(gi, vc_decay);
         const __m512 t  = _mm512_add_ps(_mm512_sub_ps(vv_rest, vv), gi);
         const __m512 vn = _mm512_fmadd_ps(t, vc_mem, vv);      /* one rounding */
@@ -185,7 +177,6 @@ static int sweep_avx512(int lo, int hi,
 
         _mm512_storeu_ps(v + i,      _mm512_mask_blend_ps(sp, vn, vv_reset));
         _mm512_storeu_ps(g + i,      _mm512_mask_blend_ps(sp, gn, vzero));
-        _mm512_storeu_ps(refrac + i, r);
         put_bits(sp_out, i, (uint32_t)sp, 16, wf, wl);
     }
     return i;
@@ -196,8 +187,7 @@ static int sweep_avx512(int lo, int hi,
 __attribute__((target("avx2,fma")))
 static int sweep_avx2(int lo, int hi,
                       float *restrict v, float *restrict g,
-                      float *restrict refrac,
-                      const uint64_t *restrict sp_in, uint64_t *restrict sp_out,
+                      uint64_t *restrict sp_out,
                       float c_decay, float c_mem,
                       float v_rest, float v_reset, float v_th,
                       int wf, int wl)
@@ -205,22 +195,14 @@ static int sweep_avx2(int lo, int hi,
     const __m256 vc_decay = _mm256_set1_ps(c_decay), vc_mem = _mm256_set1_ps(c_mem);
     const __m256 vv_rest = _mm256_set1_ps(v_rest), vv_reset = _mm256_set1_ps(v_reset);
     const __m256 vv_th = _mm256_set1_ps(v_th);
-    const __m256 vone = _mm256_set1_ps(1.0f), vzero = _mm256_setzero_ps();
+    const __m256 vzero = _mm256_setzero_ps();
 
     int i = lo;
     for (; i + 8 <= hi; i += 8) {
-        const uint32_t wasm = get_bits(sp_in, i, 8);
-        /* expand 8 bits to an 8-lane all-ones/all-zeros mask */
-        const __m256i bidx = _mm256_setr_epi32(1, 2, 4, 8, 16, 32, 64, 128);
-        const __m256i wasv = _mm256_and_si256(_mm256_set1_epi32((int)wasm), bidx);
-        const __m256 was = _mm256_castsi256_ps(
-            _mm256_cmpeq_epi32(wasv, bidx));
 
-        const __m256 rf = _mm256_loadu_ps(refrac + i);
         const __m256 gi = _mm256_loadu_ps(g + i);
         const __m256 vv = _mm256_loadu_ps(v + i);
 
-        const __m256 r  = _mm256_blendv_ps(_mm256_add_ps(rf, vone), vzero, was);
         const __m256 gn = _mm256_mul_ps(gi, vc_decay);
         const __m256 t  = _mm256_add_ps(_mm256_sub_ps(vv_rest, vv), gi);
         const __m256 vn = _mm256_fmadd_ps(t, vc_mem, vv);      /* one rounding */
@@ -228,7 +210,6 @@ static int sweep_avx2(int lo, int hi,
 
         _mm256_storeu_ps(v + i,      _mm256_blendv_ps(vn, vv_reset, sp));
         _mm256_storeu_ps(g + i,      _mm256_blendv_ps(gn, vzero, sp));
-        _mm256_storeu_ps(refrac + i, r);
         put_bits(sp_out, i, (uint32_t)_mm256_movemask_ps(sp), 8, wf, wl);
     }
     return i;
@@ -303,8 +284,7 @@ EXPORT int lif_force_isa(int isa)
 /* ------------------------------------------------------------------------ */
 static void sweep_chunk(int lo, int hi, int tail_w,
                         float *restrict v, float *restrict g,
-                        float *restrict refrac,
-                        const uint64_t *restrict sp_in, uint64_t *restrict sp_out,
+                        uint64_t *restrict sp_out,
                         float c_decay, float c_mem,
                         float v_rest, float v_reset, float v_th)
 {
@@ -315,19 +295,19 @@ static void sweep_chunk(int lo, int hi, int tail_w,
     int i = lo;
 #ifdef LIF_X86
     if (g_isa == ISA_AVX512)
-        i = sweep_avx512(i, vec_end, v, g, refrac, sp_in, sp_out,
+        i = sweep_avx512(i, vec_end, v, g, sp_out,
                          c_decay, c_mem, v_rest, v_reset, v_th, wf, wl);
     else if (g_isa == ISA_AVX2)
-        i = sweep_avx2(i, vec_end, v, g, refrac, sp_in, sp_out,
+        i = sweep_avx2(i, vec_end, v, g, sp_out,
                        c_decay, c_mem, v_rest, v_reset, v_th, wf, wl);
 #endif
     /* still inside ATen's vectorised region -> FMA */
     if (i < vec_end)
-        sweep_scalar(i, vec_end, 1, v, g, refrac, sp_in, sp_out,
+        sweep_scalar(i, vec_end, 1, v, g, sp_out,
                      c_decay, c_mem, v_rest, v_reset, v_th, wf, wl);
     /* ATen's scalar tail -> NO FMA */
     if (vec_end < hi)
-        sweep_scalar(vec_end, hi, 0, v, g, refrac, sp_in, sp_out,
+        sweep_scalar(vec_end, hi, 0, v, g, sp_out,
                      c_decay, c_mem, v_rest, v_reset, v_th, wf, wl);
 }
 
@@ -362,8 +342,7 @@ static void sweep_chunk(int lo, int hi, int tail_w,
 typedef struct {
     int kind;                     /* 0 = neuron sweep, 1 = synaptic fan-out */
     int lo, hi, tail_w;
-    float *v, *g, *refrac;
-    const uint64_t *sp_in;
+    float *v, *g;
     uint64_t *sp_out;
     float c_decay, c_mem, v_rest, v_reset, v_th;
     /* fan-out job */
@@ -464,9 +443,8 @@ static void fanout_serial(const job_t *j)
 static void run_job(const job_t *j)
 {
     if (j->kind == 1) { fanout_range(j); return; }
-    sweep_chunk(j->lo, j->hi, j->tail_w, j->v, j->g, j->refrac,
-                j->sp_in, j->sp_out, j->c_decay, j->c_mem,
-                j->v_rest, j->v_reset, j->v_th);
+    sweep_chunk(j->lo, j->hi, j->tail_w, j->v, j->g, j->sp_out,
+                j->c_decay, j->c_mem, j->v_rest, j->v_reset, j->v_th);
 }
 
 static void spin_until(volatile long *addr, long target_gt)
@@ -533,23 +511,21 @@ EXPORT int lif_set_threads(int n)
 }
 
 static void sweep_all(const int32_t *chunks, int n_chunks, int tail_w,
-                      float *v, float *g, float *refrac,
-                      const uint64_t *sp_in, uint64_t *sp_out,
+                      float *v, float *g, uint64_t *sp_out,
                       float c_decay, float c_mem,
                       float v_rest, float v_reset, float v_th)
 {
     if (!POOL.started || POOL.nthreads < 2 || n_chunks != POOL.nthreads) {
         for (int c = 0; c < n_chunks; ++c)
-            sweep_chunk(chunks[c], chunks[c + 1], tail_w, v, g, refrac,
-                        sp_in, sp_out, c_decay, c_mem, v_rest, v_reset, v_th);
+            sweep_chunk(chunks[c], chunks[c + 1], tail_w, v, g, sp_out,
+                        c_decay, c_mem, v_rest, v_reset, v_th);
         return;
     }
     for (int c = 0; c < n_chunks; ++c) {
         job_t *j = &POOL.jobs[c];
         j->kind = 0;
         j->lo = chunks[c]; j->hi = chunks[c + 1]; j->tail_w = tail_w;
-        j->v = v; j->g = g; j->refrac = refrac;
-        j->sp_in = sp_in; j->sp_out = sp_out;
+        j->v = v; j->g = g; j->sp_out = sp_out;
         j->c_decay = c_decay; j->c_mem = c_mem;
         j->v_rest = v_rest; j->v_reset = v_reset; j->v_th = v_th;
     }
@@ -568,7 +544,10 @@ static void sweep_all(const int32_t *chunks, int n_chunks, int tail_w,
 /* ------------------------------------------------------------------------ */
 EXPORT int lif_step(
     int n,
-    float *v, float *g, float *refrac, const float *refrac_steps,
+    float *v, float *g,
+    uint64_t *gate_bits, uint64_t *in_ref,
+    int32_t *rc_idx, int32_t *rc_cnt, int *n_ref_io,
+    const int32_t *refrac_steps,
     uint64_t *sp_bits, uint64_t *sp_scratch,
     float c_decay, float c_mem,
     float v_rest, float v_reset, float v_th,
@@ -585,8 +564,29 @@ EXPORT int lif_step(
     for (int k = 0; k < n_stim; ++k)
         v[stim_idx[k]] += stim_val[k];
 
+    /* --- advance the refractory countdowns BEFORE the delayed pass reads the
+     *     gate. Walked over the compact list, never over all N, and
+     *     deliberately OUTSIDE the sweep: a refractory neuron sits at
+     *     v == v_rest and g == 0 exactly, so it is bit-indistinguishable from a
+     *     resting one; if this ever rode along inside a skippable sweep the gate
+     *     would never reopen and the neuron would be deaf for the rest of the
+     *     run. --- */
+    {
+        int n_ref = *n_ref_io, m = 0;
+        for (int k = 0; k < n_ref; ++k) {
+            const int i = rc_idx[k];
+            if (--rc_cnt[i] <= 0) {                       /* gate reopens */
+                gate_bits[i >> 6] |= 1ULL << (i & 63);
+                in_ref[i >> 6] &= ~(1ULL << (i & 63));
+            } else {
+                rc_idx[m++] = i;
+            }
+        }
+        *n_ref_io = m;
+    }
+
     memset(sp_scratch, 0, (size_t)(nw + 1) * sizeof(uint64_t));
-    sweep_all(chunks, n_chunks, tail_w, v, g, refrac, sp_bits, sp_scratch,
+    sweep_all(chunks, n_chunks, tail_w, v, g, sp_scratch,
               c_decay, c_mem, v_rest, v_reset, v_th);
 
     /* --- delayed synaptic input.
@@ -601,7 +601,7 @@ EXPORT int lif_step(
     for (int k = 0; k < n_del; ++k) {
         const int i = del_idx[k];
         if (!BIT_GET(sp_scratch, i)) {
-            const float gate = (refrac[i] >= refrac_steps[i]) ? 1.0f : 0.0f;
+            const float gate = BIT_GET(gate_bits, i) ? 1.0f : 0.0f;
             g[i] = g[i] + del_val[k] * gate;
         }
     }
@@ -618,6 +618,25 @@ EXPORT int lif_step(
 #endif
             out_spike_idx[nsp++] = (w << 6) + t;
             b &= b - 1;
+        }
+    }
+
+    /* --- neurons that spiked THIS step enter refractoriness.
+     *
+     * c = refrac_steps + 1, NOT refrac_steps. The reference's gate is closed for
+     * steps t+1..t+refrac_steps and reopens at t+refrac_steps+1, and the
+     * decrement above runs once per step before the gate is read; using
+     * refrac_steps here reopens one step early and admits one step of input the
+     * reference discards. A neuron already counting simply has its count reset,
+     * which is what a re-spike means. --- */
+    for (int k = 0; k < nsp; ++k) {
+        const int i = out_spike_idx[k];
+        rc_cnt[i] = refrac_steps[i] + 1;
+        const uint64_t m = 1ULL << (i & 63);
+        gate_bits[i >> 6] &= ~m;
+        if (!(in_ref[i >> 6] & m)) {
+            in_ref[i >> 6] |= m;
+            rc_idx[(*n_ref_io)++] = i;
         }
     }
 
