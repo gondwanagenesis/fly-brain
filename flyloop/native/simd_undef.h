@@ -1,0 +1,29 @@
+/* Clear the generic SIMD op names so sweep_template.h can be included again
+ * for the next instruction set. Included at the end of every instantiation. */
+#undef FN
+#undef FN_ATTR
+#undef VW
+#undef VF
+#undef VM
+#undef VSET1
+#undef VLOADM
+#undef VSTOREM
+#undef VADD
+#undef VSUB
+#undef VMUL
+#undef VDIV
+#undef VFMA
+#undef VMIN
+#undef VMAX
+#undef VGT
+#undef VGE
+#undef VLT
+#undef VAND
+#undef VOR
+#undef VSEL
+#undef VBITS
+#undef VANY
+#undef VMASK_LOW
+#undef VMFALSE
+#undef VSCALEF
+#undef VROUND

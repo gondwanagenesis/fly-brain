@@ -1,0 +1,22 @@
+per-model whole-brain benchmark   N=138,639   threads=4   min of 7 x 400 steps
+real time = 0.1000 ms/step
+
+PyTorch dense baseline (ms/step): silent 2.459  P9 (2) 4.021  sugar (21) 5.017  broad (1000) 6.402
+
+model       aux                silent                P9 (2)            sugar (21)          broad (1000)
+                  ms/step   rt  live%   ms/step   rt  live%   ms/step   rt  live%   ms/step   rt  live%
+-------------------------------------------------------------------------------------------------------
+lif_euler     0    0.0522  1.91x   0.1%   0.0684  1.46x  14.6%   0.0966  1.04x  28.5%   0.7651  0.13x  96.3%
+lif_exact     0    0.0490  2.04x   0.1%   0.0614  1.63x  14.6%   0.1080  0.93x  28.8%   0.7177  0.14x  96.3%
+izhikevich    1    0.0556  1.80x   0.1%   0.0521  1.92x  10.8%   0.0745  1.34x   7.5%   0.3428  0.29x  94.6%
+adex          1    0.0542  1.84x   0.1%   0.1320  0.76x  13.6%   0.2922  0.34x  58.8%   1.3699  0.07x  96.8%
+eif           0    0.0556  1.80x   0.1%   0.1024  0.98x  71.4%   0.2907  0.34x  69.7%   1.6737  0.06x  98.7%
+qif           0    0.0487  2.05x   0.1%   0.0779  1.28x  16.6%   0.1154  0.87x  31.0%   0.6452  0.15x  97.1%
+raf           1    0.0569  1.76x   0.1%   0.0613  1.63x  11.1%   0.0850  1.18x  58.2%   1.1076  0.09x  95.1%
+hh            4    0.0724  1.38x   0.1%   0.2629  0.38x   3.3%   0.2380  0.42x   2.6%   3.8232  0.03x  94.1%
+glif          1    0.0543  1.84x   0.1%   0.0624  1.60x  14.6%   0.0976  1.02x  17.8%   0.6133  0.16x  96.2%
+-------------------------------------------------------------------------------------------------------
+rt    = multiples of real time (1.00x = 0.1 ms/step)
+live% = tiles that could NOT be skipped; the win is 100 - live%
+
+wrote C:\Users\neogo\Documents\FlyBrain\data\results\model_benchmark.json

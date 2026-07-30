@@ -28,175 +28,36 @@ spike trains identical against BrainEngine across every stimulation regime.
 from __future__ import annotations
 
 import ctypes
-import hashlib
-import subprocess
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import torch
 
+import models as nrn_models
 from brain_engine import MODEL_PARAMS, DT
-
-_HERE = Path(__file__).resolve().parent
-_SRC = _HERE / "native" / "lif_kernel.c"
-_DLL = _HERE / "native" / "lif_kernel.dll"
-
-_CLANG = Path(
-    r"C:\Users\neogo\AppData\Local\Programs\Swift\Toolchains"
-    r"\6.3.2+Asserts\usr\bin\clang.exe"
-)
-
-# -ffp-contract=off is MANDATORY: without it the compiler fuses the conductance
-# decay's mul+add into an FMA, which rounds once instead of twice and breaks
-# bit-identity with torch. -ffast-math would break it far more thoroughly.
-#
-# Deliberately NO -march=native. The kernel selects AVX-512 / AVX2 / scalar at
-# RUNTIME via __builtin_cpu_supports, so one binary runs on any x86-64 (and on
-# other architectures via the scalar path). Building with -march=native would
-# produce a library that only runs on the machine that compiled it.
-_CFLAGS = ["-shared", "-O3", "-ffp-contract=off",
-           "-fno-fast-math", "-std=c11", "-Wall"]
-
-_ISA_NAME = {0: "scalar", 1: "AVX2", 2: "AVX-512"}
-
-
-def aten_vector_width():
-    """ATen's float vector width on THIS host.
-
-    The kernel has to reproduce the position of ATen's scalar tail, and that
-    position depends on how the installed PyTorch was built, not on what this
-    kernel can execute. torch reports its dispatched capability directly.
-
-    ATen's fallback Vectorized<float> is a 32-byte array, i.e. 8 floats, so
-    non-AVX512 builds all use 8.
-    """
-    try:
-        cap = str(torch.backends.cpu.get_cpu_capability()).upper()
-    except Exception:
-        return 8
-    return 16 if "AVX512" in cap else 8
-
-
-def _dll_for(src_text, salt=""):
-    """Content-addressed DLL name.
-
-    Windows Smart App Control (VerifiedAndReputablePolicyState = 1) blocks
-    unsigned binaries it has not vouched for, and it blocks them by FILE
-    IDENTITY: once `lif_kernel.dll` is on its list, every rebuild to that same
-    path fails to load with WinError 4551, while a byte-identical library under
-    a different name loads fine (verified directly). Naming the artefact after
-    a hash of the source therefore side-steps the block *and* gives us a free
-    build cache -- an unchanged source maps to an already-compiled file.
-
-    `salt` exists for the retry path below: if a specific hash-named file does
-    get blocked, changing the salt yields a new identity to try.
-    """
-    h = hashlib.sha256((src_text + salt).encode()).hexdigest()[:12]
-    return _HERE / "native" / f"lif_{h}.dll"
-
-
-def _build(force=False, salt=""):
-    src = _SRC.read_text(encoding="utf-8")
-    dll = _dll_for(src, salt)
-    if force or not dll.exists():
-        cc = str(_CLANG) if _CLANG.exists() else "clang"
-        subprocess.run([cc, *_CFLAGS, "-o", str(dll), str(_SRC)],
-                       check=True, capture_output=True)
-    return dll
-
-
-def _load(force_build=False):
-    # Retry under fresh file identities if Smart App Control blocks one.
-    last = None
-    for attempt in range(4):
-        dll = _build(force=force_build, salt="" if not attempt else f"#{attempt}")
-        try:
-            lib = ctypes.CDLL(str(dll))
-            break
-        except OSError as e:
-            last = e
-            if "4551" not in str(e) and "Application Control" not in str(e):
-                raise
-            try:
-                dll.unlink()
-            except OSError:
-                pass
-    else:
-        raise OSError(
-            "Every build was blocked by Windows Application Control (Smart App "
-            "Control). It blocks unsigned binaries by file identity; four "
-            f"distinct identities were refused. Last error: {last}"
-        )
-    c_f32p = ctypes.POINTER(ctypes.c_float)
-    c_i32p = ctypes.POINTER(ctypes.c_int32)
-    c_i64p = ctypes.POINTER(ctypes.c_int64)
-    c_u64p = ctypes.POINTER(ctypes.c_uint64)
-
-    lib.lif_set_threads.restype = ctypes.c_int
-    lib.lif_set_threads.argtypes = [ctypes.c_int]
-
-    lib.lif_isa.restype = ctypes.c_int
-    lib.lif_isa.argtypes = []
-
-    lib.lif_force_isa.restype = ctypes.c_int
-    lib.lif_force_isa.argtypes = [ctypes.c_int]
-
-    lib.lif_step.restype = ctypes.c_int
-    lib.lif_step.argtypes = [
-        ctypes.c_int,                                    # n
-        c_f32p, c_f32p,                                  # v, g
-        c_u64p, c_u64p,                                  # gate_bits, in_ref
-        c_i32p, c_i32p, ctypes.POINTER(ctypes.c_int),    # rc_idx, rc_cnt, n_ref
-        c_i32p,                                          # refrac_steps (int32)
-        c_u64p, c_u64p,                                  # sp_bits, sp_scratch
-        ctypes.c_float, ctypes.c_float,                  # c_decay c_mem
-        ctypes.c_float, ctypes.c_float, ctypes.c_float,  # v_rest v_reset v_th
-        c_i32p, c_f32p, ctypes.c_int,                    # delayed
-        c_i32p, c_f32p, ctypes.c_int,                    # stim
-        c_i32p, ctypes.c_int, ctypes.c_int,              # chunk bounds, tail width
-        c_i32p, ctypes.POINTER(ctypes.c_uint8), c_u64p,  # tile_lo, tile_fma, live
-        c_u64p,                                          # fma_bits (per neuron)
-        c_u64p, c_i32p,                                  # tile_pin, chunk_tile
-        c_i32p, ctypes.c_int, ctypes.c_int,              # neuron_tile, n_tiles, rescan
-        c_i32p,                                          # out_spike_idx
-    ]
-
-    lib.lif_fanout.restype = ctypes.c_int
-    lib.lif_fanout.argtypes = [
-        ctypes.c_int,                                     # n
-        c_i32p, ctypes.c_int,                             # spike_idx, nsp
-        c_i64p, c_i32p, ctypes.POINTER(ctypes.c_int16),   # crow post val(int16)
-        ctypes.c_float,                                   # w_scale
-        c_i32p, c_i32p, c_u64p,                           # acc(int32), touched, bits
-        c_i32p, c_f32p, ctypes.c_int,                     # out_idx, out_val, threaded
-    ]
-    return lib
-
-
-_LIB = None
-
-
-def _lib(force_build=False):
-    global _LIB
-    if _LIB is None or force_build:
-        _LIB = _load(force_build)
-    return _LIB
-
-
-def _p(a, t):
-    return a.ctypes.data_as(ctypes.POINTER(t))
-
+from native_lib import ISA_NAME as _ISA_NAME, aten_vector_width, lib as _lib, ptr as _p
 
 class NativeBrainEngine:
     """Whole-brain LIF stepped by the fused native kernel."""
 
     def __init__(self, data_dir="data", params=None, dt=DT, stim_ids=None,
                  seed=0, force_build=False, threads=None, silence_ids=None,
-                 reorder=None):
+                 reorder=None, model="lif_euler"):
         self.lib = _lib(force_build)
         self.p = dict(params or MODEL_PARAMS)
         self.dt = dt
+
+        # ---- the membrane model ----
+        # Everything below this line is network machinery and is IDENTICAL for
+        # all nine models: the connectome, the 1.8 ms delay ring, the
+        # event-driven fan-out, the refractory gate, the tiles and the thread
+        # pool. Only `spec` changes. See models.py for why the non-reference
+        # models are calibrated rather than copied out of their papers.
+        self.spec = nrn_models.build(model, dt=dt) if isinstance(model, str) \
+            else model
+        self.model = self.spec.key
+        self.n_aux = self.spec.n_aux
         d = Path(data_dir)
 
         comp = pd.read_csv(d / "2025_Completeness_783.csv", index_col=0)
@@ -241,11 +102,33 @@ class NativeBrainEngine:
         self.v_reset = np.float32(self.p["vReset"])
         self.v_th = np.float32(self.p["vThreshold"])
         self.w_scale = np.float32(self.p["wScale"])
-        self._poi_scale = np.float32(self.p["scalePoisson"] * self.p["wScale"])
+        # Poisson drive is injected straight into v, bypassing the synapse, so
+        # unlike the recurrent input it does not pass through the model's k_in.
+        # Scale it by the ratio of threshold gaps instead, so that one sensory
+        # event moves the membrane the same FRACTION of the way to threshold in
+        # every model. Without this, switching to Izhikevich (a 20 mV gap) or
+        # Hodgkin-Huxley (65 mV) would silently weaken the sensory drive by 3x
+        # to 9x and the model comparison would be measuring that instead.
+        _gap = float(self.spec.params.v_th) - float(self.spec.rest[0])
+        self._gap_ratio = _gap / (MODEL_PARAMS["vThreshold"] - MODEL_PARAMS["vRest"])
+        self._poi_scale = np.float32(
+            self.p["scalePoisson"] * self.p["wScale"] * self._gap_ratio)
 
         # ---- state ----
-        self.v = np.full(N, np.float32(self.p["v0"]), dtype=np.float32)
+        # v starts at the model's OWN resting fixed point, which models.build()
+        # located by relaxing the kernel rather than by quoting a textbook: for
+        # Izhikevich it is a root of a quadratic and for Hodgkin-Huxley the
+        # solution of a transcendental system, and only a state the update maps
+        # to itself bit-for-bit may be skipped as inert.
+        self.v = np.full(N, self.spec.init[0], dtype=np.float32)
         self.g = np.zeros(N, dtype=np.float32)
+        # Auxiliary state, (n_aux, N) contiguous: Izhikevich's u, AdEx's w,
+        # resonate-and-fire's y, HH's m/h/n/armed, GLIF's theta.
+        self.aux = (np.repeat(self.spec.init[1:].astype(np.float32), N)
+                    .reshape(self.n_aux, N).copy()
+                    if self.n_aux else np.zeros(1, dtype=np.float32))
+        self.aux = np.ascontiguousarray(self.aux)
+        self.rest = np.ascontiguousarray(self.spec.rest.astype(np.float32))
         base_refrac = int(round(self.p["tRefrac"] / dt))
         self.refrac_steps = np.full(N, base_refrac, dtype=np.int32)
         # Refractory state as a gate bitset plus a compact countdown list. Only
@@ -465,6 +348,9 @@ class NativeBrainEngine:
         self._pdel_i = [_p(a, i32) for a in self._del_idx]
         self._pdel_v = [_p(a, f) for a in self._del_val]
         self._psp = [_p(a, i32) for a in self._sp_buf]
+        self._paux = _p(self.aux.reshape(-1), f) if self.n_aux else None
+        self._prest = _p(self.rest, f)
+        self._pparams = ctypes.byref(self.spec.params)
         self._cf = {k: ctypes.c_float(getattr(self, k)) for k in
                     ("c_decay", "c_mem", "v_rest", "v_reset", "v_th", "w_scale")}
 
@@ -519,6 +405,71 @@ class NativeBrainEngine:
         self.perm, self.inv = perm, inv
 
     # ---------------- interface ----------------
+    def set_model(self, model):
+        """Switch membrane model in place, keeping the connectome loaded.
+
+        Rebuilding the engine to change model would re-read a 182 MB fan-out
+        table and re-derive the tiling for something that does not depend on
+        either: the connectome, the delay ring, the chunk partition, the tile
+        map and the permutation are all properties of the NETWORK. Only the
+        parameter block, the auxiliary state and the initial membrane value
+        belong to the model. Swapping just those turns a ~15 s reload into a
+        few milliseconds, which is what makes an interactive model switch
+        possible at all.
+
+        The simulation is reset, because carrying Izhikevich's membrane over
+        into Hodgkin-Huxley would be meaningless -- the variables do not denote
+        the same thing.
+        """
+        self.spec = nrn_models.build(model, dt=self.dt) if isinstance(model, str) \
+            else model
+        self.model = self.spec.key
+        self.n_aux = self.spec.n_aux
+        _gap = float(self.spec.params.v_th) - float(self.spec.rest[0])
+        self._gap_ratio = _gap / (MODEL_PARAMS["vThreshold"] - MODEL_PARAMS["vRest"])
+        self._poi_scale = np.float32(
+            self.p["scalePoisson"] * self.p["wScale"] * self._gap_ratio)
+        self.rest = np.ascontiguousarray(self.spec.rest.astype(np.float32))
+        self.aux = np.ascontiguousarray(
+            np.repeat(self.spec.init[1:].astype(np.float32), self.N)
+            .reshape(self.n_aux, self.N).copy()
+            if self.n_aux else np.zeros(1, dtype=np.float32))
+        self.reset()
+        return self.spec
+
+    def reset(self):
+        """Back to t = 0: state at the model's resting fixed point, delay ring
+        empty, nothing refractory, every tile live."""
+        N = self.N
+        self.v[:] = self.spec.init[0]
+        self.g[:] = 0.0
+        if self.n_aux:
+            for k in range(self.n_aux):
+                self.aux[k, :] = self.spec.init[1 + k]
+        self.gate_bits[:] = np.uint64(0xFFFFFFFFFFFFFFFF)
+        self.in_ref[:] = 0
+        self.rc_cnt[:] = 0
+        self.n_ref = ctypes.c_int(0)
+        self.sp_bits[:] = 0
+        self._sp_scratch[:] = 0
+        self._del_n = [0] * self.L
+        self.head = 0
+        self._cur, self._cur_n = 0, 0
+        self.n_spikes = 0
+        # Every tile starts LIVE. Initialising by scan would mark the whole
+        # brain dead at t = 0 -- all neurons are at exact rest -- and nothing
+        # would ever run again.
+        self.tile_live[:] = np.uint64(0xFFFFFFFFFFFFFFFF)
+        for i in self.stim_idx:
+            tt = int(self.neuron_tile[int(i)])
+            self.tile_pin[tt >> 6] |= np.uint64(1) << np.uint64(tt & 63)
+        self._since_rescan = 0
+        self._poi_block = None
+        self._poi_pos = 0
+        self.t_ms = 0.0
+        self._rec_t, self._rec_n = [], []
+        self._cache_pointers()
+
     def _fanout_dtype_ok(self):
         return self.val.dtype == np.int16
 
@@ -586,18 +537,25 @@ class NativeBrainEngine:
         rescan = 1 if self._since_rescan >= self.rescan_every else 0
         if rescan:
             self._since_rescan = 0
+        # A model whose resting state is not a bit-level fixed point of its own
+        # update must never have tiles cleared: skipping would freeze a state
+        # that is still drifting. models.build() reports this per model; every
+        # one of the nine currently passes, but the guard is what makes that a
+        # checked fact rather than an assumption.
+        if not self.spec.extra.get("can_skip_tiles", True):
+            rescan = 0
 
         h = self.head
         prev_n = self._cur_n
-        cf = self._cf
-        nsp = self.lib.lif_step(
+        nsp = self.lib.nrn_step(
+            self.spec.mid, self._pparams,
+            self._paux, N if self.n_aux else 0, self.n_aux, self._prest,
             N,
             self._pv, self._pg,
             self._pgate, self._pinref,
             self._prci, self._prcc, ctypes.byref(self.n_ref),
             self._prs,
             self._pspb, self._pspc,
-            cf["c_decay"], cf["c_mem"], cf["v_rest"], cf["v_reset"], cf["v_th"],
             self._pdel_i[h], self._pdel_v[h], self._del_n[h],
             self._pstim, self._pstimv, n_stim,
             self._pchunk, self.n_chunks, self.tail_w,
@@ -614,7 +572,7 @@ class NativeBrainEngine:
         self._del_n[h] = self.lib.lif_fanout(
             N,
             self._psp[self._cur], prev_n,
-            self._pcrow, self._ppost, self._pval, cf["w_scale"],
+            self._pcrow, self._ppost, self._pval, self._cf["w_scale"],
             self._pacc, self._ptouch, self._ptbits,
             self._pdel_i[h], self._pdel_v[h], self.mt_fanout,
         ) if prev_n else 0

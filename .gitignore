@@ -26,3 +26,24 @@ flyloop/native/*.pdb
 flyloop/native/lif_*.dll
 flyloop/native/lif_*.lib
 flyloop/native/lif_*.exp
+
+# Virtual environments
+.venv/
+.venv_*/
+
+# FlyWire source annotation table (31 MB); the simulation-aligned atlas built
+# from it (data/flywire_meta/atlas_aligned.npz, 720 KB) IS tracked, since the
+# studio needs it and rebuilding needs the raw download.
+data/flywire_meta/neuron_annotations.tsv
+
+# Solved model calibration constants -- regenerated on demand, and keyed by the
+# kernel's source fingerprint so a stale copy is never used.
+data/model_cache/
+
+# Verification and benchmark output that IS evidence for the documented numbers
+!data/results/model_benchmark.txt
+!data/results/model_benchmark.json
+!data/results/brian2_model_validation.txt
+!data/results/exp_audit_full.txt
+!data/results/verify_models.txt
+!data/results/verify_all.txt

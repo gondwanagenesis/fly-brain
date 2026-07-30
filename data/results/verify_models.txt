@@ -1,0 +1,20 @@
+multi-model verification   steps=250   threads=4
+
+B  LIF regression vs PyTorch : BIT-EQ   (5.5s)
+
+model       aux  rest fp  AVX-512   AVX2  scalar   C skip  D elide   spikes
+---------------------------------------------------------------------------
+lif_euler     0     True      ref     OK      OK   BIT-EQ        -      177
+lif_exact     0     True      ref     OK      OK   BIT-EQ        -      175
+izhikevich    1     True      ref     OK      OK   BIT-EQ        -      117
+adex          1     True      ref     OK      OK   BIT-EQ   BIT-EQ      189
+eif           0     True      ref     OK      OK   BIT-EQ   BIT-EQ      198
+qif           0     True      ref     OK      OK   BIT-EQ        -      106
+raf           1     True      ref     OK      OK   BIT-EQ        -      140
+hh            4     True      ref     OK      OK   BIT-EQ        -       71
+glif          1     True      ref     OK      OK   BIT-EQ        -      172
+---------------------------------------------------------------------------
+A = the three ISA paths agree bit-for-bit (E: aux state included)
+C = tile skipping changes nothing; D = certified elision changes nothing
+
+ALL GATES PASS

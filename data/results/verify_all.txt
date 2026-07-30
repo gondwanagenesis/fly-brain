@@ -1,0 +1,17 @@
+verify=300 steps   threads=4   isa=AVX-512
+
+regime                     correct  torch ms   nat ms  nat+ord  vs torch  ord gain   live%     rt
+----------------------------------------------------------------------------------------------------
+single neuron (1 @200Hz)    BIT-EQ    4.5519   0.0571   0.0465     97.9x     1.23x    3.2%  2.15x
+P9 walking (2 @100Hz)       BIT-EQ    4.4981   0.0975   0.0680     66.2x     1.43x   12.7%  1.47x
+sugar GRNs (21 @200Hz)      BIT-EQ    5.7581   0.1668   0.1070     53.8x     1.56x   28.5%  0.93x
+silent (0 drive)            BIT-EQ    4.3900   0.0534   0.0507     86.5x     1.05x    0.1%  1.97x
+broad (100 @100Hz)          BIT-EQ    5.5658   0.2107   0.1790     31.1x     1.18x   78.7%  0.56x
+broad (1000 @100Hz)         BIT-EQ    7.3970   1.0448   0.7840      9.4x     1.33x   97.7%  0.13x
+broad (10000 @100Hz)        BIT-EQ    9.6298   2.2862   1.8725      5.1x     1.22x  100.0%  0.05x
+saturating (40k @200Hz)     BIT-EQ   16.5678   6.4828   6.3212      2.6x     1.03x  100.0%  0.02x
+----------------------------------------------------------------------------------------------------
+ord gain = reordering's own contribution (native vs native, same conditions)
+live%    = tiles that could NOT be skipped; the win is 100 - live%
+rt       = multiples of real time (1.00x = 0.1 ms/step)
+ALL BIT-IDENTICAL

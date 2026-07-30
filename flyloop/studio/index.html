@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlyBrain Studio — whole-brain Drosophila, live</title>
+<style>
+  :root{
+    --bg:#06080d; --bg2:#0b0f18; --panel:rgba(14,19,30,.82);
+    --line:rgba(120,150,200,.14); --line2:rgba(120,150,200,.28);
+    --ink:#dbe6f7; --dim:#7d8ba4; --faint:#54607a;
+    --hot:#ffd166; --hot2:#ff8f4a; --ok:#4ade80; --acc:#5ac8fa;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg); color:var(--ink); overflow:hidden;
+    font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;
+    background:radial-gradient(1200px 800px at 50% 45%,#0d1420 0%,#06080d 70%)}
+
+  /* ---------- chrome ---------- */
+  .panel{
+    position:fixed; background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; backdrop-filter:blur(18px) saturate(1.3);
+    box-shadow:0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .panel h2{
+    margin:0; padding:11px 14px 9px; font-size:10.5px; font-weight:650;
+    letter-spacing:.13em; text-transform:uppercase; color:var(--faint);
+    border-bottom:1px solid var(--line);
+  }
+  #top{ top:14px; left:14px; padding:12px 16px; display:flex; gap:16px; align-items:center }
+  #top .mark{font-weight:680;letter-spacing:-.01em;font-size:14px}
+  #top .mark span{color:var(--acc)}
+  .chip{
+    font:11px/1 var(--mono); padding:5px 8px; border-radius:7px;
+    background:rgba(90,200,250,.09); border:1px solid rgba(90,200,250,.22);
+    color:#a6d9f5; white-space:nowrap;
+  }
+
+  #left{ top:76px; left:14px; width:314px; max-height:calc(100vh - 176px);
+         display:flex; flex-direction:column }
+  #models{overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:4px}
+  .m{
+    text-align:left; width:100%; cursor:pointer; color:var(--ink);
+    background:transparent; border:1px solid transparent; border-radius:9px;
+    padding:8px 10px; display:grid; grid-template-columns:1fr auto; gap:2px 8px;
+    font:inherit; transition:background .12s,border-color .12s;
+  }
+  .m:hover{background:rgba(255,255,255,.035); border-color:var(--line)}
+  .m[aria-selected="true"]{
+    background:linear-gradient(90deg,rgba(90,200,250,.14),rgba(90,200,250,.03));
+    border-color:rgba(90,200,250,.4);
+  }
+  .m .nm{font-weight:600;font-size:12.5px}
+  .m .ct{grid-column:1/-1;font-size:10.5px;color:var(--faint);line-height:1.35}
+  .m .fl{font:10px/1 var(--mono);color:var(--dim);align-self:center;
+         padding:3px 6px;border-radius:5px;background:rgba(255,255,255,.05)}
+  .m[aria-selected="true"] .fl{background:rgba(90,200,250,.16);color:#a6d9f5}
+
+  #detail{border-top:1px solid var(--line); padding:11px 14px 13px}
+  #eq{font:11.5px/1.7 var(--mono); color:#cfe0f5; background:rgba(0,0,0,.32);
+      border:1px solid var(--line); border-radius:8px; padding:9px 10px;
+      overflow-x:auto; white-space:pre-wrap; word-break:break-word}
+  #note{margin:9px 0 0; font-size:11.5px; line-height:1.55; color:var(--dim)}
+  #facts{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+  .f{font:10px/1 var(--mono); padding:4px 7px; border-radius:6px;
+     background:rgba(255,255,255,.05); color:var(--dim)}
+  .f b{color:var(--ink);font-weight:600}
+  .f.good{background:rgba(74,222,128,.12);color:#8ff0b5}
+
+  #right{top:76px; right:14px; width:290px; display:flex; flex-direction:column}
+  .stats{padding:10px 14px 12px; display:grid; grid-template-columns:1fr 1fr; gap:10px 12px}
+  .s .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .s .v{font:16px/1.25 var(--mono); font-weight:600; margin-top:2px}
+  .s .v small{font-size:10.5px;color:var(--dim);font-weight:400}
+  .rt-fast{color:var(--ok)} .rt-slow{color:var(--hot2)}
+  #spark{display:block;width:100%;height:56px;border-top:1px solid var(--line)}
+  #regions{padding:9px 14px 13px; border-top:1px solid var(--line);
+           display:flex;flex-direction:column;gap:6px}
+  .r{display:grid;grid-template-columns:88px 1fr 46px;gap:8px;align-items:center;
+     font-size:11px}
+  .r .nm{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .r .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden}
+  .r .bar i{display:block;height:100%;border-radius:3px;
+            background:linear-gradient(90deg,var(--acc),var(--hot));transition:width .12s}
+  .r .n{font:10.5px/1 var(--mono);color:var(--dim);text-align:right}
+
+  #bottom{left:344px; right:318px; bottom:14px; padding:10px 14px;
+          display:flex;gap:8px 14px;align-items:center;flex-wrap:wrap;
+          justify-content:center}
+  .grp{display:flex;gap:6px;align-items:center;flex:none}
+  .grp>label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+             color:var(--faint);margin-right:1px}
+  button.b{
+    font:inherit;font-size:11.5px;color:var(--ink);cursor:pointer;
+    background:rgba(255,255,255,.05);border:1px solid var(--line2);
+    border-radius:7px;padding:6px 11px;transition:background .12s,border-color .12s;
+  }
+  button.b:hover{background:rgba(255,255,255,.1)}
+  button.b[aria-pressed="true"]{background:rgba(90,200,250,.18);
+    border-color:rgba(90,200,250,.5);color:#bfe6fb}
+  input[type=range]{width:78px;accent-color:#5ac8fa;background:transparent}
+  .val{font:10px/1 var(--mono);color:var(--dim);min-width:44px}
+
+  #legend{padding:9px 14px 11px;border-top:1px solid var(--line);
+          display:flex;flex-wrap:wrap;gap:4px 10px;font-size:10.5px;color:var(--faint)}
+  #legend div{display:flex;gap:5px;align-items:center;cursor:pointer;
+              transition:opacity .12s}
+  #legend div:hover{color:var(--dim)}
+  #legend i{width:7px;height:7px;border-radius:50%;display:block;flex:none}
+  #hint{position:fixed;right:14px;bottom:14px;width:290px;font-size:10.5px;
+        color:var(--faint);text-align:right;pointer-events:none;line-height:1.6}
+  #boot{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);
+        z-index:9;font:13px/1.6 var(--mono);color:var(--dim);text-align:center}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:rgba(120,150,200,.2);border-radius:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="boot">connecting to the simulation…</div>
+
+<div class="panel" id="top">
+  <div class="mark">FlyBrain <span>Studio</span></div>
+  <div class="chip" id="c-n">—</div>
+  <div class="chip" id="c-isa">—</div>
+  <div class="chip" id="c-t">t = 0 ms</div>
+</div>
+
+<div class="panel" id="left">
+  <h2>Neuron model</h2>
+  <div id="models"></div>
+  <div id="detail">
+    <div id="eq">—</div>
+    <p id="note"></p>
+    <div id="facts"></div>
+  </div>
+  <div id="legend"></div>
+</div>
+
+<div class="panel" id="right">
+  <h2>Telemetry</h2>
+  <div class="stats">
+    <div class="s"><div class="k">step time</div><div class="v" id="s-ms">—</div></div>
+    <div class="s"><div class="k">vs real time</div><div class="v" id="s-rt">—</div></div>
+    <div class="s"><div class="k">spikes / step</div><div class="v" id="s-sp">—</div></div>
+    <div class="s"><div class="k">live tiles</div><div class="v" id="s-live">—</div></div>
+  </div>
+  <canvas id="spark"></canvas>
+  <div id="regions"></div>
+</div>
+
+<div class="panel" id="bottom">
+  <div class="grp">
+    <button class="b" id="b-run" aria-pressed="true">Pause</button>
+    <button class="b" id="b-reset">Reset</button>
+  </div>
+  <div class="grp">
+    <label>Stimulus</label>
+    <select class="b" id="b-proto" style="padding:6px 8px">
+      <option value="sugar">Sugar GRNs (21)</option>
+      <option value="p9">P9 walking (2)</option>
+      <option value="broad100">Broad (100)</option>
+      <option value="broad1000">Broad (1000)</option>
+      <option value="silent">Silent</option>
+    </select>
+  </div>
+  <div class="grp">
+    <label>Rate</label>
+    <input type="range" id="b-rate" min="0" max="400" step="10" value="200">
+    <span class="val" id="v-rate">200 Hz</span>
+  </div>
+  <div class="grp">
+    <label>Speed</label>
+    <input type="range" id="b-speed" min="0" max="30" step="1" value="10">
+    <span class="val" id="v-speed">1.0×</span>
+  </div>
+  <div class="grp">
+    <label>Glow</label>
+    <input type="range" id="b-glow" min="0" max="30" step="1" value="10">
+    <span class="val" id="v-glow">1.0×</span>
+  </div>
+  <div class="grp">
+    <label>Trail</label>
+    <input type="range" id="b-decay" min="5" max="200" step="5" value="40">
+    <span class="val" id="v-decay">40 ms</span>
+  </div>
+  <div class="grp">
+    <button class="b" id="b-spin" aria-pressed="true">Spin</button>
+    <button class="b" id="b-shot">Capture</button>
+  </div>
+</div>
+
+<div id="hint">drag to orbit · scroll to zoom · shift-drag to pan<br>every point is one real neuron at its FlyWire coordinate</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const api = (body) => fetch("/control", {method:"POST", body: JSON.stringify(body)})
+                        .then(r=>r.json()).then(applyState);
+
+// ───────────────────────────────────────────────── WebGL
+const cv = $("#gl");
+const gl = cv.getContext("webgl2", {antialias:true, alpha:false,
+                                    powerPreference:"high-performance"});
+if (!gl) { $("#boot").textContent = "WebGL2 is required."; throw new Error("no webgl2"); }
+
+const VS = `#version 300 es
+layout(location=0) in vec3 aPos;      // int16 position, normalised
+layout(location=1) in float aCat;     // class index
+layout(location=2) in float aAct;     // 0..1 recent activity
+uniform mat4 uMVP;
+uniform vec3 uEye;
+uniform float uScale, uPointBase, uHideMask, uGlow;
+uniform vec3 uPal[8];
+out vec3 vCol;
+out float vAct, vFade;
+void main(){
+  vec3 p = aPos * uScale;
+  gl_Position = uMVP * vec4(p, 1.0);
+  float d = length(p - uEye);
+  // Depth cue. Without it the cloud reads as a flat disc: 138k points with no
+  // occlusion give the eye nothing else to work with. The floor is high enough
+  // that the far half of the brain still shows its outline -- an aggressive
+  // fade hides the very anatomy the render exists to show.
+  vFade = clamp(1.45 - d * 0.17, 0.30, 1.0);
+  int c = int(aCat + 0.5);
+  vec3 base = uPal[c];
+  vAct = aAct;
+  // Resting neurons keep their class colour, faint. Active ones drive toward
+  // amber and then white, so a spike reads as heat rather than as a hue change.
+  vec3 hot = mix(vec3(1.0,0.82,0.40), vec3(1.0,1.0,0.96), smoothstep(0.55,1.0,aAct));
+  vCol = mix(base, hot, smoothstep(0.0, 0.45, aAct));
+  float hidden = step(0.5, mod(floor(uHideMask / pow(2.0, aCat)), 2.0));
+  float sz = (uPointBase + 6.0 * aAct * aAct) * (0.55 + 0.55 * vFade);
+  gl_PointSize = mix(sz, 0.0, hidden);
+}`;
+
+const FS = `#version 300 es
+precision highp float;
+in vec3 vCol; in float vAct, vFade;
+uniform float uGlow;
+out vec4 o;
+void main(){
+  vec2 d = gl_PointCoord - 0.5;
+  float r2 = dot(d,d);
+  if (r2 > 0.25) discard;
+  // Soft sprite: a hard disc at 138k points looks like sand, a gaussian core
+  // with a halo reads as luminous tissue.
+  float core = exp(-r2 * 11.0);
+  // Resting tissue has to be visible or the render is a spike raster in 3D
+  // rather than a brain. The base term is what draws the anatomy; the activity
+  // term is what draws attention.
+  float a = (0.26 * uGlow + 0.95 * vAct) * vFade * core;
+  o = vec4(vCol * (0.62 + 1.25 * vAct), a);
+}`;
+
+function sh(t, src){ const s=gl.createShader(t); gl.shaderSource(s,src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+const prog = gl.createProgram();
+gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+const U = n => gl.getUniformLocation(prog, n);
+
+let N = 0, actBuf = null, vao = null;
+
+function buildGeometry(xyz, cat){
+  vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const pb = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, pb);
+  gl.bufferData(gl.ARRAY_BUFFER, xyz, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.SHORT, false, 6, 0);
+
+  const cb = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, cb);
+  gl.bufferData(gl.ARRAY_BUFFER, cat, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribPointer(1, 1, gl.UNSIGNED_BYTE, false, 1, 0);
+
+  actBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, actBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, N, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(2);
+  gl.vertexAttribPointer(2, 1, gl.UNSIGNED_BYTE, true, 1, 0);
+  gl.bindVertexArray(null);
+}
+
+// ───────────────────────────────────────────────── camera
+const cam = {az: 0.0, el: 0.14, dist: 2.25, tx:0, ty:0, spin:true};
+let glow = 1.0;
+let drag = null;
+cv.addEventListener("pointerdown", e => {
+  drag = {x:e.clientX, y:e.clientY, pan:e.shiftKey}; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointerup",   e => { drag = null; });
+cv.addEventListener("pointermove", e => {
+  if(!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  drag.x = e.clientX; drag.y = e.clientY;
+  if (drag.pan){ cam.tx += dx*0.0035*cam.dist; cam.ty -= dy*0.0035*cam.dist; }
+  else { cam.az -= dx*0.006; cam.el = Math.max(-1.45, Math.min(1.45, cam.el - dy*0.006));
+         cam.spin = false; $("#b-spin").setAttribute("aria-pressed","false"); }
+});
+cv.addEventListener("wheel", e => {
+  e.preventDefault();
+  cam.dist = Math.max(0.7, Math.min(11, cam.dist * Math.exp(e.deltaY*0.0011)));
+}, {passive:false});
+
+function mvp(){
+  const w = cv.width, h = cv.height, f = 1/Math.tan(0.62/2), a = w/h, zn=0.05, zf=60;
+  const ce = Math.cos(cam.el), se = Math.sin(cam.el);
+  const ca = Math.cos(cam.az), sa = Math.sin(cam.az);
+  const eye = [cam.dist*ce*sa, cam.dist*se, cam.dist*ce*ca];
+  const ctr = [-cam.tx, -cam.ty, 0];
+  const zx=eye[0]-ctr[0], zy=eye[1]-ctr[1], zz=eye[2]-ctr[2];
+  const zl=Math.hypot(zx,zy,zz), z=[zx/zl,zy/zl,zz/zl];
+  // right = normalize(cross(up, forward)) with up = (0,1,0)
+  const xx = z[2], xy = 0, xz = -z[0];
+  const xl = Math.hypot(xx,xy,xz) || 1, x = [xx/xl, xy/xl, xz/xl];
+  const y=[z[1]*x[2]-z[2]*x[1], z[2]*x[0]-z[0]*x[2], z[0]*x[1]-z[1]*x[0]];
+  const V=[x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0,
+    -(x[0]*eye[0]+x[1]*eye[1]+x[2]*eye[2]),
+    -(y[0]*eye[0]+y[1]*eye[1]+y[2]*eye[2]),
+    -(z[0]*eye[0]+z[1]*eye[1]+z[2]*eye[2]), 1];
+  const P=[f/a,0,0,0, 0,f,0,0, 0,0,(zf+zn)/(zn-zf),-1, 0,0,2*zf*zn/(zn-zf),0];
+  const M=new Float32Array(16);
+  for(let i=0;i<4;i++) for(let j=0;j<4;j++){ let s=0;
+    for(let k=0;k<4;k++) s += V[i*4+k]*P[k*4+j]; M[i*4+j]=s; }
+  return {M, eye};
+}
+
+let PAL = new Float32Array(24);
+let hideMask = 0;
+
+function resize(){
+  const dpr = Math.min(devicePixelRatio||1, 2);
+  // Size from the element, not from innerWidth. A canvas that boots while its
+  // window is hidden or zero-height reports 0 for the window but the right
+  // number for itself once laid out, and a 0x0 drawing buffer renders nothing
+  // for ever after -- there is no second resize event to recover on.
+  const w = cv.clientWidth || innerWidth || 1280;
+  const h = cv.clientHeight || innerHeight || 800;
+  const W = Math.max(1, Math.floor(w*dpr)), H = Math.max(1, Math.floor(h*dpr));
+  if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
+  gl.viewport(0,0,cv.width,cv.height);
+}
+addEventListener("resize", resize);
+new ResizeObserver(resize).observe(cv);
+document.addEventListener("visibilitychange", () => { if(!document.hidden) resize(); });
+resize();
+
+function draw(){
+  requestAnimationFrame(draw);
+  render();
+}
+function render(){
+  if(!vao) return;
+  if(cv.width < 2 || cv.height < 2) resize();
+  if(cv.width < 2) return;
+  if(cam.spin) cam.az += 0.0016;
+  gl.clearColor(0,0,0,0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.enable(gl.BLEND);
+  // Additive: overlapping active neurons should sum into a bright core, which
+  // is what makes a recruited region legible as a region rather than as dots.
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+  gl.disable(gl.DEPTH_TEST);
+  gl.useProgram(prog); gl.bindVertexArray(vao);
+  const {M, eye} = mvp();
+  gl.uniformMatrix4fv(U("uMVP"), false, M);
+  gl.uniform3f(U("uEye"), eye[0], eye[1], eye[2]);
+  gl.uniform1f(U("uScale"), 1/1000);
+  gl.uniform1f(U("uPointBase"), Math.max(1.3, 2.3*(cv.width/1600)));
+  gl.uniform1f(U("uGlow"), glow);
+  gl.uniform1f(U("uHideMask"), hideMask);
+  gl.uniform3fv(U("uPal"), PAL);
+  gl.drawArrays(gl.POINTS, 0, N);
+}
+requestAnimationFrame(draw);
+
+// ───────────────────────────────────────────────── state / UI
+let META = null, STATE = null;
+
+function hex2rgb(h){
+  const n = parseInt(h.slice(1),16);
+  return [(n>>16&255)/255, (n>>8&255)/255, (n&255)/255];
+}
+
+function renderModels(){
+  const box = $("#models"); box.innerHTML = "";
+  for(const m of META.models){
+    const b = document.createElement("button");
+    b.className = "m"; b.dataset.key = m.key;
+    b.innerHTML = `<div class="nm"></div><div class="fl"></div><div class="ct"></div>`;
+    b.querySelector(".nm").textContent = m.label;
+    b.querySelector(".fl").textContent = m.flops;
+    b.querySelector(".ct").textContent = m.citation;
+    b.onclick = () => { if(b.getAttribute("aria-selected")!=="true") api({model:m.key}); };
+    box.appendChild(b);
+  }
+}
+
+function renderLegend(){
+  const L = $("#legend"); L.innerHTML = "";
+  META.cats.forEach((c,i)=>{
+    const d = document.createElement("div");
+    d.innerHTML = `<i style="background:${c.color}"></i><span>${c.label}</span>`;
+    d.style.pointerEvents = "auto"; d.style.cursor = "pointer";
+    d.onclick = () => { hideMask ^= (1<<i); d.style.opacity = (hideMask>>i&1) ? .35 : 1; };
+    L.appendChild(d);
+  });
+}
+
+function renderRegions(){
+  const R = $("#regions"); R.innerHTML = "";
+  META.regions.forEach((lbl,i)=>{
+    if(i===0) return;                       // "Unassigned" is not informative
+    const d = document.createElement("div");
+    d.className = "r"; d.dataset.i = i;
+    d.innerHTML = `<div class="nm">${lbl}</div><div class="bar"><i style="width:0"></i></div><div class="n">0</div>`;
+    R.appendChild(d);
+  });
+}
+
+function applyState(s){
+  STATE = s;
+  $("#c-t").textContent = `t = ${s.sim_ms.toFixed(1)} ms`;
+  $("#c-isa").textContent = `${s.isa} × ${s.threads}`;
+  $("#s-ms").innerHTML = `${s.ms_per_step.toFixed(4)}<small> ms</small>`;
+  const rt = $("#s-rt");
+  rt.innerHTML = `${s.realtime.toFixed(2)}<small>×</small>`;
+  rt.className = "v " + (s.realtime >= 1 ? "rt-fast" : "rt-slow");
+  $("#s-sp").textContent = s.spikes_per_step.toFixed(2);
+  $("#s-live").innerHTML = `${s.live_frac.toFixed(1)}<small>%</small>`;
+
+  document.querySelectorAll(".m").forEach(b =>
+    b.setAttribute("aria-selected", String(b.dataset.key === s.model)));
+  $("#eq").textContent = s.spec.equation;
+  $("#note").textContent = s.spec.note;
+  const f = $("#facts"); f.innerHTML = "";
+  const add = (t, cls) => { const d=document.createElement("div");
+    d.className = "f " + (cls||""); d.innerHTML = t; f.appendChild(d); };
+  add(`state <b>v, g${s.spec.aux.length ? ", " + s.spec.aux.join(", ") : ""}</b>`);
+  add(`cost <b>${s.spec.flops}</b> flop/neuron/dt`);
+  add(`exact: <b>${s.spec.exact}</b>`, s.spec.exact.startsWith("yes") ? "good" : "");
+  add(`rest <b>${s.spec.rest.toFixed(2)} mV</b>`);
+  if (s.spec.skip) add(`tile-skip <b>proven exact</b>`, "good");
+
+  $("#b-run").textContent = s.running ? "Pause" : "Run";
+  $("#b-run").setAttribute("aria-pressed", String(s.running));
+
+  const rr = s.region_rate || [];
+  const peak = Math.max(1, ...rr.slice(1));
+  document.querySelectorAll(".r").forEach(d => {
+    const i = +d.dataset.i, v = rr[i] || 0;
+    d.querySelector("i").style.width = (100*v/peak).toFixed(1) + "%";
+    d.querySelector(".n").textContent = v >= 1000 ? (v/1000).toFixed(1)+"k" : v.toFixed(0);
+  });
+  drawSpark(s.history || []);
+}
+
+const sp = $("#spark"), spx = sp.getContext("2d");
+function drawSpark(h){
+  const dpr = Math.min(devicePixelRatio||1,2);
+  const w = sp.clientWidth, ht = 56;
+  if (sp.width !== w*dpr){ sp.width = w*dpr; sp.height = ht*dpr; }
+  spx.setTransform(dpr,0,0,dpr,0,0);
+  spx.clearRect(0,0,w,ht);
+  if(h.length < 2) return;
+  const peak = Math.max(0.5, ...h.map(p=>p[1]));
+  spx.beginPath();
+  h.forEach((p,i)=>{
+    const x = i/(h.length-1)*w, y = ht - 4 - (p[1]/peak)*(ht-12);
+    i ? spx.lineTo(x,y) : spx.moveTo(x,y);
+  });
+  spx.lineTo(w,ht); spx.lineTo(0,ht); spx.closePath();
+  const grad = spx.createLinearGradient(0,0,0,ht);
+  grad.addColorStop(0,"rgba(255,209,102,.34)"); grad.addColorStop(1,"rgba(255,209,102,0)");
+  spx.fillStyle = grad; spx.fill();
+  spx.beginPath();
+  h.forEach((p,i)=>{ const x=i/(h.length-1)*w, y=ht-4-(p[1]/peak)*(ht-12);
+    i?spx.lineTo(x,y):spx.moveTo(x,y); });
+  spx.strokeStyle = "rgba(255,209,102,.9)"; spx.lineWidth = 1.2; spx.stroke();
+  spx.fillStyle = "rgba(125,139,164,.85)"; spx.font = "10px ui-monospace,monospace";
+  spx.fillText(`peak ${peak.toFixed(1)} spikes/step`, 8, 13);
+}
+
+// ───────────────────────────────────────────────── controls
+$("#b-run").onclick = () => api({running: !STATE.running});
+$("#b-reset").onclick = () => api({reset: true});
+$("#b-proto").onchange = e => api({protocol: e.target.value});
+$("#b-spin").onclick = e => { cam.spin = !cam.spin;
+  e.target.setAttribute("aria-pressed", String(cam.spin)); };
+$("#b-shot").onclick = async e => {
+  render();
+  const r = await fetch("/snapshot", {method:"POST",
+    body: JSON.stringify({png: cv.toDataURL("image/png")})}).then(r=>r.json());
+  e.target.textContent = "Saved";
+  setTimeout(()=>{ e.target.textContent = "Capture"; }, 1400);
+  console.log("saved", r.path);
+};
+const bind = (id, lab, fmt, key, map) => {
+  const el = $(id);
+  const upd = () => { $(lab).textContent = fmt(+el.value); };
+  el.oninput = upd;
+  el.onchange = () => api({[key]: map(+el.value)});
+  upd();
+};
+bind("#b-rate", "#v-rate", v => v + " Hz", "rate_hz", v => v);
+// Speed is on a log scale: the interesting range spans "slow motion so the
+// wave through the SEZ is visible" to "flat out, tell me how fast this machine
+// can actually run a fly brain", which is four orders of magnitude.
+const spd = v => v === 0 ? 0.02 : (v >= 30 ? 0 : Math.pow(10, (v-10)/10));
+bind("#b-speed", "#v-speed", v => v>=30 ? "max" : spd(v).toFixed(2)+"×", "speed", spd);
+bind("#b-decay", "#v-decay", v => v + " ms", "decay_ms", v => v);
+// Glow is client-side only: it changes how the render is exposed, not what the
+// simulation does, so it must not round-trip through the server.
+{
+  const el = $("#b-glow");
+  const upd = () => { glow = Math.pow(10, (el.value-10)/16);
+                      $("#v-glow").textContent = glow.toFixed(2)+"×"; };
+  el.oninput = upd; upd();
+}
+
+// ───────────────────────────────────────────────── boot + frame loop
+(async function boot(){
+  META = await fetch("/meta").then(r=>r.json());
+  N = META.n;
+  PAL = new Float32Array(24);
+  META.cats.forEach((c,i)=>{ const [r,g,b]=hex2rgb(c.color);
+    PAL[i*3]=r; PAL[i*3+1]=g; PAL[i*3+2]=b; });
+  $("#c-n").textContent = N.toLocaleString() + " neurons";
+  renderModels(); renderLegend(); renderRegions();
+
+  const buf = await fetch("/atlas.bin").then(r=>r.arrayBuffer());
+  buildGeometry(new Int16Array(buf, 0, N*3), new Uint8Array(buf, N*6, N));
+  applyState(META.state);
+  $("#boot").remove();
+
+  let busy = false;
+  async function pump(){
+    if(!busy){
+      busy = true;
+      try{
+        const raw = await fetch("/frame.bin").then(r=>r.arrayBuffer());
+        const jlen = new DataView(raw).getUint32(0, true);
+        const st = new TextDecoder().decode(new Uint8Array(raw, 4, jlen));
+        const a = new Uint8Array(raw, 4 + jlen);
+        gl.bindBuffer(gl.ARRAY_BUFFER, actBuf);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, a);
+        applyState(JSON.parse(st));
+      }catch(e){ /* server restarting; keep rendering the last frame */ }
+      busy = false;
+    }
+    setTimeout(pump, 33);
+  }
+  pump();
+
+  // Scripting surface for the console: set the camera, force a redraw, grab a
+  // PNG of the current view for a figure, read the live state.
+  window.studio = {
+    cam, resize, render,
+    state: () => STATE,
+    meta: () => META,
+    look(az, el, dist){ Object.assign(cam, {az, el, dist, spin:false}); render(); },
+    png(){ render(); return cv.toDataURL("image/png"); },
+    async capture(){ render();
+      return (await fetch("/snapshot", {method:"POST",
+        body: JSON.stringify({png: cv.toDataURL("image/png")})}).then(r=>r.json())).path; },
+  };
+})();
+</script>
+</body>
+</html>

@@ -323,6 +323,54 @@ first two we do not know which behaviour you intended.
 **self-sustaining** — 78,914 spikes in 2,000 steps *after* the stimulus is
 removed entirely. Worth knowing before interpreting any long run.
 
+## 5c. The membrane equation is now a runtime switch — and it matters
+
+Nine models over the same connectome: LIF (forward Euler and exact), Izhikevich
+2003, AdEx, EIF, QIF, resonate-and-fire, Hodgkin-Huxley and adaptive-threshold
+GLIF. Full write-up in **[MODELS.md](MODELS.md)**.
+
+The reason this belongs in a *findings* document rather than only in a changelog:
+**"the fly brain" is model-dependent.** Same connectome, same protocol, same
+drive, and each model calibrated so that the same number of simultaneous
+synapses (161.6) fires it — and the network still behaves differently, because
+adaptation and refractoriness differ. `lif_exact` gives ~0.5% fewer spikes than
+`lif_euler` on sugar, exactly the direction and magnitude §2's
+Euler-shortens-every-τ analysis predicts. GLIF's adaptive threshold reduces the
+count further. Hodgkin-Huxley is the *quietest* of the nine under sustained
+drive, because its potassium conductance provides intrinsic adaptation that no
+integrate-and-fire model here has.
+
+A benchmark that fixes one membrane equation is measuring frameworks under one
+modelling choice. That is a legitimate thing to measure and we are not
+suggesting otherwise — but it is worth stating, and it compounds §1 and §2.
+
+Two performance notes that may be useful to you independently of the models:
+
+- **Exact integration is cheaper than the forward Euler it replaces**, not more
+  expensive. The Rotter-Diesmann propagator is two FMAs and a multiply against
+  Euler's four operations. So §2's suggestion to consider `method='exact'` costs
+  nothing at all — it is strictly better on both axes.
+- **Izhikevich benchmarks faster than LIF** on the sugar protocol (0.0745 vs
+  0.0966 ms/step) despite carrying an extra state variable, because it drives the
+  network less hard: 7.5% live tiles against LIF's 28.5%. Model cost at
+  connectome scale is dominated by how much of the brain a model wakes up, not by
+  its arithmetic.
+
+Verification is per model and independent of the LIF work: bit-identical across
+AVX-512 / AVX2 / scalar including auxiliary state; tile skipping and the AdEx /
+EIF exponential elision proven exact by whole-brain bit comparison; the
+vectorised `exp` audited against **all 2,237,530,114** float32 values in its
+domain (max 1 ULP); and every model cross-checked against an independent Brian 2
+implementation, eight of nine at the float32 floor with Hodgkin-Huxley's residual
+demonstrated by step refinement to be first-order integrator convergence.
+
+```bash
+python flyloop/verify_models.py 250       # the kernel gates
+python code/validate_models_brian2.py     # the external check
+python flyloop/bench_models.py 400 7      # per-model timings
+python flyloop/studio.py                  # live 3D interface, model switcher
+```
+
 ## 6. Suggested next steps
 
 1. **Decide the refractory semantics** (§1) and **the one-step delay offset**

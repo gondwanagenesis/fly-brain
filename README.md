@@ -61,8 +61,31 @@ entire adult Drosophila brain reveals insights into sensorimotor processing*](ht
 > .venv/Scripts/python.exe code/compare_semantics.py 700  # the model divergence
 > ```
 >
+> **Models — the membrane equation is now a runtime switch.** Nine of them over
+> the same connectome: LIF (Euler and exact), Izhikevich, AdEx, EIF, QIF,
+> resonate-and-fire, Hodgkin-Huxley and adaptive-threshold GLIF. Each body is
+> written once and compiled three times (AVX-512 / AVX2 / scalar), each is
+> calibrated so the same number of simultaneous synapses fires it, and each is
+> validated separately — bit-identical across instruction sets, tile-skipping
+> and exponential-elision proven exact by bit comparison, and cross-checked
+> against independent Brian 2 implementations (eight of nine at the float32
+> floor; Hodgkin-Huxley's residual shown to be first-order integrator
+> convergence, ratio 2.00 per step halving). The vectorised `exp` is audited
+> against **all 2,237,530,114** float32 values in its domain: max 1 ULP.
+> **[MODELS.md](MODELS.md).**
+>
+> **[FlyBrain Studio](MODELS.md#6-flybrain-studio--the-live-interface) — a live
+> 3D interface.** All 138,639 neurons at their real FlyWire coordinates, driven
+> by the native kernel, model switchable at runtime in milliseconds, with live
+> telemetry and per-region rates. Standard library only.
+>
+> ```bash
+> .venv/Scripts/python.exe flyloop/studio.py     # -> http://127.0.0.1:8765
+> ```
+>
 > **Team-facing summary of everything, with caveats: [FINDINGS.md](FINDINGS.md).**
 > Full detail and theory of changes: **[FORK.md](FORK.md)**.
+> Nine switchable neuron models: **[MODELS.md](MODELS.md)**.
 > Complete working record including dead ends: [HANDOFF.md](HANDOFF.md).
 
 ---

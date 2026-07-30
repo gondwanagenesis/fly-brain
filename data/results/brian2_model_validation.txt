@@ -1,0 +1,43 @@
+Brian 2 2.10.1 cross-validation   200 ms @ dt=0.1 ms
+both sides driven by the same synaptic impulse (g0 = 44.45 mV x scale)
+
+model       regime     max |dv|  PSP swing   rel err  shift  spikes k/b  d t_spk
+--------------------------------------------------------------------------------
+lif_euler   --        covered by verify_native.py + compare_to_brian2.py
+lif_exact   sub       6.355e-05     4.2000 1.51e-05      0    0/0          nan
+lif_exact   supra     9.959e-06     6.9911 1.42e-06      0    1/1        0.100
+izhikevich  sub       4.587e-05     3.2576 1.41e-05      0    0/0          nan
+izhikevich  supra     9.358e-01    97.2564 9.62e-03      0    2/2        0.100
+adex        sub       4.007e-04    11.2134 3.57e-05      0    0/0          nan
+adex        supra     3.457e+01    63.5737 5.44e-01      0    5/5        0.100
+eif         sub       3.604e-04    10.9635 3.29e-05      0    0/0          nan
+eif         supra     1.972e-03    34.7480 5.67e-05      0   10/10       0.050
+qif         sub       1.090e-04     1.5177 7.18e-05      0    0/0          nan
+qif         supra     4.386e-03    31.5294 1.39e-04      0    1/1        0.050
+raf         sub       6.008e-07     0.4057 1.48e-06      0    0/0          nan
+raf         supra     9.462e-01     0.9466 1.00e+00      0   33/34       0.685
+hh          sub       4.544e-02     2.6418 1.72e-02      0    0/0          nan
+hh          supra     5.189e+01   101.8123 5.10e-01      0    1/1        0.175
+glif        sub       6.355e-05     4.2000 1.51e-05      0    0/0          nan
+glif        supra     9.959e-06     6.9911 1.42e-06      0    1/1        0.100
+--------------------------------------------------------------------------------
+rel err = max membrane difference / the size of the PSP itself.
+Both sides now use the same integrator at the same step size, so the
+residual is float32-against-float64 and lands near 1e-5 to 1e-4.
+A mistranscribed coefficient lands near 1e-1. The gap is the test.
+
+step refinement -- integrator difference, or wrong coefficient?
+  model        n_sub    rel err   ratio
+  hh               4  1.720e-02     nan
+  hh               8  8.575e-03    2.01
+  hh              16  4.278e-03    2.00
+  hh              32  2.153e-03    1.99
+  A ratio near 2 per halving is first-order convergence: the two
+  sides are solving the same equations with different methods.
+  A ratio near 1 would mean the equations themselves differ.
+The supra-threshold rows are expected to be large: past the cutoff
+the trajectory is divergent by construction, so a sub-ulp difference
+in WHEN the reset fires becomes a whole spike amplitude. The spike
+TIMES are the meaningful comparison there, not the membrane trace.
+
+worst sub-threshold relative error: 1.72e-02

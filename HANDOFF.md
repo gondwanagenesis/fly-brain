@@ -650,48 +650,85 @@ postsynaptic targets, so the scatter-add touches fewer cache lines. **Unconfirme
 
 ---
 
-## 13. Next, in order
+## 13. Nine neuron models over one connectome (2026-07-31)
 
-**Done since the last revision:** refrac removal (§12.1), tile-16 skipping +
-reordering (§12.2), int16 connectome weights (lossless — integer synapse
-counts), runtime ISA dispatch, a full-brain Brian 2 reference
-(`code/run_brian2_reference.py`), and the model-divergence finding (§1.1 of
-FORK.md).
+Full write-up: **[MODELS.md](MODELS.md)**. Summary of what changed and what it
+cost, in the terms this document uses.
 
-1. **Confirm the fan-out-locality hypothesis (§12.4).** Reordering gives
-   1.07–1.41× where *nothing* is skippable. If that is cache locality in the
-   scatter-add, it is a second, activity-independent reason to reorder — and it
-   would transfer to GPU backends, where the same scatter dominates. Measure the
-   fan-out in isolation rather than inferring it.
-2. **Fan-out dominates the broad and saturating regimes.** At ~930 spikes/step
-   it is ~104k synapse updates/step, and §2.1's "synaptic propagation is only
-   0.14%" stops holding there. Note the threaded fan-out is a trap: correct
-   (atomic int32, so deterministic) but **1.65× slower** than serial. Attack
-   locality and representation, not parallelism.
-3. **Validate against Brian 2 end to end** via `code/compare_ground_truth.py`.
-   `run_brian2_reference.py` now builds the full 138,639-neuron network
-   (~30 s per 100 ms simulated, 1.8 GB), so this is unblocked. It matters more
-   now that §1.1 shows the backends differ at the *model* level.
-4. **Throughput, not latency.** Their own data shows GeNN gains 3.5× from
-   batching 8 trials. The scientific workload is parameter sweeps
-   (every-neuron ablation), which is a batching problem. Real-time latency only
-   matters for the closed-loop embodied case in `virtualfly/`, which cannot be
-   batched — but that is exactly where this kernel is uniquely enabling.
-5. ~~Fix `_dense_fallback`~~ **DONE** — now bidirectional with hysteresis (trip
-   >8% active, release <4%, rechecked every 256 steps), and thresholding on
-   Σ out-degree rather than spike count. Also **DONE**: `KAPPA_WINDOW_MAX` is now
-   a closed-form bound with a proof that raises if it goes stale, and the inert
-   predicate tests the actual fixed point rather than `v == v_rest`.
-   ⚠️ Open, and deeper than the latch: `g` reaches exactly zero only after
-   ~5,000 steps, so a perturbed neuron stays formally live for thousands of steps
-   however negligible its conductance. No *exact* predicate can avoid this — an
-   ε-prune backed by `certified_no_spike` is the route, unattempted.
-6. **Delay-window stepping at dt = 1.8 ms** — the unclaimed algorithmic result,
-   hardware-independent, would help GeNN and Loihi too. Highest ceiling, highest
-   risk.
-7. Port the kernel into `code/run_pytorch.py` so the upstream benchmark benefits,
-   once (3) is done.
+`lif_kernel.c` became `nrn_kernel.c` and now carries nine membrane models. The
+architectural claim is that **the expensive machinery belongs to the network,
+not to the membrane equation** — the sparse delay ring, the event-driven
+fan-out, the refractory gate, the ATen-faithful chunk partition and the thread
+pool are all properties of the topology and the schedule, so they are written
+once and shared. A model supplies only how `(v, g, aux)` advance, when a spike is
+declared, and what the reset does. Each body is written once against a SIMD
+abstraction (`native/simd.h`) and compiled three times, which makes ISA agreement
+structural rather than something to re-audit.
 
+`lif_step` is now a wrapper over the general `nrn_step`, deliberately: a green
+run of `verify_native.py` / `verify_all.py` is therefore also evidence that the
+generalisation did not disturb the one result already published. It is green.
+
+**Two results worth carrying elsewhere:**
+
+1. **Exact integration is strictly cheaper than the Euler it replaces.** The
+   Rotter-Diesmann propagator is two FMAs and a multiply; forward Euler is four
+   operations. §4's finding that Euler runs the simulation 0.25–1% fast has no
+   performance defence — Euler is dominated, not traded against.
+2. **Rush & Larsen 1978, from cardiac electrophysiology, is what makes
+   whole-connectome Hodgkin-Huxley tractable.** Forward Euler on the sodium gate
+   needs `dt` under 10 µs; Rush-Larsen is unconditionally stable for the gates
+   and allows 25 µs sub-steps. Standard in the cardiac literature, essentially
+   absent from the SNN performance literature.
+
+**New, and possibly unclaimed — certified exponential elision.** AdEx and EIF
+skip the exponential entirely whenever a two-instruction monotone upper bound
+proves it would round away: `|E| < |S|·2^-25` implies `|E| < ulp(S)/2` implies
+`fl(S+E) == S` exactly. This removes work without removing information, and it
+is verified by running the whole brain with the elision switched off
+(`elide_tiny = 0`) and comparing bits. `research/math/certified-exponential-elision.md`.
+
+**Calibration is on excitability, not amplitude.** Each model's gain is solved
+so the same number of simultaneous synapses fires it as fires the reference LIF
+— **161.6**, which is itself the reason this connectome is quiet. The first
+attempt matched PSP amplitude and made Hodgkin-Huxley ~5× too excitable, driving
+the whole brain to sustained 20 Hz. That would have read as a finding about HH
+and was a finding about the wrong denominator. Rule 5's pattern again: a worst-
+case denominator used where the meaningful one was available.
+
+**Verification, five independent gates** (`flyloop/verify_models.py`,
+`flyloop/verify_exp.py`, `code/validate_models_brian2.py`): all nine models
+bit-identical across AVX-512 / AVX2 / scalar including auxiliary state; tile
+skipping proven exact per model by bit comparison; elision proven exact the same
+way; the vectorised `exp` audited against **every one of the 2,237,530,114**
+float32 values in its live domain (max **1 ULP**, all three paths identical); and
+every model cross-checked against an independent Brian 2 implementation, eight of
+nine at the float32 floor. Hodgkin-Huxley's 1.7e-2 residual is shown to be an
+integrator difference by step refinement — ratios 2.01, 2.00, 1.99 per halving,
+i.e. first-order convergence to the same trajectory.
+
+**Three bugs found, all of a kind worth remembering:**
+- AdEx reached `+inf` past the cutoff, then `inf − inf = NaN`, and NaN fails
+  every ordered comparison *including the spike test* — so affected neurons went
+  permanently **silent** rather than firing. A divergence that presents as
+  quiescence is much harder to notice than one that presents as a blow-up.
+- Resonate-and-fire added its input as a per-step impulse instead of integrating
+  it: wrong by a factor of `dt`, invisible to every self-consistency gate, caught
+  only by the external Brian 2 comparison.
+- The exhaustive exp audit tested only the positive half of its domain and
+  reported success, because a negative float32's bit pattern read as `int32` is
+  negative and the range came out empty. **Coverage that is not itself checked is
+  not coverage.**
+
+⚠️ **Timings in MODELS.md §5 were taken on a loaded machine** — the PyTorch
+baseline reads 5.017 ms/step against 1.66 measured quiet, so roughly 3×
+inflation. Ratios are stable; absolute times are not.
+
+**What it means for the benchmark:** "the fly brain" is model-dependent. Same
+connectome, same protocol, same calibrated efficacy, and the network still
+behaves differently. A benchmark that fixes one membrane equation measures
+frameworks under one modelling choice — legitimate, but worth saying, and it
+compounds §4 and FINDINGS §1.
 
 ---
 
@@ -760,3 +797,47 @@ A parallel session is building a **multi-model** kernel in the same checkout
 Hodgkin-Huxley, GLIF sharing the same connectome, delay ring, fan-out and tile
 machinery. Not covered by §11–14 and not measured here. Check `git status` and
 file mtimes before large patches in `flyloop/`.
+
+---
+
+## 15. Next, in order
+
+**Done since the last revision:** refrac removal (§12.1), tile-16 skipping +
+reordering (§12.2), int16 connectome weights (lossless — integer synapse
+counts), runtime ISA dispatch, a full-brain Brian 2 reference
+(`code/run_brian2_reference.py`), and the model-divergence finding (§1.1 of
+FORK.md).
+
+1. **Confirm the fan-out-locality hypothesis (§12.4).** Reordering gives
+   1.07–1.41× where *nothing* is skippable. If that is cache locality in the
+   scatter-add, it is a second, activity-independent reason to reorder — and it
+   would transfer to GPU backends, where the same scatter dominates. Measure the
+   fan-out in isolation rather than inferring it.
+2. **Fan-out dominates the broad and saturating regimes.** At ~930 spikes/step
+   it is ~104k synapse updates/step, and §2.1's "synaptic propagation is only
+   0.14%" stops holding there. Note the threaded fan-out is a trap: correct
+   (atomic int32, so deterministic) but **1.65× slower** than serial. Attack
+   locality and representation, not parallelism.
+3. **Validate against Brian 2 end to end** via `code/compare_ground_truth.py`.
+   `run_brian2_reference.py` now builds the full 138,639-neuron network
+   (~30 s per 100 ms simulated, 1.8 GB), so this is unblocked. It matters more
+   now that §1.1 shows the backends differ at the *model* level.
+4. **Throughput, not latency.** Their own data shows GeNN gains 3.5× from
+   batching 8 trials. The scientific workload is parameter sweeps
+   (every-neuron ablation), which is a batching problem. Real-time latency only
+   matters for the closed-loop embodied case in `virtualfly/`, which cannot be
+   batched — but that is exactly where this kernel is uniquely enabling.
+5. ~~Fix `_dense_fallback`~~ **DONE** — now bidirectional with hysteresis (trip
+   >8% active, release <4%, rechecked every 256 steps), and thresholding on
+   Σ out-degree rather than spike count. Also **DONE**: `KAPPA_WINDOW_MAX` is now
+   a closed-form bound with a proof that raises if it goes stale, and the inert
+   predicate tests the actual fixed point rather than `v == v_rest`.
+   ⚠️ Open, and deeper than the latch: `g` reaches exactly zero only after
+   ~5,000 steps, so a perturbed neuron stays formally live for thousands of steps
+   however negligible its conductance. No *exact* predicate can avoid this — an
+   ε-prune backed by `certified_no_spike` is the route, unattempted.
+6. **Delay-window stepping at dt = 1.8 ms** — the unclaimed algorithmic result,
+   hardware-independent, would help GeNN and Loihi too. Highest ceiling, highest
+   risk.
+7. Port the kernel into `code/run_pytorch.py` so the upstream benchmark benefits,
+   once (3) is done.

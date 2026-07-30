@@ -1,0 +1,9 @@
+vectorised exp audit   domain [-87.0, 88.0]   EXHAUSTIVE
+host ISA: AVX-512
+
+  AVX-512  2,237,530,114 values   max 1 ULP at x=-1.490116e-07   mean 0.0077 ULP   99.23% exactly rounded   (238s)
+  AVX2     2,237,530,114 values   max 1 ULP at x=-1.490116e-07   mean 0.0077 ULP   99.23% exactly rounded   (163s)
+  scalar   2,237,530,114 values   max 1 ULP at x=-1.490116e-07   mean 0.0077 ULP   99.23% exactly rounded   (287s)
+
+all 3 ISA paths bit-identical over the whole domain (checksum 2383807292697390920)
+worst error anywhere in the domain: 1 ULP
