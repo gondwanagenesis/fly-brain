@@ -5,7 +5,7 @@
 Written for cold pickup by another engineer or AI. Everything is either measured
 on this machine, cited, or explicitly flagged as a projection.
 
-- Last updated: 2026-07-29
+- Last updated: 2026-07-30
 - Upstream: [eonsystemspbc/fly-brain](https://github.com/eonsystemspbc/fly-brain)
 - **Our fork: [gondwanagenesis/fly-brain](https://github.com/gondwanagenesis/fly-brain)**, branch `perf/event-driven-pytorch` (all work pushed)
 - Local: `Documents/FlyBrain`, venv at `.venv/` (Python 3.12, torch CPU, numpy, scipy)
@@ -14,33 +14,43 @@ on this machine, cited, or explicitly flagged as a projection.
 
 ## 0. Read this first — the strategic conclusion
 
-**Large speedups in this problem are activity-dependent, not general.** The work
+> **2026-07-30 UPDATE — real time is reached.** The whole 138,639-neuron brain now
+> runs at **0.0543 ms/step = 1.84× real time** on a 4-core laptop, bit-identical
+> to the PyTorch reference. That is **30.6×** over the PyTorch dense baseline
+> (1.6592 ms/step). See **§11**, which supersedes the framing below.
+>
+> The correction to the old conclusion matters: the previous analysis assumed the
+> dense path was pinned to memory bandwidth and that only sparsity could help.
+> Profiling showed that at 171 µs/step **only 57% was the kernel at all** — 26%
+> was `torch.bernoulli` drawing *21 numbers*, and 16% was ctypes glue. The
+> baseline was not memory-bound, it was **framework-bound**, and the general
+> (activity-independent) headroom was far larger than the 1.5–2× estimated below.
+
+**Large *algorithmic* speedups in this problem are activity-dependent.** The work
 is proportional to activity. At full activity every neuron must be advanced every
-timestep and you are pinned to memory bandwidth; no algorithm makes updating
-138,639 neurons cost less than reading and writing 138,639 neurons' state.
+timestep and you approach memory bandwidth; no algorithm makes updating 138,639
+neurons cost less than reading and writing their state. **But the constant factor
+in front of that bound was ~30×, and it was recoverable in full.**
 
 | Optimisation | 100% brain active | Sparse activity |
 |---|---|---|
-| Event-driven fan-out **(banked, bit-identical)** | ~1× | **3.2–5.2×** |
-| Delay-window stepping | 1.00× (auto-falls back) | **26×** |
-| σ removes the delay ring buffer | **1.16×** | 1.16× |
+| **Fused native AVX-512 kernel (§11)** | **1.23×** | **9–10×** |
+| Event-driven fan-out **(banked, bit-identical)** | ~1× | 3.2–5.2× |
+| Delay-window stepping | 1.00× (auto-falls back) | 26× |
+| σ removes the delay ring buffer | 1.16× | 1.16× |
 | Exact integration | 1× (free *accuracy*) | 1× |
 | State packing | ~1.5× | ~1.5× |
 
-**Unconditional total ≈ 1.5–2×. Everything larger requires sparse firing.**
+The native kernel is the first optimisation here that **never regresses**: it is
+1.23× even in the saturating regime, where the active-set path was 2.3× *slower*
+than baseline.
 
-This is not a limitation of the approach — it is the structure of the problem, and
-the field agrees. Sandia's Loihi 2 paper reports *"performance advantages increase
-with sparser activity"* and reaches 100×+ only in the sparse regime. Twelve
-neuromorphic chips obey the same law.
+The consolation still holds: **real brains are sparse.** We measured 1.75
+spikes/step and 91% of neurons at exact rest under localised stimulation. An
+embodied model with all senses will have *more active regions*, not a saturated
+brain.
 
-The consolation: **real brains are sparse.** We measured 1.75 spikes/step and 91%
-of neurons at exact rest under localised stimulation. An embodied model with all
-senses will have *more active regions*, not a saturated brain. The auto-tuner
-(§5.4) handles wherever it lands — window mode when it pays, grid when it does
-not, never worse.
-
-**The most valuable single finding is probably not speed at all — see §4.**
+**The most valuable single finding may still not be speed — see §4 and §11.3.**
 
 ---
 
@@ -396,3 +406,135 @@ Look for this pattern.
 **Not done deliberately:** no PR opened to Eon. Their repo is a benchmark;
 changing one backend's numbers alters their published comparison, which is a
 conversation to have with them, not something to slip in.
+
+---
+
+## 11. The native kernel — whole brain in real time on a laptop (2026-07-30)
+
+**Target hardware (the "consumer device"):** Intel i7-1185G7 Tiger Lake,
+4 cores / 8 threads @ 3.0 GHz, AVX-512, 48 KB L1d / 1.25 MB L2 per core,
+12 MB shared L3, 32 GB LPDDR4x. Windows 11, clang 21, torch 2.13 CPU. No CUDA.
+
+### 11.1 Result
+
+Real time for this model is **0.1 ms/step** (dt = 0.1 ms ⇒ 10,000 steps per
+simulated second). Min of 15 blocks × 500 steps, sugar protocol:
+
+| Engine | ms/step | s/sim-second | vs real time |
+|---|---|---|---|
+| PyTorch dense | 1.6592 | 16.59 | 0.06× |
+| PyTorch active-set | 1.6154 | 16.15 | 0.06× |
+| native ×1 thread | 0.0822 | 0.82 | **1.22×** |
+| native ×2 | 0.0790 | 0.79 | 1.27× |
+| **native ×4** | **0.0543** | **0.54** | **1.84×** |
+
+**30.6× over the PyTorch dense baseline, bit-identical.** For scale, Sandia's
+12-chip Loihi 2 (§8) reports 53.76 s/sim-second — this is 0.54 on one laptop,
+though note their dt = 1 ms rounds the 1.8 ms delay and 2.2 ms refractory to
+2 ms, which this does not.
+
+Gate: 8 regimes × 800 steps, **v, g and refrac compared as uint32 every step**
+plus exact spike-train comparison — `flyloop/verify_native.py`. All bit-equal.
+Per-regime speedup 1.23× (saturating, 946 spikes/step) to 10.3× (sparse).
+
+### 11.2 What actually made it fast
+
+The old model of the bottleneck was wrong. At the 171 µs/step starting point:
+
+```
+C kernel         98.2 µs  (57%)
+torch.bernoulli  45.1 µs  (26%)   <- for TWENTY-ONE random numbers
+python glue      27.6 µs  (16%)   <- ndarray.ctypes.data_as, ~14x per step
+```
+
+Two of the three were framework overhead. In order of contribution:
+
+1. **Fused single pass** (`flyloop/native/lif_kernel.c`). PyTorch runs ~12
+   separate full-array passes; the state is streamed through cache twelve times
+   instead of once. The threshold-and-reset maps perfectly onto AVX-512 mask
+   registers (`vcmpps` + two `vblendmps`), so the spike bitset falls out of the
+   compare for free.
+2. **Sparse delay slots.** The dense (19, N) fp32 ring buffer is 10.5 MB and
+   evicts the 2.2 MB neuron state from cache every 19 steps. Its contents have
+   ~190 non-zeros out of 138,639, so storing each slot as an (index, value) list
+   makes the delay line ~30 KB resident. Exact — the omitted entries are exactly
+   zero. **This is simpler than the σ-factorisation of §5.5 and achieves the same
+   goal.**
+3. **Spike vector as a bitset** — 17 KB instead of 554 KB.
+4. **Batched Poisson draws** (−45 µs). See §11.4.
+5. **Thread pool** (1.35×). The four chunks are disjoint, so no synchronisation
+   is needed *inside* a step. Workers spin on a generation counter rather than
+   pay a 5–20 µs OS barrier at a ~200 µs step budget.
+6. **Cached ctypes pointers** (−27 µs).
+
+### 11.3 ⚠️ The reference's bit pattern depends on its thread count
+
+Reproducing ATen bit-for-bit required matching two rounding behaviours:
+
+- `v.add_(t, alpha=a)` is a **single-rounding FMA** in its vectorised body;
+- but its **scalar tail is not fused** — a separate multiply-then-add.
+
+So the reference integrates the last `(chunk_len mod 16)` neurons of **every**
+`at::parallel_for` chunk with a different rounding from the rest. With N =
+138,639 and 4 threads the chunks are 34,660 wide, so the seams are at neurons
+34,656–34,659, 69,316–69,319, 103,976–103,979 and 138,624–138,638.
+
+This was found the hard way: an FMA everywhere diverged at step 394 on neuron
+138,637 (the final tail); forcing the separate form everywhere diverged at step
+33. The kernel mirrors ATen's partition to reproduce the seams exactly.
+
+**The consequence is worth stating plainly: "bit-identical to PyTorch" is not a
+property of the model, it is a property of `torch.get_num_threads()`.** Change
+the thread count and the reference's low bits change. For a repository whose
+purpose is *comparing simulators*, that is a real reproducibility caveat, and it
+compounds the §4 finding that the PyTorch backend also uses forward Euler where
+Brian 2 uses exact integration.
+
+The native kernel does **not** have this defect — its output is independent of
+its own thread count (verified: ×1 and ×4 are bit-identical to each other and to
+the reference). A `verify` run therefore pins `torch.set_num_threads(4)`.
+
+### 11.4 Batched RNG is stream-exact
+
+`torch.bernoulli` on a `(K, n)` tensor consumes the generator's stream in the
+same order as `K` sequential `(n,)` draws, so pre-drawing a block is **exact**,
+not an approximation. Verified at `(n, K)` = (21, 50), (21, 4096), (2, 1000),
+(1, 777) — zero differences. Caveat: `inject()` invalidates the block, so a
+closed-loop caller that re-injects every step must set `POISSON_BLOCK = 1`.
+
+### 11.5 Files
+
+| File | Purpose |
+|---|---|
+| `flyloop/native/lif_kernel.c` | fused AVX-512 kernel + spin-barrier thread pool |
+| `flyloop/native_engine.py` | `NativeBrainEngine`, same API as `BrainEngine` |
+| `flyloop/verify_native.py` | **the gate** — full-state bit comparison every step |
+| `flyloop/bench_native.py` | min/median benchmark (min is the honest estimate) |
+
+Build is automatic on import (clang, `-O3 -march=native -ffp-contract=off`).
+**`-ffp-contract=off` is mandatory** — without it the compiler fuses the
+conductance decay's mul+add into an FMA and bit-identity breaks. `-ffast-math`
+would break it far more thoroughly.
+
+### 11.6 Next, in order
+
+1. **Drop `refrac` from the dense sweep.** It is only used via
+   `gate = refrac >= refrac_steps`, and at 1.75 spikes/step at most ~40 neurons
+   are refractory at once. Replacing the 554 KB fp32 array with a gate bitset
+   (17 KB) plus a sparse countdown list removes 8 of ~24 B per neuron —
+   a ~33% traffic cut, so ~0.036 ms/step. Provably equivalent (the dynamics
+   depend only on the comparison, which is monotone in `refrac`), but it does
+   change the stored representation, so the gate must compare the *derived*
+   gate rather than raw `refrac`.
+2. **Fan-out now dominates the saturating regime** (1.23× there vs 10.3× sparse).
+   At 946 spikes/step it is ~104k synapse updates/step. This is the first regime
+   where §2.1's "synaptic propagation is only 0.14%" stops holding — re-profile
+   before optimising, and note it contradicts the headline finding at high
+   activity.
+3. **uint16 connectome weights** — lossless (integer synapse counts), halves
+   ~200 MB of fan-out traffic. Helps exactly the regime in (2).
+4. Validate against Brian 2 via `code/compare_ground_truth.py` — still the
+   outstanding scientific gate (§10.7), now more important because §11.3 shows
+   the PyTorch reference has its own numerical quirks.
+5. Port the kernel back into `code/run_pytorch.py` so the upstream benchmark
+   benefits, once (4) is done.
