@@ -276,6 +276,52 @@ PSN/SPSN/SpikingSSM family (all approximate or remove the reset).
   indexers — Syncthing re-indexing the repo inflated PyTorch dense from 1.66 to
   4.97 ms/step before we noticed.
 
+## 5b. Fixes we made, and decisions only you can make
+
+**Applied** — unambiguous defects, no change to model semantics, all gated on
+the existing bit-identity suite (8 regimes, ALL EXACT):
+
+| fix | file | why it mattered |
+|---|---|---|
+| `KAPPA_WINDOW_MAX` derived in closed form instead of sampled | `code/window_step.py` | it fed `certified_no_spike()`; a 200,001-point sampled max is an *estimate*, and an under-estimate certifies a neuron as silent that actually spikes |
+| dense fallback made bidirectional, with hysteresis | `flyloop/brain_engine.py` | it was a one-way latch: one transient burst disabled the sparse path for the whole run |
+| switch thresholds on Σ out-degree, not spike count | `flyloop/brain_engine.py` | hub-dominated connectome — out-degree spans 1 to ~9,800, so one spike can carry more fan-out than a thousand |
+| inert test uses the fixed-point condition, not `v == v_rest` | `flyloop/brain_engine.py` | see below |
+
+The κ proof: κ's only interior stationary point is at
+`s* = ln(τm/τs)/(1/τs − 1/τm) = 9.2420 ms`, far outside the `(0, 1.8]` window,
+so κ is strictly increasing there and the max is exactly `κ(D)`. The function
+re-derives `s*` and **raises** if the peak ever moves inside the window, so the
+proof cannot go stale if the constants change.
+
+**A deeper limitation, found while fixing the latch.** `v == v_rest` is
+*unreachable* for any neuron that was ever perturbed: with `g = 0` the membrane
+decays `d ← 0.995·d`, but near −52 mV the fp32 ULP is ~3.8e−6, so once `d`
+reaches one ULP the update rounds back to itself and the neuron sits one ULP
+above rest forever. Under the old predicate it could never be pruned, so the
+active set only ever grew. The fix tests the actual fixed point (if the update
+maps the state to itself, skipping is exact — `v == v_rest` is the special case
+`d = 0`). The same trap applies to `g`, which reaches exactly zero only after
+~5,000 steps, so a neuron that receives any input stays formally live for
+thousands of steps however negligible its conductance. **No exact predicate can
+avoid this**; an ε-prune with a certified bound — which is what
+`certified_no_spike` exists for — is the way, and we have not attempted it.
+
+**Not applied — these change results, so they are your call:**
+
+| decision | current behaviour | effect if changed |
+|---|---|---|
+| refractory synaptic delivery (§1) | PyTorch discards, Brian 2 accumulates | +22.5% spikes, Jaccard 0.871 |
+| axonal delay (§1b) | PyTorch is one timestep longer | 5.6% shorter delay on every synapse |
+| integration scheme (§2) | forward Euler | every τ lengthens by `dt/2`; `INTEGRATION='exact'` already exists, opt-in |
+
+We deliberately did not touch these. Each alters published numbers, and for the
+first two we do not know which behaviour you intended.
+
+**Also observed, not fixed:** after a broad burst the network is
+**self-sustaining** — 78,914 spikes in 2,000 steps *after* the stimulus is
+removed entirely. Worth knowing before interpreting any long run.
+
 ## 6. Suggested next steps
 
 1. **Decide the refractory semantics** (§1) and **the one-step delay offset**

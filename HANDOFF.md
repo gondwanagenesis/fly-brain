@@ -676,10 +676,15 @@ FORK.md).
    (every-neuron ablation), which is a batching problem. Real-time latency only
    matters for the closed-loop embodied case in `virtualfly/`, which cannot be
    batched — but that is exactly where this kernel is uniquely enabling.
-5. **Fix `_dense_fallback` in `brain_engine.py`** — set but never cleared, so one
-   transient burst permanently disables the sparse path. The switch criterion
-   should also be Σ out-degree (edge work), not spike count, since the connectome
-   is hub-dominated.
+5. ~~Fix `_dense_fallback`~~ **DONE** — now bidirectional with hysteresis (trip
+   >8% active, release <4%, rechecked every 256 steps), and thresholding on
+   Σ out-degree rather than spike count. Also **DONE**: `KAPPA_WINDOW_MAX` is now
+   a closed-form bound with a proof that raises if it goes stale, and the inert
+   predicate tests the actual fixed point rather than `v == v_rest`.
+   ⚠️ Open, and deeper than the latch: `g` reaches exactly zero only after
+   ~5,000 steps, so a perturbed neuron stays formally live for thousands of steps
+   however negligible its conductance. No *exact* predicate can avoid this — an
+   ε-prune backed by `certified_no_spike` is the route, unattempted.
 6. **Delay-window stepping at dt = 1.8 ms** — the unclaimed algorithmic result,
    hardware-independent, would help GeNN and Loihi too. Highest ceiling, highest
    risk.
