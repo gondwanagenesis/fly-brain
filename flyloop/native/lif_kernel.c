@@ -96,11 +96,23 @@ static inline uint32_t get16(const uint64_t *b, int i)
     return (uint32_t)(x & 0xFFFFu);
 }
 
-static inline void put16(uint64_t *b, int i, uint32_t m)
+/* OR bits into the (pre-zeroed) output. Words strictly inside a chunk are
+ * exclusively owned by one thread and written plainly; the chunk's boundary
+ * words may also be touched by a neighbouring chunk, so those are OR-ed
+ * atomically. That is 2 atomics per chunk instead of one per 16 neurons. */
+static inline void or_word(uint64_t *b, int w, uint64_t a, int w_first, int w_last)
+{
+    if (w <= w_first || w >= w_last)
+        __atomic_fetch_or(&b[w], a, __ATOMIC_RELAXED);
+    else
+        b[w] |= a;
+}
+
+static inline void put16(uint64_t *b, int i, uint32_t m, int w_first, int w_last)
 {
     const int w = i >> 6, s = i & 63;
-    b[w] |= (uint64_t)m << s;
-    if (s > 48) b[w + 1] |= (uint64_t)m >> (64 - s);
+    or_word(b, w, (uint64_t)m << s, w_first, w_last);
+    if (s > 48) or_word(b, w + 1, (uint64_t)m >> (64 - s), w_first, w_last);
 }
 
 /* Scalar reference. Also handles each chunk's tail and non-AVX-512 hosts.
@@ -112,6 +124,7 @@ static void sweep_scalar(int lo, int hi,
                          float c_decay, float c_mem,
                          float v_rest, float v_reset, float v_th)
 {
+    const int w_first = lo >> 6, w_last = (hi - 1) >> 6;
     for (int i = lo; i < hi; ++i) {
         const uint64_t was = BIT_GET(sp_in, i);
 
@@ -152,7 +165,7 @@ static void sweep_scalar(int lo, int hi,
         g[i] = sp ? 0.0f : gn;
         refrac[i] = r;
 
-        if (sp) sp_out[i >> 6] |= 1ULL << (i & 63);
+        if (sp) or_word(sp_out, i >> 6, 1ULL << (i & 63), w_first, w_last);
     }
 }
 
@@ -186,6 +199,7 @@ static void sweep_avx512(int lo, int hi,
     /* Vectorise from the START of the chunk, exactly as ATen does, so this
      * chunk's leftover (hi-lo) mod 16 neurons land in the scalar tail at the
      * same indices as the reference's. */
+    const int w_first = lo >> 6, w_last = (hi - 1) >> 6;
     int i = lo;
     for (; i + 16 <= hi; i += 16) {
         const __mmask16 was = (__mmask16)get16(sp_in, i);
@@ -212,7 +226,7 @@ static void sweep_avx512(int lo, int hi,
         _mm512_storeu_ps(g + i,      _mm512_mask_blend_ps(sp, gn, vzero));
         _mm512_storeu_ps(refrac + i, r);
 
-        put16(sp_out, i, (uint32_t)sp);
+        put16(sp_out, i, (uint32_t)sp, w_first, w_last);
     }
     if (i < hi) sweep_scalar(i, hi, v, g, refrac, refrac_steps,
                              sp_in, sp_out, c_decay, c_mem, v_rest, v_reset, v_th);
@@ -234,6 +248,145 @@ static void sweep(int lo, int hi,
                  c_decay, c_mem, v_rest, v_reset, v_th);
 #endif
 }
+
+/* ------------------------------------------------------------------------ */
+/* Thread pool.                                                              */
+/*                                                                           */
+/* The chunks are disjoint neuron ranges, so running them concurrently is a   */
+/* pure win with no fidelity question: each thread reads and writes only its  */
+/* own slice, and the chunk boundaries are fixed by the ATen mirror rather    */
+/* than by our thread count. The kernel's output is therefore INDEPENDENT of  */
+/* how many threads we use -- unlike the reference, whose low bits depend on  */
+/* torch.get_num_threads().                                                   */
+/*                                                                           */
+/* A step is only ~200 us, so an OS-level barrier (~5-20 us) would cost real  */
+/* percentage points. Workers spin on a generation counter instead, backing   */
+/* off to SwitchToThread only after a long spin so an idle engine does not    */
+/* peg four cores.                                                            */
+/*                                                                           */
+/* The one shared resource is the spike bitset: chunk boundaries are not      */
+/* 64-aligned, so the first and last word of each chunk may also be touched   */
+/* by a neighbour. Those two words per chunk are OR-ed atomically; every      */
+/* interior word is exclusively owned and written plainly.                    */
+/* ------------------------------------------------------------------------ */
+#if defined(_WIN32)
+#include <windows.h>
+
+typedef struct {
+    int lo, hi;
+    float *v, *g, *refrac;
+    const float *refrac_steps;
+    const uint64_t *sp_in;
+    uint64_t *sp_out;
+    float c_decay, c_mem, v_rest, v_reset, v_th;
+} job_t;
+
+#define MAX_THREADS 16
+
+static struct {
+    int nthreads;                 /* total workers, INCLUDING the caller */
+    int started;
+    volatile long generation;
+    volatile long done;
+    volatile long stop;
+    HANDLE h[MAX_THREADS];
+    job_t jobs[MAX_THREADS];
+} POOL;
+
+static void run_job(const job_t *j)
+{
+    sweep(j->lo, j->hi, j->v, j->g, j->refrac, j->refrac_steps,
+          j->sp_in, j->sp_out, j->c_decay, j->c_mem,
+          j->v_rest, j->v_reset, j->v_th);
+}
+
+static DWORD WINAPI worker(LPVOID arg)
+{
+    const int id = (int)(intptr_t)arg;
+    long seen = 0;
+    for (;;) {
+        long spins = 0;
+        while (__atomic_load_n(&POOL.generation, __ATOMIC_ACQUIRE) == seen) {
+            if (__atomic_load_n(&POOL.stop, __ATOMIC_ACQUIRE)) return 0;
+            if (++spins < 8000) _mm_pause();
+            else SwitchToThread();
+        }
+        seen = __atomic_load_n(&POOL.generation, __ATOMIC_ACQUIRE);
+        if (__atomic_load_n(&POOL.stop, __ATOMIC_ACQUIRE)) return 0;
+        run_job(&POOL.jobs[id]);
+        __atomic_fetch_add(&POOL.done, 1, __ATOMIC_RELEASE);
+    }
+}
+
+EXPORT int lif_set_threads(int n)
+{
+    if (n < 1) n = 1;
+    if (n > MAX_THREADS) n = MAX_THREADS;
+    if (POOL.started) {
+        __atomic_store_n(&POOL.stop, 1, __ATOMIC_RELEASE);
+        __atomic_fetch_add(&POOL.generation, 1, __ATOMIC_RELEASE);
+        for (int i = 1; i < POOL.nthreads; ++i) {
+            WaitForSingleObject(POOL.h[i], 1000);
+            CloseHandle(POOL.h[i]);
+        }
+        POOL.started = 0;
+        __atomic_store_n(&POOL.stop, 0, __ATOMIC_RELEASE);
+        POOL.generation = 0;
+    }
+    POOL.nthreads = n;
+    for (int i = 1; i < n; ++i)
+        POOL.h[i] = CreateThread(NULL, 0, worker, (LPVOID)(intptr_t)i, 0, NULL);
+    POOL.started = 1;
+    return POOL.nthreads;
+}
+
+/* Run the chunks in parallel. Falls back to a serial loop when the pool is
+ * unconfigured or there are more chunks than threads, so behaviour is
+ * identical either way. */
+static void sweep_chunks(const int32_t *chunks, int n_chunks,
+                         float *v, float *g, float *refrac,
+                         const float *refrac_steps,
+                         const uint64_t *sp_in, uint64_t *sp_out,
+                         float c_decay, float c_mem,
+                         float v_rest, float v_reset, float v_th)
+{
+    if (!POOL.started || POOL.nthreads < 2 || n_chunks != POOL.nthreads) {
+        for (int c = 0; c < n_chunks; ++c)
+            sweep(chunks[c], chunks[c + 1], v, g, refrac, refrac_steps,
+                  sp_in, sp_out, c_decay, c_mem, v_rest, v_reset, v_th);
+        return;
+    }
+    for (int c = 0; c < n_chunks; ++c) {
+        job_t *j = &POOL.jobs[c];
+        j->lo = chunks[c]; j->hi = chunks[c + 1];
+        j->v = v; j->g = g; j->refrac = refrac; j->refrac_steps = refrac_steps;
+        j->sp_in = sp_in; j->sp_out = sp_out;
+        j->c_decay = c_decay; j->c_mem = c_mem;
+        j->v_rest = v_rest; j->v_reset = v_reset; j->v_th = v_th;
+    }
+    __atomic_store_n(&POOL.done, 0, __ATOMIC_RELEASE);
+    __atomic_fetch_add(&POOL.generation, 1, __ATOMIC_RELEASE);
+    run_job(&POOL.jobs[0]);                       /* caller takes chunk 0 */
+    long spins = 0;
+    while (__atomic_load_n(&POOL.done, __ATOMIC_ACQUIRE) < POOL.nthreads - 1) {
+        if (++spins < 8000) _mm_pause();
+        else SwitchToThread();
+    }
+}
+#else
+EXPORT int lif_set_threads(int n) { (void)n; return 1; }
+static void sweep_chunks(const int32_t *chunks, int n_chunks,
+                         float *v, float *g, float *refrac,
+                         const float *refrac_steps,
+                         const uint64_t *sp_in, uint64_t *sp_out,
+                         float c_decay, float c_mem,
+                         float v_rest, float v_reset, float v_th)
+{
+    for (int c = 0; c < n_chunks; ++c)
+        sweep(chunks[c], chunks[c + 1], v, g, refrac, refrac_steps,
+              sp_in, sp_out, c_decay, c_mem, v_rest, v_reset, v_th);
+}
+#endif
 
 /* ------------------------------------------------------------------------ */
 /* One complete timestep.                                                    */
@@ -275,9 +428,8 @@ EXPORT int lif_step(
      * The corollary is worth stating plainly: the reference's bit pattern is a
      * function of PyTorch's thread count. See HANDOFF.md. --- */
     memset(sp_scratch, 0, (size_t)(nw + 1) * sizeof(uint64_t));
-    for (int c = 0; c < n_chunks; ++c)
-        sweep(chunks[c], chunks[c + 1], v, g, refrac, refrac_steps,
-              sp_bits, sp_scratch, c_decay, c_mem, v_rest, v_reset, v_th);
+    sweep_chunks(chunks, n_chunks, v, g, refrac, refrac_steps,
+                 sp_bits, sp_scratch, c_decay, c_mem, v_rest, v_reset, v_th);
 
     /* --- delayed synaptic input.
      *
