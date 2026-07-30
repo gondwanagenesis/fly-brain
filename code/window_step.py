@@ -58,10 +58,37 @@ def kappa(s, tau_m=TAU_M, tau_s=TAU_S):
 
 
 def kappa_max_over_window(D=DELAY, tau_m=TAU_M, tau_s=TAU_S):
-    """max kappa(s) for s in (0, D]. kappa rises from 0, so on a short window
-    the max sits at the right end."""
-    s = np.linspace(1e-12, D, 200001)
-    return float(kappa(s, tau_m, tau_s).max())
+    """max kappa(s) for s in (0, D] -- in closed form, with a proof.
+
+    This used to sample 200,001 points and take the maximum. That is an
+    ESTIMATE, not a bound, and it was feeding certified_no_spike(), a predicate
+    whose whole value is that it is certified: a sampled maximum can sit below
+    the true supremum, and an under-estimate there would certify a neuron as
+    silent that actually spikes. Silently losing a spike is the one failure mode
+    this codebase cannot tolerate, so the bound is now derived.
+
+    kappa(s) = C*(exp(-s/tau_m) - exp(-s/tau_s)),  C = tau_s/(tau_m - tau_s).
+    Its only interior stationary point is where the derivative vanishes:
+
+        (1/tau_s) exp(-s/tau_s) = (1/tau_m) exp(-s/tau_m)
+        =>  s* = ln(tau_m/tau_s) / (1/tau_s - 1/tau_m)
+
+    For tau_m = 20 ms, tau_s = 5 ms that is s* = 9.2420 ms, far outside the
+    window (0, D] with D = 1.8 ms. kappa(0) = 0 and kappa is continuous, so on
+    (0, D] it is strictly increasing and its maximum is exactly kappa(D).
+
+    The assertion below re-derives s* from the arguments, so the proof cannot go
+    stale if the time constants or the delay ever change -- it fails loudly
+    instead of silently returning a wrong bound.
+    """
+    s_star = np.log(tau_m / tau_s) / (1.0 / tau_s - 1.0 / tau_m)
+    if not s_star > D:
+        raise ValueError(
+            f"kappa peaks at s*={s_star:.4f} ms, which is INSIDE the window "
+            f"(0, {D}] -- kappa is no longer monotone there and kappa(D) is not "
+            "its maximum. Re-derive the bound before using certified_no_spike()."
+        )
+    return float(kappa(D, tau_m, tau_s))
 
 
 KAPPA_WINDOW_MAX = kappa_max_over_window()

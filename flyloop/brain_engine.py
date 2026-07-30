@@ -250,12 +250,51 @@ class BrainEngine:
         # 2.3x SLOWER. Switching early costs a little upside on mid-density
         # runs and buys a hard no-regression guarantee.
         self.dense_switch = 0.08
-        self.spike_switch = 0.004     # >0.4% of N spiking per step -> dense
+        # Switch on EDGE WORK, not spike count. This connectome is hub-dominated
+        # and scale-free: out-degree spans 1 to ~9,800, so a single high-degree
+        # spike can carry more fan-out than a thousand low-degree ones while
+        # looking cheap under a count-only threshold. The old `spike_switch`
+        # (0.4% of N spiking) is kept only as a cheap pre-filter.
+        self.spike_switch = 0.004
+        self.edge_switch = 0.02       # >2% of all synapses fanned out -> dense
+        self._nnz = int(self.fo_crow[-1])
         self._since_prune = 0
-        # Once the network is broadly active it tends to stay that way, so the
-        # fallback latches rather than flip-flopping (and re-syncing state)
-        # every step.
+
+        # Returning to the sparse path.
+        #
+        # This USED to be a one-way latch: once _dense_fallback was set, step()
+        # never called step_active() again, so a single transient burst disabled
+        # the sparse path for the remainder of the run and permanently gave up
+        # the 2-10x it buys. Beamer's direction-optimising BFS -- which this
+        # switch is an instance of -- switches BOTH ways, with hysteresis to
+        # avoid oscillating at the boundary.
+        #
+        # Re-entry is checked only every `recheck_every` steps (rebuilding the
+        # active set costs an O(N) scan) and requires activity to fall well
+        # BELOW dense_switch, not merely back under it.
         self._dense_fallback = False
+        self.sparse_switch = 0.04     # hysteresis: half of dense_switch
+        self.recheck_every = 256
+        self._since_recheck = 0
+
+    @torch.no_grad()
+    def _v_fixed(self, v):
+        """True where the membrane update is a FIXED POINT, given g == 0.
+
+        The inert test used to be `v == v_rest`, which is unreachable in
+        practice. With g == 0 the membrane decays d <- 0.995*d where
+        d = v - v_rest, but near -52 mV the fp32 ULP is ~3.8e-6, so once d
+        reaches one ULP the update rounds back to itself: a neuron that was ever
+        perturbed gets STUCK one ULP above rest and never returns to it exactly.
+        Under the old predicate such a neuron could never be pruned, so the
+        active set only ever grew and the sparse path decayed over a long run.
+
+        Testing the actual fixed-point condition is both more general and
+        equally exact: if the update maps v to itself and g is already 0, then
+        g stays 0 and v stays v, so skipping the neuron reproduces the state
+        exactly. `v == v_rest` is just the special case d = 0.
+        """
+        return v.add(-(v - self.p["vRest"]), alpha=self.dt / self.p["tauMem"]) == v
 
     @torch.no_grad()
     def _prune_active(self):
@@ -266,8 +305,8 @@ class BrainEngine:
         spiking = torch.zeros(idx.numel(), dtype=torch.bool, device=self.device)
         if self._spike_idx.numel():
             spiking[torch.searchsorted(idx, self._spike_idx)] = True
-        inert = ((self.g[idx] == 0)
-                 & (self.v[idx] == self.p["vRest"])
+        inert = (self._v_fixed(self.v[idx])
+                 & (self.g[idx] == 0)
                  & ~spiking
                  & (self.refrac[idx] >= self.refrac_steps[idx])
                  & (self.buf[:, idx].abs().amax(0) == 0))
@@ -292,9 +331,16 @@ class BrainEngine:
         idx = self._idx
         # Decide BEFORE doing any work -- otherwise the fan-out is computed
         # twice and the fallback ends up slower than plain dense.
-        if (idx.numel() > self.dense_switch * N
-                or self._spike_idx.numel() > self.spike_switch * N):
+        too_dense = idx.numel() > self.dense_switch * N
+        if not too_dense and self._spike_idx.numel() > self.spike_switch * N:
+            # cheap count filter passed; now check the quantity that actually
+            # predicts cost, the total out-degree of the spiking set
+            edges = int((self.fo_crow[self._spike_idx + 1]
+                         - self.fo_crow[self._spike_idx]).sum())
+            too_dense = edges > self.edge_switch * self._nnz
+        if too_dense:
             self._dense_fallback = True
+            self._since_recheck = 0
             return self.step_inplace(record=record)
 
         # --- recurrent drive from last step's spikes (no dense scan) ---
@@ -377,8 +423,33 @@ class BrainEngine:
             self.spikes[self._spike_idx] = 1.0
 
     @torch.no_grad()
+    def _try_leave_dense(self):
+        """Rebuild the active set and go back to the sparse path, if activity
+        has genuinely subsided. Exact: `live` is the same provably-inert
+        predicate `_prune_active` uses, evaluated over all N."""
+        live = ((self.g != 0)
+                | ~self._v_fixed(self.v)
+                | (self.buf.abs().amax(0) != 0)
+                | (self.refrac < self.refrac_steps)
+                | (self.spikes > 0))
+        if self.stim_idx.numel():
+            live[self.stim_idx] = True          # driven neurons never go inert
+        if float(live.sum()) >= self.sparse_switch * self.N:
+            return False
+        self.active = live
+        self._idx = live.nonzero(as_tuple=True)[0]
+        self._spike_idx = self.spikes.nonzero(as_tuple=True)[0]
+        self._dense_fallback = False
+        return True
+
+    @torch.no_grad()
     def step(self, record=False):
         """Advance one dt. Returns the spike vector (N,) as float 0/1."""
+        if getattr(self, "active_mode", False) and self._dense_fallback:
+            self._since_recheck += 1
+            if self._since_recheck >= self.recheck_every:
+                self._since_recheck = 0
+                self._try_leave_dense()
         if getattr(self, "active_mode", False) and not self._dense_fallback:
             return self.step_active(record=record)
         if getattr(self, "inplace", False):
