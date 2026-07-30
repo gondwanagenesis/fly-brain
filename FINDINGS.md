@@ -12,7 +12,7 @@ in [HANDOFF.md](HANDOFF.md); the full write-up is [FORK.md](FORK.md).
 
 1. **Your PyTorch backend and your Brian 2 ground truth do not simulate the same
    model.** They differ in how synaptic input is handled during the refractory
-   period. On the sugar experiment this discards **6.4% of arriving synaptic
+   period, and separately the PyTorch axonal delay is one timestep longer. On the sugar experiment this discards **6.4% of arriving synaptic
    weight**, changes spike count by **+22.5%**, and drops active-neuron Jaccard
    to **0.871** — a larger divergence than the forward-Euler-vs-exact gap
    (0.913). This is the finding we would most like you to check.
@@ -84,6 +84,60 @@ which is why this is an ablation inside a single backend.
 ```bash
 python code/measure_refractory_divergence.py
 python code/compare_semantics.py 700
+```
+
+## 1b. The axonal delay differs between backends by one timestep
+
+Measured directly — force one neuron to spike, watch when its postsynaptic
+targets' `g` first changes:
+
+| backend | spike → effect | effective delay |
+|---|---|---|
+| Brian 2 (`delay=1.8*ms`) | 19 steps | 18 steps + 1 update lag ✓ |
+| PyTorch / `brain_engine.py` | **20 steps** | **19 steps + 1 update lag** |
+
+The PyTorch backend delivers every spike **one timestep (0.1 ms) later than
+Brian 2** — a 5.6% longer axonal delay, on every synapse, compounding with each
+hop. Root cause is the ring buffer: `L = int(tDelay/dt) + 1 = 19` slots combined
+with read-then-write in the same step holds each value for 19 steps rather than
+18.
+
+Worth noting alongside §1: Wang et al. round the 1.8 ms delay to 2.0 ms on
+Loihi 2 and flag it as a fidelity compromise. The PyTorch backend arrives at
+1.9 ms by accident.
+
+## 1c. Ground truth — and why the current methodology could not catch any of this
+
+We ran the comparison (`code/compare_to_brian2.py`, sugar, 100 ms). Cross-backend
+spike-for-spike matching is impossible (different PRNGs), so this uses the same
+statistical metrics as your `compare_ground_truth.py`, plus a **noise floor**:
+Brian 2 against *itself* at two seeds.
+
+| comparison | spikes | active | Jaccard | rate *r* |
+|---|---|---|---|---|
+| **noise floor** — brian2 exact seed 0 vs seed 1 | 1517 / 1513 | 323 / 341 | **0.850** | 0.941 |
+| brian2 exact vs brian2 euler | 1517 / 1509 | 323 / 337 | 0.913 | 0.993 |
+| brian2 exact vs **native kernel** | 1517 / 1443 | 323 / 322 | **0.931** | 0.935 |
+
+**The native kernel agrees with Brian 2 better than Brian 2 agrees with itself
+across seeds.** By this test it passes cleanly.
+
+**But that is the point.** The seed-to-seed noise floor is 0.850, and the
+refractory divergence in §1 measures 0.871 by ablation — *barely above the
+noise*. Forward-Euler-vs-exact (0.913) is likewise inside it. So this
+methodology, at this duration and single seed, **does not have the statistical
+power to detect either divergence**. That is almost certainly why they went
+unnoticed: a stochastic Poisson protocol over 100 ms produces ~1500 spikes and
+~330 active neurons, and trial-to-trial variability swamps the effect.
+
+The ablation in §1 is the sensitive test precisely because it removes RNG
+variability — same seed, same stream, one term changed. If you want
+`compare_ground_truth.py` to be able to catch this class of bug, it needs either
+many seeds compared as distributions, longer runs, or deterministic
+(non-Poisson) drive for validation runs.
+
+```bash
+python code/compare_to_brian2.py 100
 ```
 
 ## 2. Two further reproducibility issues
@@ -209,10 +263,11 @@ PSN/SPSN/SpikingSSM family (all approximate or remove the reset).
   own notes that had briefly implied otherwise — the paper's column is
   `FlyWire (ms)`.
 - **Not faster than GeNN.** Level with it at n=1; behind at n=8.
-- **Not validated end-to-end against Brian 2 yet.** We are bit-identical to
-  *PyTorch*, and we have shown PyTorch differs from Brian 2 — but
-  `compare_ground_truth.py` has not been run across the loop. This is the
-  outstanding gate and we think it should be yours too.
+- **The Brian 2 comparison passes, but it is a weak test.** The native kernel
+  scores Jaccard 0.931 against Brian 2, above the 0.850 seed-to-seed noise
+  floor — but that floor is high enough to hide the §1 and §2 divergences
+  entirely (0.871 and 0.913 respectively). Passing it is necessary, not
+  sufficient. See §1c.
 - **The fan-out-locality effect is a hypothesis.** Reordering gives 1.1–1.5×
   even where nothing is skippable; the likely mechanism is cache locality in the
   scatter-add, unconfirmed.
@@ -223,14 +278,18 @@ PSN/SPSN/SpikingSSM family (all approximate or remove the reset).
 
 ## 6. Suggested next steps
 
-1. **Decide the refractory semantics.** Whichever way it goes, the two backends
-   should agree, and `compare_ground_truth.py` currently compares across the gap.
-2. **Consider `method='exact'`** for the PyTorch backend — same FLOP count,
+1. **Decide the refractory semantics** (§1) and **the one-step delay offset**
+   (§1b). Whichever way each goes, the backends should agree.
+2. **Give `compare_ground_truth.py` the power to catch this class of bug** (§1c)
+   — multiple seeds compared as distributions, longer runs, or deterministic
+   drive for validation. As it stands its noise floor is larger than the
+   divergences it would need to detect.
+3. **Consider `method='exact'`** for the PyTorch backend — same FLOP count,
    matches what Brian 2 actually does.
-3. **PyTorch CUDA is your biggest headroom**: 6.509 vs GeNN's 0.450 on the same
+4. **PyTorch CUDA is your biggest headroom**: 6.509 vs GeNN's 0.450 on the same
    card. ~30 kernel launches per step at 5–10 µs each is 150–300 µs before any
    work happens. CUDA Graphs plus the sparse delay line should move it a long way.
-4. **The CPU path makes a GPU optional** for single-trial and closed-loop work —
+5. **The CPU path makes a GPU optional** for single-trial and closed-loop work —
    relevant to `virtualfly/`, since a sensorimotor loop cannot be batched and
    latency is all that matters.
 
@@ -242,6 +301,7 @@ python flyloop/bench_native.py          # min/median timing detail
 python code/compare_semantics.py 700    # the model divergence
 python code/measure_refractory_divergence.py
 python code/run_brian2_reference.py --duration-ms 100 --method exact
+python code/compare_to_brian2.py 100    # ground truth, with a noise floor
 ```
 
 No pull request has been opened. This repo is a benchmark; changing one
