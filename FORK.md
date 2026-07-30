@@ -145,16 +145,16 @@ over 400 lockstep steps per regime (`flyloop/verify_all.py`):
 
 | regime | correct | torch ms | native ms | +reorder | vs torch | reorder gain | live tiles | **real time** |
 |---|---|---|---|---|---|---|---|---|
-| silent (0 drive) | BIT-EQ | 2.2970 | 0.0269 | **0.0259** | 88.6× | 1.04× | 0.1% | **3.86×** |
-| single neuron | BIT-EQ | 3.5611 | 0.0464 | 0.0510 | 69.8× | 0.91× | 3.2% | **1.96×** |
-| sugar GRNs (21) | BIT-EQ | 3.1020 | 0.0917 | **0.0562** | 55.2× | 1.63× | 28.5% | **1.78×** |
-| P9 walking (2) | BIT-EQ | 3.8922 | 0.1237 | **0.0586** | 66.4× | 2.11× | 12.7% | **1.71×** |
-| broad (100) | BIT-EQ | 2.7857 | 0.1096 | 0.0858 | 32.5× | 1.28× | 78.7% | 1.17× |
-| broad (1000) | BIT-EQ | 3.5575 | 0.4957 | 0.3518 | 10.1× | 1.41× | 97.7% | 0.28× |
-| broad (10000) | BIT-EQ | 3.9043 | 0.8006 | 0.6575 | 5.9× | 1.22× | 100.0% | 0.15× |
-| saturating (40k) | BIT-EQ | 8.0741 | 2.5337 | 2.3618 | 3.4× | 1.07× | 100.0% | 0.04× |
+| single neuron | BIT-EQ | 1.0664 | 0.0126 | **0.0109** | 97.7× | 1.15× | 3.2% | **9.16×** |
+| silent (0 drive) | BIT-EQ | 2.7179 | 0.0309 | **0.0260** | 104.4× | 1.19× | 0.1% | **3.84×** |
+| P9 walking (2) | BIT-EQ | 2.0810 | 0.0387 | **0.0262** | 79.5× | 1.48× | 12.7% | **3.82×** |
+| sugar GRNs (21) | BIT-EQ | 2.4091 | 0.0695 | **0.0461** | 52.2× | 1.51× | 28.5% | **2.17×** |
+| broad (100) | BIT-EQ | 2.3383 | 0.0859 | 0.0763 | 30.6× | 1.13× | 78.7% | 1.31× |
+| broad (1000) | BIT-EQ | 3.0359 | 0.3786 | 0.3019 | 10.1× | 1.25× | 97.7% | 0.33× |
+| broad (10000) | BIT-EQ | 4.0052 | 0.7986 | 0.6806 | 5.9× | 1.17× | 100.0% | 0.15× |
+| saturating (40k) | BIT-EQ | 7.0947 | 2.5005 | 2.2536 | 3.1× | 1.11× | 100.0% | 0.04× |
 
-**ALL BIT-IDENTICAL.** The kernel beats PyTorch in every regime, 3.4×–88.6×,
+**ALL BIT-IDENTICAL.** The kernel beats PyTorch in every regime, 3.1×–104×,
 with no regression anywhere.
 
 ⚠️ **Read the two columns differently.** The native ms/step figures are a
@@ -168,7 +168,7 @@ machine. Treat the real-time column as solid and the ratios as generous.
 
 **The core kernel work is unconditional.** Fused sweep, sparse delay line,
 bitset spikes, batched RNG, threading, refractory-counter removal — none depend
-on what is being simulated. They deliver 3.4×–88.6× in every regime and never
+on what is being simulated. They deliver 3.1×–104× in every regime and never
 regress.
 
 **Tile-skipping is activity-dependent by construction.** A 16-neuron tile is
@@ -311,7 +311,7 @@ second, best of 24, single trial, RTX 4070):
 | Brian2CUDA (GPU) | 2.678 | 2.723 |
 | PyTorch (CUDA) | 6.509 | 5.628 |
 | PyTorch (CPU) | 686.3 | — |
-| **this fork (laptop CPU, sugar)** | **0.562** | — |
+| **this fork (laptop CPU, sugar)** | **0.461** | — |
 
 - **PyTorch CUDA (6.509)** — largest opportunity. ~30 kernel launches per step
   at ~5–10 µs each is 150–300 µs before any work happens. (a), (c), (e) and

@@ -30,20 +30,26 @@ entire adult Drosophila brain reveals insights into sensorimotor processing*](ht
 > **Performance — the whole brain runs faster than real time on a laptop.**
 > A fused AVX-512 kernel with a sparse delay line, a gate-bitset refractory
 > representation, and inert-tile skipping over `cell_type`-reordered neurons
-> takes the 138,639-neuron model to **0.056 ms/step on the sugar protocol —
-> 1.78× real time on 4 CPU cores, no GPU** — with **bit-identical** state and
+> takes the 138,639-neuron model to **0.046 ms/step on the sugar protocol —
+> 2.17× real time on 4 CPU cores, no GPU** — with **bit-identical** state and
 > spike trains across eight stimulation regimes.
 >
 > | regime | native ms/step | vs torch | real time |
 > |---|---|---|---|
-> | silent | 0.0259 | 88.6× | **3.86×** |
-> | single neuron | 0.0510 | 69.8× | **1.96×** |
-> | sugar GRNs (21) | 0.0562 | 55.2× | **1.78×** |
-> | P9 walking (2) | 0.0586 | 66.4× | **1.71×** |
-> | broad (1000) | 0.3518 | 10.1× | 0.28× |
-> | saturating (40k) | 2.3618 | 3.4× | 0.04× |
+> | single neuron | 0.0109 | 97.7× | **9.16×** |
+> | silent | 0.0260 | 104.4× | **3.84×** |
+> | P9 walking (2) | 0.0262 | 79.5× | **3.82×** |
+> | sugar GRNs (21) | 0.0461 | 52.2× | **2.17×** |
+> | broad (100) | 0.0763 | 30.6× | 1.31× |
+> | broad (1000) | 0.3019 | 10.1× | 0.33× |
+> | saturating (40k) | 2.2536 | 3.1× | 0.04× |
 >
-> The kernel wins in **every** regime (3.4×–88.6×, no regression anywhere), but
+> At 0.461 s/simulated-second on sugar this is level with **GeNN on an RTX 4070**
+> (0.450) at roughly an order of magnitude less power — though that is a
+> **latency** result: GPUs still win batched throughput, and we measured that
+> batching cannot close that gap on a CPU ([FINDINGS.md](FINDINGS.md) §4).
+>
+> The kernel wins in **every** regime (3.1×–104×, no regression anywhere), but
 > real time is reached in the sparse regimes — which is where both published
 > experiments (sugar, P9) live. Tile-skipping is activity-dependent by
 > construction and yields nothing once the brain is broadly driven.
