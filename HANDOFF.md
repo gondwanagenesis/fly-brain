@@ -328,19 +328,40 @@ Ranked by likelihood:
 [Wang et al. 2025, *Neuromorphic Simulation of Drosophila on Loihi 2*](https://arxiv.org/abs/2508.16792)
 (Sandia) — 140K neurons, 50M synapses, 12 chips. Wall-clock per simulated second:
 
-| Simulator | s/sim-second |
-|---|---|
-| Brian 2 (reference) | 4419 ± 236 |
-| STACS (Sandia, Charm++, 64 Summit nodes) | 2656 ± 80 |
-| **Eon PyTorch** (our measurement) | ~487 |
-| **Loihi 2 @ 1 ms** | **53.76 ± 0.9** |
+> ⚠️ **CORRECTED 2026-07-30. The previous version of this table was wrong by
+> 1000×** and the error propagated into §11. The paper's column header is
+> `FlyWire (ms)` — **milliseconds** per simulated second, not seconds. Anything
+> derived from the old table is void. Source: `research/papers/`, Table 1
+> (`FlyWire (ms)` header at L764). Full analysis:
+> `research/CORRECTION_benchmark_units.md`.
+
+| Platform | published | = s/sim-second | vs real time |
+|---|---|---|---|
+| Brian 2 (reference) | 4419 ± 236 ms | 4.42 | 4.4× slower |
+| STACS (Sandia, 8 MPI processes) | 2656 ± 80 ms | 2.66 | 2.7× slower |
+| **Loihi 2 @ dt = 0.1 ms** | 53.76 ± 0.90 ms | **0.0538** | **18.6× faster** |
+| **Loihi 2 @ dt = 1 ms** | 12.40 ± 0.28 ms | **0.0124** | **81× faster** |
+
+The dt assignment is inferred, not read directly: the PDF text extraction wraps
+the two Loihi rows onto one label. A *larger* dt must be *faster* (fewer steps),
+so 12.40 ms is the dt = 1 ms row. The paper's statement that Loihi 2 performed
+"better than realtime" (L776) is only true under the millisecond reading, which
+confirms the units.
 
 Reports ~3–350× over Brian 2, and *"speedups over 100× at sparser activity"*.
-🔑 **Their compromise is our opportunity:** at dt = 1 ms they rounded *both* the
-1.8 ms delay and 2.2 ms refractory to 2 ms (+11% / −9% error). Method of steps at
-dt = 1.8 ms keeps the delay exact by construction.
-Note STACS gets only **1.66×** over Brian 2 on 64 HPC nodes — algorithmic structure
-matters far more than parallelism here. [STACS is open source](https://github.com/sandialabs/STACS).
+At dt = 1 ms they round *both* the 1.8 ms delay and 2.2 ms refractory to 2 ms
+(+11% / −9% error); method of steps at dt = 1.8 ms would keep the delay exact.
+[STACS is open source](https://github.com/sandialabs/STACS).
+
+**What the correction costs us:** the old claim that "STACS gets only 1.66× over
+Brian 2 on 64 HPC nodes, so algorithmic structure beats parallelism" is
+withdrawn — it was 8 MPI processes, where 1.66× is unremarkable rather than
+evidence. And **this project is not faster than Loihi 2**: 0.543 s/sim-second
+(§11) against 0.0538, i.e. Loihi 2 is ~10× ahead. Real time on a laptop is still
+the headline; beating dedicated neuromorphic silicon is not.
+
+⚠️ These are *different machines*. Never tabulate our laptop measurements
+alongside the paper's without saying so.
 
 ### Key references
 **Exact integration & spike timing** — [Rotter & Diesmann 1999](https://link.springer.com/article/10.1007/s004220050570) · [Brette 2006](https://direct.mit.edu/neco/article/18/8/2004/7067/) · [Brette 2007](https://pubmed.ncbi.nlm.nih.gov/17716004/) · [Morrison et al. 2007](https://direct.mit.edu/neco/article/19/1/47/7159) · [Hanuschkin et al. 2010](https://www.frontiersin.org/journals/neuroinformatics/articles/10.3389/fninf.2010.00113/full) · [Hansel et al. 1998](https://direct.mit.edu/neco/article/10/2/467/6140/) · [Kunkel et al. 2011](https://pmc.ncbi.nlm.nih.gov/articles/PMC3240333/)
@@ -428,10 +449,14 @@ simulated second). Min of 15 blocks × 500 steps, sugar protocol:
 | native ×2 | 0.0790 | 0.79 | 1.27× |
 | **native ×4** | **0.0543** | **0.54** | **1.84×** |
 
-**30.6× over the PyTorch dense baseline, bit-identical.** For scale, Sandia's
-12-chip Loihi 2 (§8) reports 53.76 s/sim-second — this is 0.54 on one laptop,
-though note their dt = 1 ms rounds the 1.8 ms delay and 2.2 ms refractory to
-2 ms, which this does not.
+**30.6× over the PyTorch dense baseline, bit-identical.**
+
+For honest scale (see the §8 correction — **not** the pre-2026-07-30 table,
+which was wrong by 1000×): Sandia's 12-chip Loihi 2 achieves 0.0538 s/sim-second
+at the same dt, so **dedicated neuromorphic silicon is still ~10× ahead of this
+laptop.** The claim here is real time on a consumer device, not beating Loihi 2.
+Brian 2 on the paper's hardware is 4.42 s/sim-second — different machine, so
+that number is context, not a comparison.
 
 Gate: 8 regimes × 800 steps, **v, g and refrac compared as uint32 every step**
 plus exact spike-train comparison — `flyloop/verify_native.py`. All bit-equal.
