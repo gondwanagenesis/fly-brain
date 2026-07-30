@@ -146,7 +146,7 @@ class NativeBrainEngine:
     """Whole-brain LIF stepped by the fused native kernel."""
 
     def __init__(self, data_dir="data", params=None, dt=DT, stim_ids=None,
-                 seed=0, force_build=False, threads=None):
+                 seed=0, force_build=False, threads=None, silence_ids=None):
         self.lib = _lib(force_build)
         self.p = dict(params or MODEL_PARAMS)
         self.dt = dt
@@ -161,6 +161,16 @@ class NativeBrainEngine:
         self.crow = np.ascontiguousarray(fo["crow"].numpy().astype(np.int64))
         self.post = np.ascontiguousarray(fo["post"].numpy().astype(np.int32))
         self.val = np.ascontiguousarray(fo["val"].numpy().astype(np.float32))
+
+        # Optical silencing, the repo's second manipulation type (`neu_slnc` in
+        # code/benchmark.py). Upstream defines it as setting every synaptic
+        # connection TO and FROM the listed neurons to zero, so it is a
+        # connectome edit rather than a dynamics change: zero the outgoing CSC
+        # range of each silenced neuron, and zero any entry targeting one.
+        # The neuron itself still integrates, it is just disconnected.
+        self.silence_idx = np.zeros(0, dtype=np.int64)
+        if silence_ids:
+            self.silence(silence_ids)
 
         # ---- constants, rounded to fp32 exactly as torch does ----
         self.c_decay = np.float32(1 - dt / self.p["tauSyn"])
@@ -298,6 +308,19 @@ class NativeBrainEngine:
         self._poi_pos = 0
 
     # ---------------- interface ----------------
+    def silence(self, flywire_ids):
+        """Zero every synapse to and from these neurons. Returns the count."""
+        idx = np.asarray([self.flyid2i[int(i)] for i in flywire_ids
+                          if int(i) in self.flyid2i], dtype=np.int64)
+        if not idx.size:
+            return 0
+        self.silence_idx = np.union1d(self.silence_idx, idx)
+        for j in idx:                                    # outgoing
+            self.val[self.crow[j]:self.crow[j + 1]] = np.float32(0.0)
+        mask = np.isin(self.post, idx.astype(np.int32))  # incoming
+        self.val[mask] = np.float32(0.0)
+        return int(idx.size)
+
     def set_stim_neurons(self, flywire_ids):
         idx = [self.flyid2i[int(i)] for i in flywire_ids if int(i) in self.flyid2i]
         self.stim_idx = np.asarray(idx, dtype=np.int32)
