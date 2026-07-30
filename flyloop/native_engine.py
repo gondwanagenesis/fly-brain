@@ -155,6 +155,10 @@ def _load(force_build=False):
         c_i32p, c_f32p, ctypes.c_int,                    # delayed
         c_i32p, c_f32p, ctypes.c_int,                    # stim
         c_i32p, ctypes.c_int, ctypes.c_int,              # chunk bounds, tail width
+        c_i32p, ctypes.POINTER(ctypes.c_uint8), c_u64p,  # tile_lo, tile_fma, live
+        c_u64p,                                          # fma_bits (per neuron)
+        c_u64p, c_i32p,                                  # tile_pin, chunk_tile
+        c_i32p, ctypes.c_int, ctypes.c_int,              # neuron_tile, n_tiles, rescan
         c_i32p,                                          # out_spike_idx
     ]
 
@@ -188,7 +192,8 @@ class NativeBrainEngine:
     """Whole-brain LIF stepped by the fused native kernel."""
 
     def __init__(self, data_dir="data", params=None, dt=DT, stim_ids=None,
-                 seed=0, force_build=False, threads=None, silence_ids=None):
+                 seed=0, force_build=False, threads=None, silence_ids=None,
+                 reorder=None):
         self.lib = _lib(force_build)
         self.p = dict(params or MODEL_PARAMS)
         self.dt = dt
@@ -211,6 +216,13 @@ class NativeBrainEngine:
         assert np.array_equal(_w, np.rint(_w)),             "connectome weights are not integers -- int16 narrowing would be lossy"
         assert np.abs(_w).max() <= 32767, "weight exceeds int16 range"
         self.val = np.ascontiguousarray(_w.astype(np.int16))
+
+        # ---- optional neuron reordering, for tile-skip locality ----
+        # Must happen before any state or index is derived below.
+        self.perm = self.inv = None
+        if reorder and reorder != "none":
+            from reorder import build_permutation
+            self._apply_perm(build_permutation(str(d), key=reorder))
 
         # Optical silencing, the repo's second manipulation type (`neu_slnc` in
         # code/benchmark.py). Upstream defines it as setting every synaptic
@@ -265,6 +277,70 @@ class NativeBrainEngine:
         # kernel reproduces the reference's scalar-tail seam wherever it falls,
         # independently of which SIMD path the kernel itself takes.
         self.tail_w = aten_vector_width()
+
+        # ---- 16-neuron tiles, defined RELATIVE TO EACH CHUNK ----
+        #
+        # The ATen chunk boundaries are not multiples of 16, so a globally
+        # aligned tile would straddle the FMA/non-FMA seam at a chunk edge.
+        # Tiling from each chunk's start makes the FMA region exactly
+        # (vec_end - lo)/16 whole groups, with the non-FMA remainder as one
+        # final partial tile -- so every tile has one uniform rounding mode.
+        TILE = 16
+        t_lo, t_fma, c_tile = [], [], [0]
+        for c in range(self.n_chunks):
+            lo, hi = int(bounds[c]), int(bounds[c + 1])
+            vec_end = lo + ((hi - lo) // self.tail_w) * self.tail_w
+            i = lo
+            while i < vec_end:
+                t_lo.append(i)
+                t_fma.append(1)
+                i = min(i + TILE, vec_end)
+            if vec_end < hi:                      # ATen's scalar tail: no FMA
+                t_lo.append(vec_end)
+                t_fma.append(0)
+            c_tile.append(len(t_lo))
+        t_lo.append(N)
+        self.tile_lo = np.asarray(t_lo, dtype=np.int32)
+        self.tile_fma = np.asarray(t_fma, dtype=np.uint8)
+
+        # --- ATen's rounding seam follows the NEURON, not the array slot ---
+        #
+        # The reference applies its non-fused scalar tail to the last
+        # (chunk_len mod tail_w) neurons of each of ITS chunks, in the ORIGINAL
+        # index space. Unpermuted, position == neuron and the tile-level flags
+        # above are exact. Once neurons are permuted the two come apart, so the
+        # flag is recomputed per neuron and carried through the permutation;
+        # tiles that end up straddling the seam are marked MIXED (2) and take a
+        # scalar path that looks the bit up. At most 31 neurons brain-wide.
+        fma_orig = np.zeros(N, dtype=bool)
+        for c in range(self.n_chunks):
+            lo, hi = int(bounds[c]), int(bounds[c + 1])
+            fma_orig[lo:lo + ((hi - lo) // self.tail_w) * self.tail_w] = True
+        fma_new = fma_orig[self.perm] if self.perm is not None else fma_orig
+        self.fma_bits = np.zeros(((N + 63) >> 6) + 1, dtype=np.uint64)
+        _w = np.nonzero(fma_new)[0]
+        np.bitwise_or.at(self.fma_bits, _w >> 6,
+                         np.uint64(1) << (_w & 63).astype(np.uint64))
+        for k in range(len(self.tile_fma)):
+            seg = fma_new[self.tile_lo[k]:self.tile_lo[k + 1]]
+            self.tile_fma[k] = 1 if seg.all() else (0 if not seg.any() else 2)
+        self.chunk_tile = np.asarray(c_tile, dtype=np.int32)
+        self.n_tiles = nt = len(t_fma)
+
+        # neuron -> tile, used only by the sparse delayed pass (~190/step)
+        self.neuron_tile = np.zeros(N, dtype=np.int32)
+        for k in range(nt):
+            self.neuron_tile[self.tile_lo[k]:self.tile_lo[k + 1]] = k
+
+        _ntw = (nt + 63) >> 6
+        # B1b: every tile starts LIVE. Initialising by scan would mark the whole
+        # brain dead at t=0 (all neurons are at exact rest) and nothing would
+        # ever run.
+        self.tile_live = np.full(_ntw + 1, np.uint64(0xFFFFFFFFFFFFFFFF),
+                                 dtype=np.uint64)
+        self.tile_pin = np.zeros(_ntw + 1, dtype=np.uint64)
+        self.rescan_every = 64
+        self._since_rescan = 0
         self.isa = _ISA_NAME.get(self.lib.lif_isa(), "?")
 
         # One worker per chunk. The pool only engages when threads == n_chunks;
@@ -371,6 +447,13 @@ class NativeBrainEngine:
         self._pspb = _p(self.sp_bits, u64)
         self._pspc = _p(self._sp_scratch, u64)
         self._pchunk = _p(self.chunks, i32)
+        self._ptlo = _p(self.tile_lo, i32)
+        self._ptfma = _p(self.tile_fma, ctypes.c_uint8)
+        self._ptlive = _p(self.tile_live, u64)
+        self._pfmab = _p(self.fma_bits, u64)
+        self._ptpin = _p(self.tile_pin, u64)
+        self._pctile = _p(self.chunk_tile, i32)
+        self._pntile = _p(self.neuron_tile, i32)
         self._pstim = _p(self.stim_idx, i32)
         self._pstimv = _p(self._stim_val, f)
         self._pacc = _p(self._acc, i32)
@@ -393,6 +476,47 @@ class NativeBrainEngine:
         blk.mul_(float(self._poi_scale))
         self._poi_block = blk.numpy()
         self._poi_pos = 0
+
+    def _apply_perm(self, perm):
+        """Renumber neurons so co-active ones land in the same tile.
+
+        A permutation is pure relabeling, so this is exact -- it changes which
+        neurons share a 16-wide tile, and nothing else. Neuron index is an
+        arbitrary artefact of the completeness CSV's row order, and in that
+        order the live neurons are scattered (mean run length 1.1), so 98.85%
+        of tiles hold at least one live neuron and skipping saves 1.15%.
+        Grouping by `cell_type` -- cells of a type share inputs, so they fall
+        quiet together -- takes tile-16 from 70.6% live to 28.3% on sugar.
+
+        Callers address neurons by FlyWire id everywhere (inject, silence,
+        indices_of, spikes_dataframe), so the renumbering is invisible from
+        outside: only the tile hit-rate changes.
+        """
+        N = self.N
+        perm = np.asarray(perm, dtype=np.int64)
+        if perm.shape != (N,):
+            raise ValueError(f"permutation must have length {N}, got {perm.shape}")
+        inv = np.empty(N, dtype=np.int64)
+        inv[perm] = np.arange(N, dtype=np.int64)
+
+        # The fan-out is CSC (grouped by PREsynaptic neuron), so the groups are
+        # reordered with their sources and the postsynaptic ids relabelled.
+        lens = (self.crow[1:] - self.crow[:-1])[perm]
+        total = int(lens.sum())
+        base = np.repeat(self.crow[perm], lens)
+        ramp = (np.arange(total, dtype=np.int64)
+                - np.repeat(np.cumsum(lens) - lens, lens))
+        take = base + ramp
+
+        new_crow = np.zeros(N + 1, dtype=np.int64)
+        np.cumsum(lens, out=new_crow[1:])
+        self.crow = np.ascontiguousarray(new_crow)
+        self.post = np.ascontiguousarray(inv[self.post[take]].astype(np.int32))
+        self.val = np.ascontiguousarray(self.val[take])
+
+        self.i2flyid = np.ascontiguousarray(self.i2flyid[perm])
+        self.flyid2i = {int(j): i for i, j in enumerate(self.i2flyid)}
+        self.perm, self.inv = perm, inv
 
     # ---------------- interface ----------------
     def _fanout_dtype_ok(self):
@@ -417,6 +541,15 @@ class NativeBrainEngine:
         self.refrac_steps[self.stim_idx] = 0
         self._stim_val = np.zeros(len(idx), dtype=np.float32)
         self._rates = torch.zeros(len(idx))
+        # B1: stimulated neurons are driven OUTSIDE the delay ring, so nothing
+        # in the delayed pass can mark their tile live. A stim neuron whose
+        # Poisson draw is 0 sits at exact rest and would be declared inert, its
+        # tile cleared, and the sensory drive silently disconnected. Pin them.
+        if hasattr(self, "tile_pin"):
+            for i in self.stim_idx:
+                tt = int(self.neuron_tile[int(i)])
+                self.tile_pin[tt >> 6] |= np.uint64(1) << np.uint64(tt & 63)
+                self.tile_live[tt >> 6] |= np.uint64(1) << np.uint64(tt & 63)
         self._poi_block = None
         if hasattr(self, "_pv"):        # arrays were replaced -> re-resolve
             self._cache_pointers()
@@ -449,6 +582,11 @@ class NativeBrainEngine:
             self._stim_val[:] = self._poi_block[self._poi_pos]
             self._poi_pos += 1
 
+        self._since_rescan += 1
+        rescan = 1 if self._since_rescan >= self.rescan_every else 0
+        if rescan:
+            self._since_rescan = 0
+
         h = self.head
         prev_n = self._cur_n
         cf = self._cf
@@ -463,6 +601,9 @@ class NativeBrainEngine:
             self._pdel_i[h], self._pdel_v[h], self._del_n[h],
             self._pstim, self._pstimv, n_stim,
             self._pchunk, self.n_chunks, self.tail_w,
+            self._ptlo, self._ptfma, self._ptlive, self._pfmab,
+            self._ptpin, self._pctile,
+            self._pntile, self.n_tiles, rescan,
             self._psp[1 - self._cur],
         )
         self.n_spikes = nsp

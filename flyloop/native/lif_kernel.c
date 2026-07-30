@@ -140,9 +140,14 @@ static void sweep_scalar(int lo, int hi, int use_fma,
                          uint64_t *restrict sp_out,
                          float c_decay, float c_mem,
                          float v_rest, float v_reset, float v_th,
-                         int wf, int wl)
+                         int wf, int wl, const uint64_t *fma_bits)
 {
-    if (use_fma) { LIF_BODY(1) } else { LIF_BODY(0) }
+    /* use_fma == 2 means the tile straddles ATen's vector/tail seam, so the
+     * rounding differs per neuron and has to be looked up. At most 31 neurons
+     * in the whole brain are in that state. */
+    if (use_fma == 2) { LIF_BODY(BIT_GET(fma_bits, i)) }
+    else if (use_fma) { LIF_BODY(1) }
+    else              { LIF_BODY(0) }
 }
 
 #ifdef LIF_X86
@@ -216,6 +221,26 @@ static int sweep_avx2(int lo, int hi,
 }
 #endif /* LIF_X86 */
 
+#ifdef LIF_X86
+/* One 16-neuron group. Same arithmetic as sweep_avx512's loop body. */
+__attribute__((target("avx512f,avx512bw,avx512dq")))
+static void group16(int i, float *restrict v, float *restrict g,
+                    uint64_t *restrict sp_out,
+                    float c_decay, float c_mem,
+                    float v_rest, float v_reset, float v_th, int wf, int wl)
+{
+    const __m512 gi = _mm512_loadu_ps(g + i);
+    const __m512 vv = _mm512_loadu_ps(v + i);
+    const __m512 gn = _mm512_mul_ps(gi, _mm512_set1_ps(c_decay));
+    const __m512 t  = _mm512_add_ps(_mm512_sub_ps(_mm512_set1_ps(v_rest), vv), gi);
+    const __m512 vn = _mm512_fmadd_ps(t, _mm512_set1_ps(c_mem), vv);
+    const __mmask16 sp = _mm512_cmp_ps_mask(vn, _mm512_set1_ps(v_th), _CMP_GT_OQ);
+    _mm512_storeu_ps(v + i, _mm512_mask_blend_ps(sp, vn, _mm512_set1_ps(v_reset)));
+    _mm512_storeu_ps(g + i, _mm512_mask_blend_ps(sp, gn, _mm512_setzero_ps()));
+    put_bits(sp_out, i, (uint32_t)sp, 16, wf, wl);
+}
+#endif
+
 /* Runtime ISA selection, resolved once. */
 enum { ISA_SCALAR = 0, ISA_AVX2 = 1, ISA_AVX512 = 2 };
 static int g_isa = -1;
@@ -282,6 +307,64 @@ EXPORT int lif_force_isa(int isa)
 /* the remainder scalar WITHOUT one, so that split is reproduced here         */
 /* regardless of which SIMD path we take internally.                          */
 /* ------------------------------------------------------------------------ */
+/* Sweep the live tiles of one chunk.
+ *
+ * Every tile carries a single uniform rounding mode (see the module note on
+ * chunk-relative tiling), so the FMA/non-FMA seam is a property of the tile
+ * rather than something the loop has to re-derive. */
+static void sweep_tile_range(int t0, int t1,
+                             const int32_t *tile_lo, const uint8_t *tile_fma,
+                             const uint64_t *tile_live, const uint64_t *fma_bits,
+                             float *restrict v, float *restrict g,
+                             uint64_t *restrict sp_out,
+                             float c_decay, float c_mem,
+                             float v_rest, float v_reset, float v_th)
+{
+    if (t1 <= t0) return;
+    const int wf = tile_lo[t0] >> 6, wl = (tile_lo[t1] - 1) >> 6;
+    for (int t = t0; t < t1; ++t) {
+        if (!((tile_live[t >> 6] >> (t & 63)) & 1ULL)) continue;   /* provably inert */
+        const int lo = tile_lo[t], hi = tile_lo[t + 1];
+#ifdef LIF_X86
+        /* == 1, not just truthy: mode 2 means the tile straddles ATen's
+         * vector/tail seam, so its rounding varies per neuron and it must take
+         * the scalar path that looks the bit up. */
+        if (g_isa == ISA_AVX512 && tile_fma[t] == 1 && hi - lo == 16) {
+            group16(lo, v, g, sp_out, c_decay, c_mem, v_rest, v_reset, v_th, wf, wl);
+            continue;
+        }
+#endif
+        sweep_scalar(lo, hi, tile_fma[t], v, g, sp_out,
+                     c_decay, c_mem, v_rest, v_reset, v_th, wf, wl, fma_bits);
+    }
+}
+
+/* Clear tiles that are provably inert. Runs every RESCAN steps; between scans a
+ * live tile stays live, which is conservative and never skips a live neuron. */
+static void rescan_tiles(int nt, const int32_t *tile_lo, uint64_t *tile_live,
+                         const uint64_t *tile_pin,
+                         const float *v, const float *g,
+                         const uint64_t *gate_bits, const uint64_t *sp_bits,
+                         float v_rest)
+{
+    for (int t = 0; t < nt; ++t) {
+        const uint64_t m = 1ULL << (t & 63);
+        if (!(tile_live[t >> 6] & m)) continue;
+        if (tile_pin[t >> 6] & m) continue;          /* B1: stim tiles are pinned */
+        int inert = 1;
+        for (int i = tile_lo[t]; i < tile_lo[t + 1]; ++i) {
+            /* gate must be OPEN: a refractory neuron is bit-indistinguishable
+             * from a resting one in (v, g), and must not be skipped (B3). */
+            if (v[i] != v_rest || g[i] != 0.0f
+                || !BIT_GET(gate_bits, i) || BIT_GET(sp_bits, i)) {
+                inert = 0;
+                break;
+            }
+        }
+        if (inert) tile_live[t >> 6] &= ~m;
+    }
+}
+
 static void sweep_chunk(int lo, int hi, int tail_w,
                         float *restrict v, float *restrict g,
                         uint64_t *restrict sp_out,
@@ -304,11 +387,11 @@ static void sweep_chunk(int lo, int hi, int tail_w,
     /* still inside ATen's vectorised region -> FMA */
     if (i < vec_end)
         sweep_scalar(i, vec_end, 1, v, g, sp_out,
-                     c_decay, c_mem, v_rest, v_reset, v_th, wf, wl);
+                     c_decay, c_mem, v_rest, v_reset, v_th, wf, wl, NULL);
     /* ATen's scalar tail -> NO FMA */
     if (vec_end < hi)
         sweep_scalar(vec_end, hi, 0, v, g, sp_out,
-                     c_decay, c_mem, v_rest, v_reset, v_th, wf, wl);
+                     c_decay, c_mem, v_rest, v_reset, v_th, wf, wl, NULL);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -342,6 +425,11 @@ static void sweep_chunk(int lo, int hi, int tail_w,
 typedef struct {
     int kind;                     /* 0 = neuron sweep, 1 = synaptic fan-out */
     int lo, hi, tail_w;
+    int t0, t1;
+    const int32_t *tile_lo;
+    const uint8_t *tile_fma;
+    const uint64_t *tile_live;
+    const uint64_t *fma_bits;
     float *v, *g;
     uint64_t *sp_out;
     float c_decay, c_mem, v_rest, v_reset, v_th;
@@ -443,8 +531,9 @@ static void fanout_serial(const job_t *j)
 static void run_job(const job_t *j)
 {
     if (j->kind == 1) { fanout_range(j); return; }
-    sweep_chunk(j->lo, j->hi, j->tail_w, j->v, j->g, j->sp_out,
-                j->c_decay, j->c_mem, j->v_rest, j->v_reset, j->v_th);
+    sweep_tile_range(j->t0, j->t1, j->tile_lo, j->tile_fma, j->tile_live,
+                     j->fma_bits, j->v, j->g, j->sp_out, j->c_decay, j->c_mem,
+                     j->v_rest, j->v_reset, j->v_th);
 }
 
 static void spin_until(volatile long *addr, long target_gt)
@@ -510,21 +599,26 @@ EXPORT int lif_set_threads(int n)
     return POOL.nthreads;
 }
 
-static void sweep_all(const int32_t *chunks, int n_chunks, int tail_w,
+static void sweep_all(const int32_t *chunk_tile, int n_chunks,
+                      const int32_t *tile_lo, const uint8_t *tile_fma,
+                      const uint64_t *tile_live, const uint64_t *fma_bits,
                       float *v, float *g, uint64_t *sp_out,
                       float c_decay, float c_mem,
                       float v_rest, float v_reset, float v_th)
 {
     if (!POOL.started || POOL.nthreads < 2 || n_chunks != POOL.nthreads) {
         for (int c = 0; c < n_chunks; ++c)
-            sweep_chunk(chunks[c], chunks[c + 1], tail_w, v, g, sp_out,
-                        c_decay, c_mem, v_rest, v_reset, v_th);
+            sweep_tile_range(chunk_tile[c], chunk_tile[c + 1], tile_lo, tile_fma,
+                             tile_live, fma_bits, v, g, sp_out, c_decay, c_mem,
+                             v_rest, v_reset, v_th);
         return;
     }
     for (int c = 0; c < n_chunks; ++c) {
         job_t *j = &POOL.jobs[c];
         j->kind = 0;
-        j->lo = chunks[c]; j->hi = chunks[c + 1]; j->tail_w = tail_w;
+        j->t0 = chunk_tile[c]; j->t1 = chunk_tile[c + 1];
+        j->tile_lo = tile_lo; j->tile_fma = tile_fma; j->tile_live = tile_live;
+        j->fma_bits = fma_bits;
         j->v = v; j->g = g; j->sp_out = sp_out;
         j->c_decay = c_decay; j->c_mem = c_mem;
         j->v_rest = v_rest; j->v_reset = v_reset; j->v_th = v_th;
@@ -554,6 +648,10 @@ EXPORT int lif_step(
     const int32_t *del_idx, const float *del_val, int n_del,
     const int32_t *stim_idx, const float *stim_val, int n_stim,
     const int32_t *chunks, int n_chunks, int tail_w,
+    const int32_t *tile_lo, const uint8_t *tile_fma, uint64_t *tile_live,
+    const uint64_t *fma_bits,
+    const uint64_t *tile_pin, const int32_t *chunk_tile,
+    const int32_t *neuron_tile, int n_tiles, int rescan,
     int32_t *out_spike_idx)
 {
     const int nw = (n + 63) >> 6;
@@ -586,8 +684,9 @@ EXPORT int lif_step(
     }
 
     memset(sp_scratch, 0, (size_t)(nw + 1) * sizeof(uint64_t));
-    sweep_all(chunks, n_chunks, tail_w, v, g, sp_scratch,
-              c_decay, c_mem, v_rest, v_reset, v_th);
+    (void)chunks; (void)tail_w;
+    sweep_all(chunk_tile, n_chunks, tile_lo, tile_fma, tile_live, fma_bits,
+              v, g, sp_scratch, c_decay, c_mem, v_rest, v_reset, v_th);
 
     /* --- delayed synaptic input.
      *
@@ -603,6 +702,14 @@ EXPORT int lif_step(
         if (!BIT_GET(sp_scratch, i)) {
             const float gate = BIT_GET(gate_bits, i) ? 1.0f : 0.0f;
             g[i] = g[i] + del_val[k] * gate;
+        }
+        /* B4: mark live at CONSUMPTION, the moment g can change -- not at
+         * emission, because a rescan could clear the tile during the up-to-19
+         * steps the arrival spends in flight. Marked unconditionally: a spiking
+         * neuron's tile is live anyway, and this keeps the invariant simple. */
+        {
+            const int tt = neuron_tile[i];
+            tile_live[tt >> 6] |= 1ULL << (tt & 63);
         }
     }
 
@@ -639,6 +746,10 @@ EXPORT int lif_step(
             rc_idx[(*n_ref_io)++] = i;
         }
     }
+
+    if (rescan)
+        rescan_tiles(n_tiles, tile_lo, tile_live, tile_pin, v, g,
+                     gate_bits, sp_scratch, v_rest);
 
     memcpy(sp_bits, sp_scratch, (size_t)(nw + 1) * sizeof(uint64_t));
     return nsp;
