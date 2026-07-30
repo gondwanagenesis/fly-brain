@@ -332,6 +332,47 @@ Loihi 2 achieves 0.0538 s/sim-second at the same `dt`
 
 ---
 
+## Part 2b — Defects fixed in the existing code
+
+Separate from the new kernel: unambiguous bugs in the code that was already
+here. None change model semantics; all are gated on the 8-regime dense-vs-active
+suite (`flyloop/verify.py`, ALL EXACT).
+
+| defect | file | consequence |
+|---|---|---|
+| `KAPPA_WINDOW_MAX` was a **sampled** max feeding `certified_no_spike()` | `code/window_step.py` | an under-estimate certifies a neuron silent that actually spikes |
+| dense fallback was a **one-way latch** | `flyloop/brain_engine.py` | one transient burst disabled the sparse path for the whole run |
+| switch thresholded on spike **count** | `flyloop/brain_engine.py` | out-degree spans 1→9,800; one spike can outweigh a thousand |
+| inert test `v == v_rest` **unreachable** | `flyloop/brain_engine.py` | the active set could only grow |
+
+**The κ proof.** κ's only interior stationary point is at
+`s* = ln(τm/τs)/(1/τs − 1/τm) = 9.2420 ms`, far outside the (0, 1.8] window, so
+κ is strictly increasing there and the max is exactly κ(D). The function
+re-derives `s*` and **raises** if the peak ever moves inside — the proof cannot
+go stale. Equals the old sampled value to the bit; correctly refuses D = 12 ms.
+
+**A limitation no fix removes.** `v == v_rest` is unreachable for any perturbed
+neuron: with g = 0 the membrane decays d ← 0.995·d, but near −52 mV the fp32 ULP
+is ~3.8e−6, so once d reaches one ULP the update rounds back to itself and the
+neuron sits one ULP above rest forever. The fix tests the actual fixed point
+instead. But `g` reaches exactly zero only after ~5,000 steps, so a neuron that
+receives *any* input stays formally live for thousands of steps however
+negligible its conductance. **No exact predicate can avoid this**; an ε-prune
+backed by `certified_no_spike` is the route, unattempted.
+
+**Two things that read like bugs and are not.** Sugar sits at ~4.9% live, inside
+the hysteresis band (release <4%, trip >8%), so it correctly does not release.
+And a broad burst leaves the network **self-sustaining** — 78,914 spikes in
+2,000 steps after the stimulus is removed entirely — so the active set never
+falls back regardless of the switch.
+
+```bash
+.venv/Scripts/python.exe flyloop/verify.py 600                  # dense vs active
+.venv/Scripts/python.exe flyloop/test_fallback_recovery.py      # the latch fix
+```
+
+---
+
 ## Part 3 — Verification
 
 **Rule 1 of this fork: every performance change is proven bit-identical.**

@@ -12,10 +12,11 @@ in [HANDOFF.md](HANDOFF.md); the full write-up is [FORK.md](FORK.md).
 
 1. **Your PyTorch backend and your Brian 2 ground truth do not simulate the same
    model.** They differ in how synaptic input is handled during the refractory
-   period, and separately the PyTorch axonal delay is one timestep longer. On the sugar experiment this discards **6.4% of arriving synaptic
+   period. On the sugar experiment that discards **6.4% of arriving synaptic
    weight**, changes spike count by **+22.5%**, and drops active-neuron Jaccard
    to **0.871** — a larger divergence than the forward-Euler-vs-exact gap
-   (0.913). This is the finding we would most like you to check.
+   (0.913). Separately, the PyTorch axonal delay is **one timestep longer** than
+   Brian 2's. These are the findings we would most like you to check.
 
 2. **The whole 138,639-neuron model runs faster than real time on a 4-core
    laptop with no GPU**, bit-identical to the PyTorch reference: 0.046 ms/step

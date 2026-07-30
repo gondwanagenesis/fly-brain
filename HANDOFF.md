@@ -15,9 +15,10 @@ on this machine, cited, or explicitly flagged as a projection.
 ## 0. Read this first — the strategic conclusion
 
 > **2026-07-30 UPDATE — real time is reached.** The whole 138,639-neuron brain now
-> runs at **0.056 ms/step = 1.78× real time** on the sugar protocol on a 4-core
-> laptop (0.026 ms = 3.86× when silent), bit-identical to the PyTorch reference,
-> and beats it in **every** regime tested (3.4×–88.6×, no regression anywhere).
+> runs at **0.0461 ms/step = 2.17× real time** on the sugar protocol on a 4-core
+> laptop (0.0260 ms = 3.84× silent, 0.0109 ms = 9.16× single-neuron),
+> bit-identical to the PyTorch reference, and beats it in **every** regime
+> tested (**3.1×–104×**, no regression anywhere).
 > See **§11** and **§12**, which supersede the framing below. Reader-facing
 > write-up: **[FORK.md](FORK.md)**.
 >
@@ -555,16 +556,16 @@ would break it far more thoroughly.
 Supersedes §11.1's numbers. Full sweep, Syncthing stopped, min of 7 blocks,
 400 lockstep verify steps per regime (`flyloop/verify_all.py`):
 
-| regime | correct | torch ms | native ms | +reorder | vs torch | reorder | live tiles | real time |
+| regime | correct | torch ms | native ms | +reorder | vs torch | reorder gain | live tiles | **real time** |
 |---|---|---|---|---|---|---|---|---|
-| silent | BIT-EQ | 2.2970 | 0.0269 | **0.0259** | 88.6× | 1.04× | 0.1% | **3.86×** |
-| single neuron | BIT-EQ | 3.5611 | 0.0464 | 0.0510 | 69.8× | 0.91× | 3.2% | **1.96×** |
-| sugar GRNs (21) | BIT-EQ | 3.1020 | 0.0917 | **0.0562** | 55.2× | 1.63× | 28.5% | **1.78×** |
-| P9 walking (2) | BIT-EQ | 3.8922 | 0.1237 | **0.0586** | 66.4× | 2.11× | 12.7% | **1.71×** |
-| broad (100) | BIT-EQ | 2.7857 | 0.1096 | 0.0858 | 32.5× | 1.28× | 78.7% | 1.17× |
-| broad (1000) | BIT-EQ | 3.5575 | 0.4957 | 0.3518 | 10.1× | 1.41× | 97.7% | 0.28× |
-| broad (10000) | BIT-EQ | 3.9043 | 0.8006 | 0.6575 | 5.9× | 1.22× | 100.0% | 0.15× |
-| saturating (40k) | BIT-EQ | 8.0741 | 2.5337 | 2.3618 | 3.4× | 1.07× | 100.0% | 0.04× |
+| single neuron | BIT-EQ | 1.0664 | 0.0126 | **0.0109** | 97.7× | 1.15× | 3.2% | **9.16×** |
+| silent (0 drive) | BIT-EQ | 2.7179 | 0.0309 | **0.0260** | 104.4× | 1.19× | 0.1% | **3.84×** |
+| P9 walking (2) | BIT-EQ | 2.0810 | 0.0387 | **0.0262** | 79.5× | 1.48× | 12.7% | **3.82×** |
+| sugar GRNs (21) | BIT-EQ | 2.4091 | 0.0695 | **0.0461** | 52.2× | 1.51× | 28.5% | **2.17×** |
+| broad (100) | BIT-EQ | 2.3383 | 0.0859 | 0.0763 | 30.6× | 1.13× | 78.7% | 1.31× |
+| broad (1000) | BIT-EQ | 3.0359 | 0.3786 | 0.3019 | 10.1× | 1.25× | 97.7% | 0.33× |
+| broad (10000) | BIT-EQ | 4.0052 | 0.7986 | 0.6806 | 5.9× | 1.17× | 100.0% | 0.15× |
+| saturating (40k) | BIT-EQ | 7.0947 | 2.5005 | 2.2536 | 3.1× | 1.11× | 100.0% | 0.04× |
 
 ⚠️ Native ms/step is a **lower bound** (load only makes blocks slower), so the
 real-time column is conservative. The **vs torch** ratios are generous: the
@@ -690,3 +691,72 @@ FORK.md).
    risk.
 7. Port the kernel into `code/run_pytorch.py` so the upstream benchmark benefits,
    once (3) is done.
+
+
+---
+
+## 14. Defects fixed (2026-07-30, late)
+
+Unambiguous bugs, no change to model semantics, all gated on the 8-regime
+dense-vs-active suite (`flyloop/verify.py`, ALL EXACT).
+
+| defect | file | why it mattered |
+|---|---|---|
+| `KAPPA_WINDOW_MAX` was a **sampled** max feeding `certified_no_spike()` | `code/window_step.py` | an under-estimate certifies a neuron silent that actually spikes — the one failure this project cannot tolerate |
+| dense fallback was a **one-way latch** | `flyloop/brain_engine.py` | one transient burst disabled the sparse path for the rest of the run |
+| switch thresholded on spike **count** | `flyloop/brain_engine.py` | out-degree spans 1→9,800; one spike can carry more fan-out than a thousand |
+| inert test `v == v_rest` is **unreachable** | `flyloop/brain_engine.py` | see §14.2 — the active set could only grow |
+| DLL blocked by Windows Smart App Control | `flyloop/native_engine.py` | the engine was unloadable; fixed without disabling SAC |
+
+### 14.1 The κ bound, now proved
+
+κ(s) = C·(e^(−s/τm) − e^(−s/τs)) has its only interior stationary point at
+`s* = ln(τm/τs)/(1/τs − 1/τm) = 9.2420 ms`, far outside the (0, 1.8] window, so
+κ is strictly increasing there and its max is exactly κ(D). The function
+re-derives `s*` from its arguments and **raises** if the peak ever moves inside
+the window, so the proof cannot go stale if the constants change. Closed form
+equals the old sampled max to the bit; it correctly refuses D = 12 ms.
+
+### 14.2 ⚠️ The inert predicate is fundamentally limited in fp32
+
+`v == v_rest` is **unreachable** for any neuron that was ever perturbed. With
+g = 0 the membrane decays d ← 0.995·d, but near −52 mV the fp32 ULP is ~3.8e−6,
+so once d reaches one ULP the update rounds back to itself and the neuron sits
+one ULP above rest forever. Under the old predicate it could never be pruned.
+
+Replaced by the actual **fixed-point** condition: if the update maps the state to
+itself, skipping is exact (`v == v_rest` is the special case d = 0).
+
+**The same trap applies to `g`**, which decays geometrically and reaches exactly
+zero only after ~5,000 steps. So a neuron that receives *any* input stays
+formally live for thousands of steps however negligible its conductance, and the
+sparse path's inert set decays with cumulative activity. **No exact predicate can
+avoid this.** An ε-prune backed by `certified_no_spike` is the route; unattempted.
+
+### 14.3 Two observations that read like bugs but are not
+
+- **Sugar sits at ~4.9% live**, inside the hysteresis band (release <4%, trip
+  >8%), so it correctly does *not* release. That is the band working.
+- **A broad burst leaves the network self-sustaining** — 78,914 spikes in 2,000
+  steps *after* the stimulus is removed entirely. The active set therefore never
+  falls back, regardless of the switch. Worth knowing before interpreting any
+  long run.
+
+### 14.4 Hypotheses tested and dropped
+
+- **Denormal conductances slowing the kernel.** Did not reproduce: zero
+  denormals at 3,000 steps, and a flush-to-zero control came out *slower*. The
+  1.39× post-burst slowdown is higher activity, not slow arithmetic.
+- **Trial batching.** Measured the amortisable fraction of a step first: 8.8%
+  (sparse) / 0.7% (dense), capping an 8-trial gain at ~1.09×/1.007×. GeNN's 3.5×
+  batching win is a GPU artifact of underutilisation; this CPU is already
+  91–99% real compute at n=1. Not built.
+
+### 14.5 Concurrent work in this tree
+
+A parallel session is building a **multi-model** kernel in the same checkout
+(`flyloop/models.py`, `native/nrn_kernel.c`, `sweep_template.h`, `studio/`,
+`verify_models.py`, `code/validate_models_brian2.py`) — Izhikevich, AdEx,
+Hodgkin-Huxley, GLIF sharing the same connectome, delay ring, fan-out and tile
+machinery. Not covered by §11–14 and not measured here. Check `git status` and
+file mtimes before large patches in `flyloop/`.
