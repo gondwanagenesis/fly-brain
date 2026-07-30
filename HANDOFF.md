@@ -808,16 +808,44 @@ counts), runtime ISA dispatch, a full-brain Brian 2 reference
 (`code/run_brian2_reference.py`), and the model-divergence finding (§1.1 of
 FORK.md).
 
-1. **Confirm the fan-out-locality hypothesis (§12.4).** Reordering gives
-   1.07–1.41× where *nothing* is skippable. If that is cache locality in the
-   scatter-add, it is a second, activity-independent reason to reorder — and it
-   would transfer to GPU backends, where the same scatter dominates. Measure the
-   fan-out in isolation rather than inferring it.
-2. **Fan-out dominates the broad and saturating regimes.** At ~930 spikes/step
-   it is ~104k synapse updates/step, and §2.1's "synaptic propagation is only
-   0.14%" stops holding there. Note the threaded fan-out is a trap: correct
-   (atomic int32, so deterministic) but **1.65× slower** than serial. Attack
-   locality and representation, not parallelism.
+1. ~~Confirm the fan-out-locality hypothesis~~ / ~~attack the fan-out~~ —
+   **BOTH MEASURED, BOTH REFUTED (2026-07-31).** `flyloop/profile_split.py` and
+   `flyloop/bench_fanout.py`; full write-up in
+   `research/fanout-locality-negative.md`.
+
+   The split is real — fan-out is **49.6%** of the saturating step (136,605
+   edges at 21.7 ns each) and 9.7–13.3% in the regimes the published
+   experiments use. But **neither candidate fix works**:
+
+   - **Pull direction (Beamer).** Refuted on arithmetic alone: a pull fan-out
+     costs O(E) = 15,091,983 edges *every step regardless of activity*, against
+     136,605 actually needed in the densest regime — **110× more work**. The
+     switch would never fire. Push wins everywhere in this connectome.
+   - **Radix-partitioned scatter.** Implemented and measured: **0.47–0.87×,
+     slower at every size** from 1,283 to 1,796,811 edges/step. The direct
+     scatter holds **6–11 ns/edge up to 1.8M edges and does not degrade**, so it
+     was never miss-bound — each presynaptic neuron's CSC range lists its
+     targets in *ascending* order, so the prefetcher handles it and the
+     randomness is only *between* sources. The implementation is kept in the
+     kernel, gated behind a caller-supplied buffer the engine passes as NULL, so
+     the measurement stays reproducible.
+
+   Consequence: the 21.7 ns/edge in the live saturating step is **contention**
+   with the rest of the step's working set, not the scatter's own behaviour. The
+   lever for that is shrinking resident state (int16 shifted coordinates, uint8
+   saturating counters — see `research/memory-layout-quantization.md`), not
+   reorganising the traffic.
+
+   ⚠️ **And §2.1's headline needs its units read carefully.** "Synaptic
+   propagation is only 0.14% of runtime" is an *operation-count* statement used
+   as a *runtime* one. Measured by time it is **9.7%** of the sugar step —
+   ~70× more than the op count implies, because the neuron sweep streams and the
+   scatter does not. The conclusion it supports (don't chase spike delivery in
+   the sparse regime) survives at 9.7%; the number quoted for it should be the
+   measured one.
+
+   Still open from §12.4: reordering gives 1.07–1.41× where *nothing* is
+   skippable, and that is now known **not** to be scatter locality. Unexplained.
 3. **Validate against Brian 2 end to end** via `code/compare_ground_truth.py`.
    `run_brian2_reference.py` now builds the full 138,639-neuron network
    (~30 s per 100 ms simulated, 1.8 GB), so this is unblocked. It matters more

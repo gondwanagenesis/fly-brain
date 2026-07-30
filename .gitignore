@@ -47,3 +47,5 @@ data/model_cache/
 !data/results/exp_audit_full.txt
 !data/results/verify_models.txt
 !data/results/verify_all.txt
+!data/results/fanout_profile.txt
+!data/results/fanout_bench.txt

@@ -1,0 +1,13 @@
+step cost split, whole brain, 4 threads, min of 9 x 200
+
+regime             spikes/step  edges/step   full ms  fanout ms  fanout %  ns/edge
+----------------------------------------------------------------------------------
+sugar (21)                 1.6         233    0.0472     0.0063     13.3%     27.1
+broad (1000)              60.7       14996    0.4550     0.4419     97.1%     29.5
+broad (10000)            168.2       31427    1.4159     0.1883     13.3%      6.0
+saturating (40k)         972.3      136605    5.1377     2.3950     46.6%     17.5
+----------------------------------------------------------------------------------
+connectome has 15,091,983 edges in total.
+A PULL fan-out (each thread owns postsynaptic neurons and gathers)
+costs O(E) per step regardless of activity. Compare that column
+against `edges/step`: pull only wins where edges/step approaches E.

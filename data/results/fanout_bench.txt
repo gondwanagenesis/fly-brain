@@ -1,0 +1,20 @@
+N=138,639  edges=15,091,983  mean out-degree=108.9
+accumulator = 542 KB
+
+  spikes      edges  direct us  partition us  speedup  ns/edge dir  ns/edge part  same
+--------------------------------------------------------------------------------------
+      16       1283      11.70         16.23    0.72x         9.12         12.65   yes
+      64       5715      40.94         65.51    0.62x         7.16         11.46   yes
+     256      28322     262.13        555.49    0.47x         9.26         19.61   yes
+     512      51564    1079.66       1291.58    0.84x        20.94         25.05   yes
+    1024     106124    1977.92       3294.63    0.60x        18.64         31.05   yes
+    2048     228609    4169.66       7848.98    0.53x        18.24         34.33   yes
+    4096     447089    7803.85      11582.42    0.67x        17.45         25.91   yes
+    8192     907682   10151.50      22497.15    0.45x        11.18         24.79   yes
+   16384    1796811   18321.20      30288.60    0.60x        10.20         16.86   yes
+   32768    3570234  exceeds pair_cap, kernel falls back
+--------------------------------------------------------------------------------------
+`same` compares the compacted (index, value) output bit-for-bit;
+integer accumulation is order-independent so this must hold.
+
+partitioning never won at any size tested -- leave it off

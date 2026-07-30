@@ -143,6 +143,7 @@ def _bind(lib):
         ctypes.c_int, i32, ctypes.c_int,
         i64, i32, ctypes.POINTER(ctypes.c_int16), ctypes.c_float,
         i32, i32, u64, i32, f32, ctypes.c_int,
+        i32, i32, ctypes.c_long,          # radix-partition scratch + capacity
     ]
 
     lib.nrn_sweep_raw.restype = ctypes.c_int

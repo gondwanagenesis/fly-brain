@@ -662,6 +662,111 @@ static void fanout_range(const job_t *j)
     }
 }
 
+/* ------------------------------------------------------------------------ */
+/* Radix-partitioned fan-out -- IMPLEMENTED, MEASURED, AND OFF BY DEFAULT.    */
+/*                                                                           */
+/* Read this before re-treading it. The hypothesis was reasonable and the     */
+/* measurement refuted it.                                                   */
+/*                                                                           */
+/* HYPOTHESIS. profile_split.py shows the cost per delivered edge nearly      */
+/* triples between broad(10000) and the saturating regime -- 8.4 ns to        */
+/* 21.7 ns -- though the work per edge is identical, one indexed int32 add.   */
+/* The obvious explanation is residency: `acc` is 138,639 int32 = 542 KB and  */
+/* a random scatter over all of it should miss cache. The standard fix is a   */
+/* radix-partitioned scatter (as in a radix join, or the counting phase of a  */
+/* sparse transpose): bucket the (post, val) pairs by the high bits of        */
+/* `post`, then accumulate a bucket at a time so the live accumulator slice   */
+/* is 16 KB and stays in L1. More total traffic, but all of it sequential.    */
+/*                                                                           */
+/* MEASUREMENT (flyloop/bench_fanout.py). It never wins, at any size:         */
+/*                                                                           */
+/*     edges/step     direct   partitioned   speedup   ns/edge direct        */
+/*          1,283     8.5 us       14.0 us     0.61x        6.66             */
+/*         28,322   182.3 us      310.3 us     0.59x        6.44             */
+/*        106,124    1.07 ms       1.44 ms     0.74x       10.04             */
+/*        907,682    5.42 ms       9.96 ms     0.54x        5.97             */
+/*      1,796,811   12.44 ms      26.48 ms     0.47x        6.93             */
+/*                                                                           */
+/* The direct path holds 6-11 ns per edge all the way to 1.8M edges/step and  */
+/* does NOT degrade with size, so it was never miss-bound in the first place. */
+/* The reason: the CSC range of one presynaptic neuron lists its targets in   */
+/* ASCENDING order, so each source's fan-out is a sequential walk the         */
+/* prefetcher handles. The randomness is only BETWEEN sources.                */
+/*                                                                           */
+/* So the 21.7 ns/edge seen in the live saturating step is not intrinsic to   */
+/* the scatter -- it is CONTENTION with the rest of the step, whose working   */
+/* set (neuron state, tile arrays, delay slots) competes for the same cache.  */
+/* Partitioning makes that worse, by adding ~1 MB of extra traffic that       */
+/* evicts more of it.                                                        */
+/*                                                                           */
+/* Kept rather than deleted so the measurement stays reproducible: pass a     */
+/* non-NULL pair buffer to enable it. The engine passes NULL.                 */
+/*                                                                           */
+/* Exactness was never the issue and was verified anyway: integer             */
+/* accumulation is associative and the totals never round (ANALYSIS.md        */
+/* section 1), so both paths produce bit-identical compacted output at every  */
+/* size tested.                                                              */
+/*                                                                           */
+/* NOT the pull direction either. Beamer's direction-optimising switch was    */
+/* the other obvious candidate and the arithmetic rules it out: a pull        */
+/* fan-out costs O(E) = 15,091,983 edges every step regardless of activity,   */
+/* against 136,605 actually needed in the densest regime tested -- 110x more  */
+/* work. Push wins everywhere in this connectome. The problem was never the   */
+/* direction, and it was never the scatter.                                   */
+/* ------------------------------------------------------------------------ */
+#define PART_BITS 12                       /* 4096 neurons per bucket = 16 KB */
+#define PART_MAX  64
+/* There is no crossover -- see the table above. Left low so that supplying
+ * a pair buffer actually exercises the path when benchmarking it. */
+#define PART_MIN_EDGES 512
+
+static void fanout_partitioned(const job_t *j, int32_t *pair_post,
+                               int32_t *pair_val, long total, int n)
+{
+    const int nb = (n + (1 << PART_BITS) - 1) >> PART_BITS;
+    long off[PART_MAX + 1];
+    long cnt[PART_MAX];
+    for (int b = 0; b < nb; ++b) cnt[b] = 0;
+
+    /* pass 1 -- count per bucket */
+    for (int s = j->lo; s < j->hi; ++s) {
+        const int src = j->spk[s];
+        for (int64_t k = j->crow[src]; k < j->crow[src + 1]; ++k)
+            ++cnt[j->post[k] >> PART_BITS];
+    }
+    off[0] = 0;
+    for (int b = 0; b < nb; ++b) off[b + 1] = off[b] + cnt[b];
+
+    /* pass 2 -- place the pairs, sequentially per bucket */
+    long put[PART_MAX];
+    for (int b = 0; b < nb; ++b) put[b] = off[b];
+    for (int s = j->lo; s < j->hi; ++s) {
+        const int src = j->spk[s];
+        for (int64_t k = j->crow[src]; k < j->crow[src + 1]; ++k) {
+            const int p = j->post[k];
+            const long w = put[p >> PART_BITS]++;
+            pair_post[w] = p;
+            pair_val[w] = (int32_t)j->wval[k];
+        }
+    }
+
+    /* pass 3 -- accumulate one bucket at a time; the live slice is 16 KB */
+    long nt = *j->ntouched;
+    for (int b = 0; b < nb; ++b) {
+        for (long k = off[b]; k < off[b + 1]; ++k) {
+            const int p = pair_post[k];
+            j->acc[p] += pair_val[k];
+            const uint64_t m = 1ULL << (p & 63);
+            if (!(j->tbits[p >> 6] & m)) {
+                j->tbits[p >> 6] |= m;
+                j->touched[nt++] = p;
+            }
+        }
+    }
+    *j->ntouched = nt;
+    (void)total;
+}
+
 /* Serial fan-out: plain loads and stores, no atomics. This is the default and
  * the fast path. */
 static void fanout_serial(const job_t *j)
@@ -1131,9 +1236,29 @@ EXPORT int lif_fanout(
     const int64_t *crow, const int32_t *post, const int16_t *val,
     float w_scale,
     int32_t *acc, int32_t *touched, uint64_t *touch_bits,
-    int32_t *out_idx, float *out_val, int threaded)
+    int32_t *out_idx, float *out_val, int threaded,
+    int32_t *pair_post, int32_t *pair_val, long pair_cap)
 {
     long nt = 0;
+
+    /* Only when the caller supplies a pair buffer, which the engine does
+     * not: partitioning measured SLOWER at every size. See the note above. */
+    if (pair_post && nsp > 0) {
+        long total = 0;
+        for (int s = 0; s < nsp; ++s) {
+            const int src = spike_idx[s];
+            total += (long)(crow[src + 1] - crow[src]);
+        }
+        if (total > PART_MIN_EDGES && total <= pair_cap) {
+            job_t j;
+            j.kind = 1; j.lo = 0; j.hi = nsp;
+            j.spk = spike_idx; j.crow = crow; j.post = post; j.wval = val;
+            j.acc = acc; j.touched = touched; j.tbits = touch_bits;
+            j.ntouched = &nt;
+            fanout_partitioned(&j, pair_post, pair_val, total, n);
+            goto compact;
+        }
+    }
 
     if (threaded && POOL.started && POOL.nthreads > 1 && nsp >= 64) {
         const int T = POOL.nthreads;
@@ -1161,6 +1286,7 @@ EXPORT int lif_fanout(
         fanout_serial(&j);
     }
 
+compact:
     /* Compact, scale, and restore the scratch buffers to zero so the next call
      * needs no O(N) clear. The int32 total is exact (|total| <= 69,948), so the
      * conversion to float is exact and only the single multiply by w_scale

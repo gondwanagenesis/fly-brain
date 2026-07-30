@@ -282,6 +282,17 @@ class NativeBrainEngine:
         self._acc = np.zeros(N, dtype=np.int32)
         self._touched = np.zeros(N, dtype=np.int32)
         self._touch_bits = np.zeros(self.nw, dtype=np.uint64)
+        # Scratch for the radix-partitioned scatter, which is OFF: it measured
+        # 0.47-0.87x -- slower at every size from 1,283 to 1,796,811 edges per
+        # step (flyloop/bench_fanout.py). The direct scatter holds 6-11 ns per
+        # edge throughout and never degrades, because each presynaptic
+        # neuron's CSC range lists its targets in ascending order and the
+        # prefetcher handles it. The buffers are still allocated so the
+        # benchmark can exercise the path; `part_fanout` gates the engine.
+        self.part_fanout = 0
+        self.pair_cap = 2 << 20
+        self._pair_post = np.zeros(self.pair_cap, dtype=np.int32)
+        self._pair_val = np.zeros(self.pair_cap, dtype=np.int32)
 
         # ---- stimulation ----
         self.stim_idx = np.zeros(0, dtype=np.int32)
@@ -342,6 +353,8 @@ class NativeBrainEngine:
         self._pacc = _p(self._acc, i32)
         self._ptouch = _p(self._touched, i32)
         self._ptbits = _p(self._touch_bits, u64)
+        self._ppairp = _p(self._pair_post, i32)
+        self._ppairv = _p(self._pair_val, i32)
         self._pcrow = _p(self.crow, ctypes.c_int64)
         self._ppost = _p(self.post, i32)
         self._pval = _p(self.val, ctypes.c_int16)
@@ -575,6 +588,9 @@ class NativeBrainEngine:
             self._pcrow, self._ppost, self._pval, self._cf["w_scale"],
             self._pacc, self._ptouch, self._ptbits,
             self._pdel_i[h], self._pdel_v[h], self.mt_fanout,
+            self._ppairp if self.part_fanout else None,
+            self._ppairv if self.part_fanout else None,
+            self.pair_cap if self.part_fanout else 0,
         ) if prev_n else 0
         self.head = (h + 1) % self.L
         self._cur, self._cur_n = 1 - self._cur, nsp
