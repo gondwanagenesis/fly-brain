@@ -55,7 +55,8 @@ entire adult Drosophila brain reveals insights into sensorimotor processing*](ht
 > .venv/Scripts/python.exe code/compare_semantics.py 700  # the model divergence
 > ```
 >
-> Full detail, theory of changes, and reproduction commands: **[FORK.md](FORK.md)**.
+> **Team-facing summary of everything, with caveats: [FINDINGS.md](FINDINGS.md).**
+> Full detail and theory of changes: **[FORK.md](FORK.md)**.
 > Complete working record including dead ends: [HANDOFF.md](HANDOFF.md).
 
 ---
