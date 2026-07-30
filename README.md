@@ -9,6 +9,42 @@ Based on the paper
 entire adult Drosophila brain reveals insights into sensorimotor processing*](https://www.biorxiv.org/content/10.1101/2023.05.02.539144v1)
 (Shiu et al.).
 
+---
+
+> ### 🔱 This fork — see **[FORK.md](FORK.md)**
+>
+> Fork of [eonsystemspbc/fly-brain](https://github.com/eonsystemspbc/fly-brain),
+> branch `perf/event-driven-pytorch`. Two independent contributions:
+>
+> **Correctness — the backends do not simulate the same model.** During a
+> neuron's refractory period, Brian 2 (the designated ground truth) freezes `g`
+> and lets arriving synaptic input accumulate; the PyTorch backend keeps decaying
+> `g` and *discards* the input. It drops **6.4% of arriving synaptic weight on
+> the headline sugar experiment** (15.2% in broad regimes). A single-variable
+> ablation shows this moves the observable: **+22.5% spikes and active-neuron
+> Jaccard 0.871** — a larger divergence than the exact-vs-Euler integration gap
+> (0.913) that is already known. Two further divergences are documented:
+> PyTorch integrates with forward Euler where Brian 2 uses exact integration, and
+> the PyTorch reference's bit pattern depends on `torch.get_num_threads()`.
+>
+> **Performance — the whole brain runs faster than real time on a laptop.**
+> A fused AVX-512 kernel with a sparse delay line takes the 138,639-neuron model
+> to **0.0543 ms/step = 1.84× real time on 4 CPU cores**, 30.6× over the PyTorch
+> dense baseline, with **bit-identical** state and spike trains across eight
+> stimulation regimes. No GPU. One binary, runtime-dispatched across
+> AVX-512 / AVX2 / scalar, all three proven identical.
+>
+> ```bash
+> .venv/Scripts/python.exe flyloop/verify_native.py 800   # the gate
+> .venv/Scripts/python.exe flyloop/bench_native.py        # timings
+> .venv/Scripts/python.exe code/compare_semantics.py 700  # the model divergence
+> ```
+>
+> Full detail, theory of changes, and reproduction commands: **[FORK.md](FORK.md)**.
+> Complete working record including dead ends: [HANDOFF.md](HANDOFF.md).
+
+---
+
 ## Usage
 
 With this computational model, one can manipulate the neural activity of a set of _Drosophila_ neurons.

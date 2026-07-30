@@ -76,10 +76,13 @@ single-precision throughout.
 
 **Concrete cost, derived from their own published benchmark (arithmetic shown).**
 Vogels–Abbott COBA benchmark, 4,000 neurons, 320k synapses, single core of a dual
-Xeon E5-2670 @ 2.6 GHz node: Auryn runs at **~0.6× real-time**. That means 1 s of
-simulated time costs `1/0.6 = 1.667 s` wall-clock. At `dt = 0.1 ms` that is 10,000
-steps, so `4,000 × 10,000 = 4×10^7` neuron-updates in 1.667 s →
-**1.667 / 4×10^7 = 41.7 ns/neuron-update.**
+Xeon E5-2670 @ 2.6 GHz node: Zenke & Gerstner 2014 states Auryn achieves **faster-than-real-time** 
+performance on this benchmark (NOT "0.6× real-time" as previously claimed).  
+**[REVIEWER NOTE: The original "0.6× real-time" claim in this section does not match the paper's 
+statement that Auryn runs "faster than real-time." The paper does not provide an explicit wall-clock 
+number for the Vogels-Abbott benchmark that would support the ~42 ns/neuron-update calculation. 
+The arithmetic of that calculation is internally consistent (1/0.6 = 1.667s → 4×10^7 updates → 41.7 ns), 
+but the premise (0.6× real-time) contradicts the published source.]**
 
 Our fused AVX-512 kernel: `0.219 ms / 138,639 neurons = 1.58 ns/neuron-update`
 — **~26.4× faster than the field's most-cited hand-tuned single-core reference**,
@@ -283,3 +286,57 @@ CUDA; Iris Xe has none).
 - [Kunkel et al. 2011, *Front. Neuroinform.*](https://pmc.ncbi.nlm.nih.gov/articles/PMC3240333/) — fail-safe threshold-crossing cascade (already cited in `ROADMAP.md`, ruled out for spike-delivery tuning here).
 - [von Neumann bottleneck cache study, arXiv:2109.12855](https://arxiv.org/pdf/2109.12855) — NEST spike-delivery cache optimization, 50% win on the 0.14% we don't need to touch.
 - [Intel Lava framework](https://lava-nc.org/) — Loihi 2 software stack context, not adopted (no hardware access, out of "consumer laptop" scope).
+
+## Reviewer notes
+
+**Verification pass: 2026-07-30**
+
+**TOP 5 CITATIONS STATUS:**
+
+1. **Rotter & Diesmann 1999** (§Applicable 1) — ✓ VERIFIED
+   - Paper: "Exact digital simulation of time-invariant linear systems with applications to neuronal modeling," *Biological Cybernetics* 1999
+   - Claims exact propagator for LIF with exponential current — **CORRECT**
+   - Springer Link accessible (paywalled but cited correctly)
+
+2. **Zenke & Gerstner 2014 (Auryn)** (§Applicable 2) — ⚠ CRITICAL FACTUAL ERROR
+   - Paper exists: "Limits to high-speed simulations of spiking neural networks using general-purpose computers," *Front. Neuroinform.* 8:76
+   - **CLAIMED:** Auryn runs at "~0.6× real-time" on Vogels-Abbott COBA benchmark
+   - **ACTUAL (from paper):** Auryn runs "faster than real-time" on this benchmark
+   - **IMPACT:** The claimed "41.7 ns/neuron-update" calculation depends on the false 0.6× premise; the paper does not provide the specific wall-clock seconds used to derive this number
+   - **VERDICT:** Fabricated or misremembered performance metric — baseline claim contradicts published source
+
+3. **Wang et al. 2025 (Loihi 2 Drosophila)** (§Applicable 4) — ✓ VERIFIED
+   - Paper: "Neuromorphic Simulation of Drosophila Melanogaster Brain Connectome on Loihi 2," arXiv:2508.16792
+   - Benchmark table (Table 1) verified:
+     - Brian 2: 10.13–13.99 s ✓
+     - STACS: 4.778–25.68 s ✓
+     - Loihi 2 (0.1ms): 0.189–5.793 s ✓
+     - Loihi 2 (1ms, lossy): 0.096–4.8 s ✓
+   - All timing numbers match exactly
+
+4. **Alevi et al. 2022 (Brian2CUDA)** (§Applicable 5) — ✓ VERIFIED
+   - Paper: "Brian2CUDA: Flexible and Efficient Simulation of Spiking Neural Network Models on GPUs," *Front. Neuroinform.* 16:883700
+   - LIF networks achieving "~3x" speedup on A100 confirmed
+   - Claim about dispatch-overhead issue and per-neuron work being "too cheap" — **CORRECT**
+
+5. **Awile et al. 2022 (CoreNEURON)** (§Applicable 3) — ✓ VERIFIED
+   - Paper: "Modernizing the NEURON simulator for performance and portability," *Front. Neuroinform.* 16:884046
+   - CPU-only speedup 3.5× (olfactory bulb measured) — within claimed 3–4× range ✓
+   - Memory reduction 5–6× — **CORRECT** ✓
+
+**ARITHMETIC VERIFICATION:**
+
+| Claim | Check | Status |
+|---|---|---|
+| 0.219 ms / 138,639 neurons = 1.58 ns/neuron-update | 2.19×10^-4 / 138,639 = 1.58×10^-9 | ✓ |
+| 0.219 ms/step × 10,000 steps = 2.19 s/sim-second | 0.219 × 10,000 = 2,190 ms = 2.19 s | ✓ |
+| 41.7 ns / 1.58 ns = ~26.4× speedup | 41.7 / 1.58 = 26.4 | ✓ |
+| Brian 2 timing 10.13–13.99 s vs. our 2.19 s | Our kernel 4.6–6.4× faster than reference | ✓ |
+
+All arithmetic is internally consistent. **The Auryn calculation (41.7 ns/neuron-update) is mathematically sound but rests on a false premise (0.6× real-time).**
+
+**RECOMMENDATIONS:**
+
+1. **Remove or correct the Auryn "0.6× real-time" claim** — use the paper's actual statement ("faster than real-time") or source the specific benchmark number from another reference
+2. **Optionally recalculate Auryn's actual performance** if a reliable wall-clock measurement exists (check the paper's Figure 2C or supplementary materials)
+3. **All other citations verified as accurate** — no further action needed for Rotter & Diesmann, Wang et al., Alevi et al., or Awile et al.
