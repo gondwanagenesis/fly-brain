@@ -266,6 +266,22 @@ class NativeBrainEngine:
         # saturating regime from 1.56x into 0.73x, an outright regression.
         # Serial is the default; see the note in lif_kernel.c for the pull-based
         # formulation that should win in dense regimes instead.
+        # Multi-threaded fan-out: OFF, and it should stay off.
+        #
+        # It is CORRECT -- fanout_range() accumulates with __atomic_fetch_add on
+        # int32, and integer addition is associative, commutative and exact, so
+        # the result is deterministic no matter how the threads interleave (the
+        # `touched` order varies, but each neuron appears once and the delayed
+        # pass is order-independent across distinct neurons). Verified
+        # bit-identical to the serial path.
+        #
+        # But it is SLOWER, because the atomic contention costs more than the
+        # parallelism buys. Measured min-of-7 x 120 steps on the two regimes
+        # where fan-out actually dominates:
+        #                        serial      threaded
+        #   broad 1000        0.153 ms      0.178 ms
+        #   saturating 40k    4.471 ms      7.396 ms   <- 1.65x WORSE
+        # Set to 1 only to reproduce that measurement.
         self.mt_fanout = 0
 
         self.nw = (N + 63) >> 6
