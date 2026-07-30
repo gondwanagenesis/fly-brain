@@ -22,3 +22,7 @@ flyloop/native/*.dll
 flyloop/native/*.lib
 flyloop/native/*.exp
 flyloop/native/*.pdb
+
+flyloop/native/lif_*.dll
+flyloop/native/lif_*.lib
+flyloop/native/lif_*.exp

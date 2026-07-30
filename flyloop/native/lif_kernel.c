@@ -360,11 +360,20 @@ static void sweep_chunk(int lo, int hi, int tail_w,
 #define MAX_THREADS 32
 
 typedef struct {
+    int kind;                     /* 0 = neuron sweep, 1 = synaptic fan-out */
     int lo, hi, tail_w;
     float *v, *g, *refrac;
     const uint64_t *sp_in;
     uint64_t *sp_out;
     float c_decay, c_mem, v_rest, v_reset, v_th;
+    /* fan-out job */
+    const int32_t *spk;
+    const int64_t *crow;
+    const int32_t *post;
+    const int16_t *wval;
+    int32_t *acc, *touched;
+    uint64_t *tbits;
+    volatile long *ntouched;
 } job_t;
 
 static struct {
@@ -378,8 +387,83 @@ static struct {
     job_t jobs[MAX_THREADS];
 } POOL;
 
+/* Accumulate the fan-out of spikes [lo, hi) into the shared int32 accumulator.
+ *
+ * Running this concurrently is licensed by a theorem, not by tolerance (see
+ * ANALYSIS.md section 1): every connectome weight is an exact integer and the
+ * largest total in-weight on any neuron is 69,948, so the accumulation NEVER
+ * rounds and its result is independent of summation order. Integer atomics are
+ * exact by construction, so threads may interleave arbitrarily and the answer
+ * is bit-identical to the serial version.
+ *
+ * Each postsynaptic neuron must appear ONCE in the compacted output. The thread
+ * that flips its touch bit from 0 to 1 owns it and claims a slot with an atomic
+ * counter; the resulting order varies between runs, which is harmless because
+ * the consumer indexes by neuron and each appears exactly once. */
+/* MEASURED NEGATIVE RESULT -- read before re-enabling threading here.
+ *
+ * The theorem in ANALYSIS.md section 1 proves this accumulation is
+ * order-independent, so threading it is CORRECT. It is not FASTER. In the
+ * saturating regime (~943 spikes/step, ~104,000 synapse updates/step) four
+ * threads hammering a shared 138,639-entry accumulator cost two atomics per
+ * synapse and made the whole step 2.1x SLOWER than serial -- the regime went
+ * from 1.56x faster than PyTorch to 0.73x, i.e. an outright regression.
+ * Contention, not correctness, is the binding constraint.
+ *
+ * The promising fix is not more atomics but the opposite formulation: a PULL
+ * fan-out where each thread owns a range of POSTsynaptic neurons and gathers
+ * from spiking sources, which needs no atomics at all but costs O(E) instead of
+ * O(spikes x fanout). That is Beamer's direction-optimising push/pull switch,
+ * and it should win exactly where push loses -- in the dense regimes. Requires
+ * a CSR (by-postsynaptic) copy of the connectome alongside the CSC one.
+ *
+ * Serial remains the default. This path is kept, gated behind `threaded`, for
+ * the dense case once a pull path exists to switch to.
+ */
+static void fanout_range(const job_t *j)
+{
+    for (int s = j->lo; s < j->hi; ++s) {
+        const int src = j->spk[s];
+        const int64_t a = j->crow[src], b = j->crow[src + 1];
+        for (int64_t k = a; k < b; ++k) {
+            const int p = j->post[k];
+            __atomic_fetch_add(&j->acc[p], (int32_t)j->wval[k], __ATOMIC_RELAXED);
+            const uint64_t m = 1ULL << (p & 63);
+            const uint64_t was = __atomic_fetch_or(&j->tbits[p >> 6], m,
+                                                   __ATOMIC_RELAXED);
+            if (!(was & m)) {
+                const long slot = __atomic_fetch_add(j->ntouched, 1,
+                                                     __ATOMIC_RELAXED);
+                j->touched[slot] = p;
+            }
+        }
+    }
+}
+
+/* Serial fan-out: plain loads and stores, no atomics. This is the default and
+ * the fast path. */
+static void fanout_serial(const job_t *j)
+{
+    long nt = *j->ntouched;
+    for (int s = j->lo; s < j->hi; ++s) {
+        const int src = j->spk[s];
+        const int64_t a = j->crow[src], b = j->crow[src + 1];
+        for (int64_t k = a; k < b; ++k) {
+            const int p = j->post[k];
+            j->acc[p] += (int32_t)j->wval[k];
+            const uint64_t m = 1ULL << (p & 63);
+            if (!(j->tbits[p >> 6] & m)) {
+                j->tbits[p >> 6] |= m;
+                j->touched[nt++] = p;
+            }
+        }
+    }
+    *j->ntouched = nt;
+}
+
 static void run_job(const job_t *j)
 {
+    if (j->kind == 1) { fanout_range(j); return; }
     sweep_chunk(j->lo, j->hi, j->tail_w, j->v, j->g, j->refrac,
                 j->sp_in, j->sp_out, j->c_decay, j->c_mem,
                 j->v_rest, j->v_reset, j->v_th);
@@ -462,6 +546,7 @@ static void sweep_all(const int32_t *chunks, int n_chunks, int tail_w,
     }
     for (int c = 0; c < n_chunks; ++c) {
         job_t *j = &POOL.jobs[c];
+        j->kind = 0;
         j->lo = chunks[c]; j->hi = chunks[c + 1]; j->tail_w = tail_w;
         j->v = v; j->g = g; j->refrac = refrac;
         j->sp_in = sp_in; j->sp_out = sp_out;
@@ -558,31 +643,50 @@ EXPORT int lif_step(
 EXPORT int lif_fanout(
     int n,
     const int32_t *spike_idx, int nsp,
-    const int64_t *crow, const int32_t *post, const float *val,
+    const int64_t *crow, const int32_t *post, const int16_t *val,
     float w_scale,
-    float *acc, int32_t *touched, uint64_t *touch_bits,
-    int32_t *out_idx, float *out_val)
+    int32_t *acc, int32_t *touched, uint64_t *touch_bits,
+    int32_t *out_idx, float *out_val, int threaded)
 {
-    int nt = 0;
-    for (int s = 0; s < nsp; ++s) {
-        const int j = spike_idx[s];
-        const int64_t lo = crow[j], hi = crow[j + 1];
-        for (int64_t k = lo; k < hi; ++k) {
-            const int p = post[k];
-            acc[p] += val[k];
-            const uint64_t m = 1ULL << (p & 63);
-            if (!(touch_bits[p >> 6] & m)) {
-                touch_bits[p >> 6] |= m;
-                touched[nt++] = p;
-            }
+    long nt = 0;
+
+    if (threaded && POOL.started && POOL.nthreads > 1 && nsp >= 64) {
+        const int T = POOL.nthreads;
+        const int per = (nsp + T - 1) / T;
+        for (int c = 0; c < T; ++c) {
+            job_t *j = &POOL.jobs[c];
+            j->kind = 1;
+            j->lo = c * per;
+            j->hi = (c + 1) * per < nsp ? (c + 1) * per : nsp;
+            if (j->lo > nsp) j->lo = nsp;
+            j->spk = spike_idx; j->crow = crow; j->post = post; j->wval = val;
+            j->acc = acc; j->touched = touched; j->tbits = touch_bits;
+            j->ntouched = &nt;
         }
+        __atomic_store_n(&POOL.done, 0, __ATOMIC_RELEASE);
+        __atomic_fetch_add(&POOL.generation, 1, __ATOMIC_RELEASE);
+        run_job(&POOL.jobs[0]);
+        spin_until(&POOL.done, POOL.nthreads - 2);
+    } else {
+        job_t j;
+        j.kind = 1; j.lo = 0; j.hi = nsp;
+        j.spk = spike_idx; j.crow = crow; j.post = post; j.wval = val;
+        j.acc = acc; j.touched = touched; j.tbits = touch_bits;
+        j.ntouched = &nt;
+        fanout_serial(&j);
     }
-    for (int t = 0; t < nt; ++t) {
+
+    /* Compact, scale, and restore the scratch buffers to zero so the next call
+     * needs no O(N) clear. The int32 total is exact (|total| <= 69,948), so the
+     * conversion to float is exact and only the single multiply by w_scale
+     * rounds -- identical to the float-accumulation version. */
+    const int cnt = (int)nt;
+    for (int t = 0; t < cnt; ++t) {
         const int p = touched[t];
         out_idx[t] = p;
-        out_val[t] = acc[p] * w_scale;
-        acc[p] = 0.0f;
+        out_val[t] = (float)acc[p] * w_scale;
+        acc[p] = 0;
         touch_bits[p >> 6] = 0;
     }
-    return nt;
+    return cnt;
 }
