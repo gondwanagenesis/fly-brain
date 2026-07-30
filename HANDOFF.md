@@ -15,9 +15,16 @@ on this machine, cited, or explicitly flagged as a projection.
 ## 0. Read this first — the strategic conclusion
 
 > **2026-07-30 UPDATE — real time is reached.** The whole 138,639-neuron brain now
-> runs at **0.0543 ms/step = 1.84× real time** on a 4-core laptop, bit-identical
-> to the PyTorch reference. That is **30.6×** over the PyTorch dense baseline
-> (1.6592 ms/step). See **§11**, which supersedes the framing below.
+> runs at **0.056 ms/step = 1.78× real time** on the sugar protocol on a 4-core
+> laptop (0.026 ms = 3.86× when silent), bit-identical to the PyTorch reference,
+> and beats it in **every** regime tested (3.4×–88.6×, no regression anywhere).
+> See **§11** and **§12**, which supersede the framing below. Reader-facing
+> write-up: **[FORK.md](FORK.md)**.
+>
+> ⚠️ Real time holds in the SPARSE regimes — which is where both published
+> experiments (sugar, P9) live. Under broad drive of 1000+ neurons it is
+> 0.28×–0.04× of real time, because tile-skipping is activity-dependent by
+> construction and there is nothing left to skip.
 >
 > The correction to the old conclusion matters: the previous analysis assumed the
 > dense path was pinned to memory bandwidth and that only sparsity could help.
@@ -541,25 +548,140 @@ Build is automatic on import (clang, `-O3 -march=native -ffp-contract=off`).
 conductance decay's mul+add into an FMA and bit-identity breaks. `-ffast-math`
 would break it far more thoroughly.
 
-### 11.6 Next, in order
+---
 
-1. **Drop `refrac` from the dense sweep.** It is only used via
-   `gate = refrac >= refrac_steps`, and at 1.75 spikes/step at most ~40 neurons
-   are refractory at once. Replacing the 554 KB fp32 array with a gate bitset
-   (17 KB) plus a sparse countdown list removes 8 of ~24 B per neuron —
-   a ~33% traffic cut, so ~0.036 ms/step. Provably equivalent (the dynamics
-   depend only on the comparison, which is monotone in `refrac`), but it does
-   change the stored representation, so the gate must compare the *derived*
-   gate rather than raw `refrac`.
-2. **Fan-out now dominates the saturating regime** (1.23× there vs 10.3× sparse).
-   At 946 spikes/step it is ~104k synapse updates/step. This is the first regime
-   where §2.1's "synaptic propagation is only 0.14%" stops holding — re-profile
-   before optimising, and note it contradicts the headline finding at high
-   activity.
-3. **uint16 connectome weights** — lossless (integer synapse counts), halves
-   ~200 MB of fan-out traffic. Helps exactly the regime in (2).
-4. Validate against Brian 2 via `code/compare_ground_truth.py` — still the
-   outstanding scientific gate (§10.7), now more important because §11.3 shows
-   the PyTorch reference has its own numerical quirks.
-5. Port the kernel back into `code/run_pytorch.py` so the upstream benchmark
-   benefits, once (4) is done.
+## 12. Refractory removal + tile skipping (2026-07-30, later)
+
+Supersedes §11.1's numbers. Full sweep, Syncthing stopped, min of 7 blocks,
+400 lockstep verify steps per regime (`flyloop/verify_all.py`):
+
+| regime | correct | torch ms | native ms | +reorder | vs torch | reorder | live tiles | real time |
+|---|---|---|---|---|---|---|---|---|
+| silent | BIT-EQ | 2.2970 | 0.0269 | **0.0259** | 88.6× | 1.04× | 0.1% | **3.86×** |
+| single neuron | BIT-EQ | 3.5611 | 0.0464 | 0.0510 | 69.8× | 0.91× | 3.2% | **1.96×** |
+| sugar GRNs (21) | BIT-EQ | 3.1020 | 0.0917 | **0.0562** | 55.2× | 1.63× | 28.5% | **1.78×** |
+| P9 walking (2) | BIT-EQ | 3.8922 | 0.1237 | **0.0586** | 66.4× | 2.11× | 12.7% | **1.71×** |
+| broad (100) | BIT-EQ | 2.7857 | 0.1096 | 0.0858 | 32.5× | 1.28× | 78.7% | 1.17× |
+| broad (1000) | BIT-EQ | 3.5575 | 0.4957 | 0.3518 | 10.1× | 1.41× | 97.7% | 0.28× |
+| broad (10000) | BIT-EQ | 3.9043 | 0.8006 | 0.6575 | 5.9× | 1.22× | 100.0% | 0.15× |
+| saturating (40k) | BIT-EQ | 8.0741 | 2.5337 | 2.3618 | 3.4× | 1.07× | 100.0% | 0.04× |
+
+⚠️ Native ms/step is a **lower bound** (load only makes blocks slower), so the
+real-time column is conservative. The **vs torch** ratios are generous: the
+PyTorch baseline was measured under the same residual load and reads 2.3–8.1 ms
+against 1.66 ms fully idle.
+
+### 12.1 Refractory counter out of the sweep
+
+It existed only so the delayed pass could evaluate `gate = refrac >=
+refrac_steps`, yet only ~40 neurons are refractory at once. Replaced by a gate
+bitset (17 KB) + compact countdown list. The previous-spike bitset was *also*
+read only for the refrac reset, so it left the sweep too — **the sweep now reads
+just `v` and `g`**. 24.25 → 16.25 bytes/neuron.
+
+⚠️ **The countdown is `refrac_steps + 1`, not `refrac_steps`.** The obvious rule
+opens the gate one step early and admits input the reference discards. Ground
+truth (neuron 95808): `refrac = spiked_prev ? 0 : refrac+1` puts refrac = k at
+step t+1+k, so the gate is closed t+1..t+22 and reopens at **t+23**. Decrement
+at the START of each step, open at `c <= 0`.
+
+The countdown is walked **outside** the sweep deliberately: a refractory neuron
+sits at `v == v_rest, g == 0` exactly — bit-indistinguishable from resting — so
+if it rode inside a skippable sweep the gate would never reopen.
+
+### 12.2 Tile-16 skipping + `cell_type` reordering
+
+Skipping is exact: for `v == v_rest, g == 0` the kernel computes `t = 0`,
+`v = fma(0, c_mem, v_rest) = v_rest`, `g = 0`, `v_rest > v_th` false — all
+outputs unchanged, which is what skipping produces.
+
+But in the shipped order live neurons are scattered (**mean run length 1.1**),
+so 98.85% of tiles held a live neuron and skipping saved 1.15%. Neuron index is
+an arbitrary CSV artefact, so renumbering is free and exact; `cell_type` takes
+tile-16 from 70.6% live to 28.3% on sugar. Study:
+`research/reorder_measurements.md`.
+
+**Tiles are chunk-relative.** ATen's chunk boundaries (34,660) are not multiples
+of 16, so a globally-aligned tile would straddle the FMA/non-FMA seam. Tiling
+from each chunk's start gives exactly 2166 whole FMA groups plus one non-FMA
+tail tile — no tile crosses a seam.
+
+**Reordering moves the seam relative to the neurons.** The reference applies its
+non-fused tail to ORIGINAL indices 34656-9, 69316-9, 103976-9, 138636-8; after
+permutation those slots hold different neurons. The seam is now computed per
+neuron in original space and carried through the permutation; straddling tiles
+are marked MIXED (14 of 8,668) and take a scalar path that looks the bit up.
+
+### 12.3 Bugs an adversarial review caught before shipping
+
+1. **Stim neurons are driven outside the delay ring**, so nothing in the delayed
+   pass can mark their tile live. One whose Poisson draw is 0 sits at exact rest,
+   would be declared inert, and the entire sensory drive would silently
+   disconnect. Stim tiles are **pinned**.
+2. **At t=0 every neuron is at exact rest**, so initialising `tile_live` by scan
+   marks the whole brain dead and nothing runs. All tiles **start live**.
+3. **Refractory neurons are bit-indistinguishable from resting** — the inert test
+   requires the gate OPEN.
+4. **Marking live at fan-out EMISSION is insufficient** — a rescan can clear the
+   tile during the up-to-19 steps the arrival is in flight. Mark at
+   **consumption**.
+5. *(self-inflicted)* The fast path tested `tile_fma[t]` for truthiness and MIXED
+   is encoded as `2` — truthy — so mixed tiles took the FMA path anyway. Must be
+   `== 1`.
+
+### 12.4 Reordering helps even when nothing is skippable
+
+Expected to be worthless at high activity. It is not: at broad(1000) with 97.7%
+of tiles live it still gives **1.41×**, and 1.07–1.22× at 100% live. That cannot
+be tile-skipping. Likely **fan-out locality** — `cell_type` also clusters
+postsynaptic targets, so the scatter-add touches fewer cache lines. **Unconfirmed
+— worth measuring directly.**
+
+### 12.5 Environment traps
+
+- **Windows Smart App Control** began blocking the DLL (`WinError 4551`) mid-
+  session. It blocks by *file identity*, not content: an identical library under
+  a new name loads fine. The DLL is now content-addressed (sha256 of source),
+  which side-steps it and doubles as a build cache. **No need to disable SAC** —
+  that is irreversible without resetting Windows.
+- **Syncthing** re-indexing the repo inflated every timing (torch dense 4.97 ms
+  vs 1.66 ms quiet). Stop it or exclude the repo before quoting numbers.
+
+---
+
+## 13. Next, in order
+
+**Done since the last revision:** refrac removal (§12.1), tile-16 skipping +
+reordering (§12.2), int16 connectome weights (lossless — integer synapse
+counts), runtime ISA dispatch, a full-brain Brian 2 reference
+(`code/run_brian2_reference.py`), and the model-divergence finding (§1.1 of
+FORK.md).
+
+1. **Confirm the fan-out-locality hypothesis (§12.4).** Reordering gives
+   1.07–1.41× where *nothing* is skippable. If that is cache locality in the
+   scatter-add, it is a second, activity-independent reason to reorder — and it
+   would transfer to GPU backends, where the same scatter dominates. Measure the
+   fan-out in isolation rather than inferring it.
+2. **Fan-out dominates the broad and saturating regimes.** At ~930 spikes/step
+   it is ~104k synapse updates/step, and §2.1's "synaptic propagation is only
+   0.14%" stops holding there. Note the threaded fan-out is a trap: correct
+   (atomic int32, so deterministic) but **1.65× slower** than serial. Attack
+   locality and representation, not parallelism.
+3. **Validate against Brian 2 end to end** via `code/compare_ground_truth.py`.
+   `run_brian2_reference.py` now builds the full 138,639-neuron network
+   (~30 s per 100 ms simulated, 1.8 GB), so this is unblocked. It matters more
+   now that §1.1 shows the backends differ at the *model* level.
+4. **Throughput, not latency.** Their own data shows GeNN gains 3.5× from
+   batching 8 trials. The scientific workload is parameter sweeps
+   (every-neuron ablation), which is a batching problem. Real-time latency only
+   matters for the closed-loop embodied case in `virtualfly/`, which cannot be
+   batched — but that is exactly where this kernel is uniquely enabling.
+5. **Fix `_dense_fallback` in `brain_engine.py`** — set but never cleared, so one
+   transient burst permanently disables the sparse path. The switch criterion
+   should also be Σ out-degree (edge work), not spike count, since the connectome
+   is hub-dominated.
+6. **Delay-window stepping at dt = 1.8 ms** — the unclaimed algorithmic result,
+   hardware-independent, would help GeNN and Loihi too. Highest ceiling, highest
+   risk.
+7. Port the kernel into `code/run_pytorch.py` so the upstream benchmark benefits,
+   once (3) is done.

@@ -28,15 +28,30 @@ entire adult Drosophila brain reveals insights into sensorimotor processing*](ht
 > the PyTorch reference's bit pattern depends on `torch.get_num_threads()`.
 >
 > **Performance — the whole brain runs faster than real time on a laptop.**
-> A fused AVX-512 kernel with a sparse delay line takes the 138,639-neuron model
-> to **0.0543 ms/step = 1.84× real time on 4 CPU cores**, 30.6× over the PyTorch
-> dense baseline, with **bit-identical** state and spike trains across eight
-> stimulation regimes. No GPU. One binary, runtime-dispatched across
-> AVX-512 / AVX2 / scalar, all three proven identical.
+> A fused AVX-512 kernel with a sparse delay line, a gate-bitset refractory
+> representation, and inert-tile skipping over `cell_type`-reordered neurons
+> takes the 138,639-neuron model to **0.056 ms/step on the sugar protocol —
+> 1.78× real time on 4 CPU cores, no GPU** — with **bit-identical** state and
+> spike trains across eight stimulation regimes.
+>
+> | regime | native ms/step | vs torch | real time |
+> |---|---|---|---|
+> | silent | 0.0259 | 88.6× | **3.86×** |
+> | single neuron | 0.0510 | 69.8× | **1.96×** |
+> | sugar GRNs (21) | 0.0562 | 55.2× | **1.78×** |
+> | P9 walking (2) | 0.0586 | 66.4× | **1.71×** |
+> | broad (1000) | 0.3518 | 10.1× | 0.28× |
+> | saturating (40k) | 2.3618 | 3.4× | 0.04× |
+>
+> The kernel wins in **every** regime (3.4×–88.6×, no regression anywhere), but
+> real time is reached in the sparse regimes — which is where both published
+> experiments (sugar, P9) live. Tile-skipping is activity-dependent by
+> construction and yields nothing once the brain is broadly driven.
+> One binary, runtime-dispatched across AVX-512 / AVX2 / scalar, all three
+> proven identical.
 >
 > ```bash
-> .venv/Scripts/python.exe flyloop/verify_native.py 800   # the gate
-> .venv/Scripts/python.exe flyloop/bench_native.py        # timings
+> .venv/Scripts/python.exe flyloop/verify_all.py 400      # the gate: correctness + timing
 > .venv/Scripts/python.exe code/compare_semantics.py 700  # the model divergence
 > ```
 >
