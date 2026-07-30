@@ -49,8 +49,32 @@ _CLANG = Path(
 # -ffp-contract=off is MANDATORY: without it the compiler fuses the conductance
 # decay's mul+add into an FMA, which rounds once instead of twice and breaks
 # bit-identity with torch. -ffast-math would break it far more thoroughly.
-_CFLAGS = ["-shared", "-O3", "-march=native", "-ffp-contract=off",
+#
+# Deliberately NO -march=native. The kernel selects AVX-512 / AVX2 / scalar at
+# RUNTIME via __builtin_cpu_supports, so one binary runs on any x86-64 (and on
+# other architectures via the scalar path). Building with -march=native would
+# produce a library that only runs on the machine that compiled it.
+_CFLAGS = ["-shared", "-O3", "-ffp-contract=off",
            "-fno-fast-math", "-std=c11", "-Wall"]
+
+_ISA_NAME = {0: "scalar", 1: "AVX2", 2: "AVX-512"}
+
+
+def aten_vector_width():
+    """ATen's float vector width on THIS host.
+
+    The kernel has to reproduce the position of ATen's scalar tail, and that
+    position depends on how the installed PyTorch was built, not on what this
+    kernel can execute. torch reports its dispatched capability directly.
+
+    ATen's fallback Vectorized<float> is a 32-byte array, i.e. 8 floats, so
+    non-AVX512 builds all use 8.
+    """
+    try:
+        cap = str(torch.backends.cpu.get_cpu_capability()).upper()
+    except Exception:
+        return 8
+    return 16 if "AVX512" in cap else 8
 
 
 def _build(force=False):
@@ -70,11 +94,14 @@ def _load(force_build=False):
     c_i64p = ctypes.POINTER(ctypes.c_int64)
     c_u64p = ctypes.POINTER(ctypes.c_uint64)
 
-    lib.lif_has_avx512.restype = ctypes.c_int
-    lib.lif_has_avx512.argtypes = []
-
     lib.lif_set_threads.restype = ctypes.c_int
     lib.lif_set_threads.argtypes = [ctypes.c_int]
+
+    lib.lif_isa.restype = ctypes.c_int
+    lib.lif_isa.argtypes = []
+
+    lib.lif_force_isa.restype = ctypes.c_int
+    lib.lif_force_isa.argtypes = [ctypes.c_int]
 
     lib.lif_step.restype = ctypes.c_int
     lib.lif_step.argtypes = [
@@ -85,7 +112,7 @@ def _load(force_build=False):
         ctypes.c_float, ctypes.c_float, ctypes.c_float,  # v_rest v_reset v_th
         c_i32p, c_f32p, ctypes.c_int,                    # delayed
         c_i32p, c_f32p, ctypes.c_int,                    # stim
-        c_i32p, ctypes.c_int,                            # chunk bounds
+        c_i32p, ctypes.c_int, ctypes.c_int,              # chunk bounds, tail width
         c_i32p,                                          # out_spike_idx
     ]
 
@@ -162,6 +189,12 @@ class NativeBrainEngine:
         bounds = list(range(0, N, step)) + [N]
         self.chunks = np.asarray(bounds, dtype=np.int32)
         self.n_chunks = len(bounds) - 1
+
+        # ATen's float vector width on this host -- NOT the kernel's. The
+        # kernel reproduces the reference's scalar-tail seam wherever it falls,
+        # independently of which SIMD path the kernel itself takes.
+        self.tail_w = aten_vector_width()
+        self.isa = _ISA_NAME.get(self.lib.lif_isa(), "?")
 
         # One worker per chunk. The pool only engages when threads == n_chunks;
         # any other value runs the chunks serially. Either way the RESULT is
@@ -313,7 +346,7 @@ class NativeBrainEngine:
             cf["c_decay"], cf["c_mem"], cf["v_rest"], cf["v_reset"], cf["v_th"],
             self._pdel_i[h], self._pdel_v[h], self._del_n[h],
             self._pstim, self._pstimv, n_stim,
-            self._pchunk, self.n_chunks,
+            self._pchunk, self.n_chunks, self.tail_w,
             self._psp[1 - self._cur],
         )
         self.n_spikes = nsp
