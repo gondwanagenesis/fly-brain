@@ -1,133 +1,165 @@
-# Whole-brain *Drosophila* simulation, faster than real time on a laptop
+<div align="center">
 
-The complete adult fruit-fly brain — **138,639 neurons, 15,091,983 connectome
-edges, 54.5M synapses** — simulated at **2.2× real time on four CPU cores with no
-GPU**, bit-identical to the reference implementation, with the membrane equation
-switchable between **nine neuron models** at runtime.
+<h1>FlyBrain</h1>
 
-Built on the [FlyWire](https://flywire.ai/) connectome (v783) and the leaky
-integrate-and-fire model of
-[Shiu et al. 2024, *Nature*](https://www.nature.com/articles/s41586-024-07763-9).
+<h3>The whole fly brain. Real time. On a laptop. No GPU.</h3>
 
-A fork of [eonsystemspbc/fly-brain](https://github.com/eonsystemspbc/fly-brain),
-whose multi-framework benchmark harness is preserved below unchanged.
+<p>
+<b>138,639 neurons</b> &nbsp;·&nbsp; <b>15,091,983 connectome edges</b> &nbsp;·&nbsp; <b>54.5M synapses</b><br>
+<b>2.2&times; real time on four CPU cores</b>, bit-identical to the reference implementation
+</p>
+
+<p>
+<img src="https://img.shields.io/badge/verified-bit--identical%20in%208%2F8%20regimes-2ea043?style=flat-square" alt="bit-identical">
+<img src="https://img.shields.io/badge/neuron%20models-9%20switchable%20at%20runtime-8957e5?style=flat-square" alt="9 models">
+<img src="https://img.shields.io/badge/vs%20PyTorch-3.1x%20to%20104x-1f6feb?style=flat-square" alt="speedup">
+<img src="https://img.shields.io/badge/GPU-not%20required-6e7681?style=flat-square" alt="no GPU">
+</p>
+
+<img src="docs/img/hero_lif_sugar.png" width="880" alt="The whole Drosophila connectome rendered live: optic lobes in cyan, central brain in violet, and the sugar-driven subesophageal circuit firing in white.">
+
+<p><i>Not a visualisation of saved data &mdash; every point is a real neuron at its real FlyWire<br>
+coordinate, lighting when that neuron actually spikes in the running simulation.<br>
+Optic lobes in cyan, central brain in violet, the sugar-driven feeding circuit in white.</i></p>
+
+</div>
 
 ---
 
-## What this fork adds
+## The goal
 
-Three independent contributions. Every performance claim is gated on
-**bit-identical** output; every correctness claim is a reproducible measurement,
-not an argument.
+**Whole-brain emulation that runs on hardware people actually own, sacrificing no information.**
 
-### 1. A fused native kernel — 3.1× to 104× over the PyTorch backend
+Not a smaller brain, not a coarser timestep, not an approximation that is "close enough" &mdash; the complete
+[FlyWire](https://flywire.ai/) v783 connectome under the
+[Shiu et al. 2024](https://www.nature.com/articles/s41586-024-07763-9) model, every spike in the right place,
+verified bit-for-bit against the implementation it replaces.
 
-| regime | native ms/step | vs torch | real time |
+Three things had to be true at once, and the discipline here is that all three are **measured, never argued**:
+
+|  |  |
+|---|---|
+| **Fast enough to be useful** | 3.1&times;&ndash;104&times; over the PyTorch backend. Real time in the regimes both published experiments actually use. |
+| **Exact, not approximate** | Every performance change gated on bit-identical spike trains *and* bit-identical state. A change that alters output is an *accuracy* change and must be argued separately. |
+| **Honest about its limits** | Real time holds when the brain is sparse and not when it is saturated. Loihi 2 is still ~10&times; ahead. Both on the front page, not buried. |
+
+---
+
+## Nine neuron models. One connectome. Switched at runtime.
+
+The insight that makes this cheap: **the connectome is not part of the neuron model.** The delay ring, the
+fan-out, the refractory gate, the tiling, the thread pool &mdash; those belong to the *network* and the
+*schedule*. A membrane model contributes only how `(v, g, aux)` advance over one `dt`, when a spike is declared,
+and what the reset does.
+
+So switching model costs **milliseconds, not a reload.**
+
+```mermaid
+flowchart TB
+    subgraph shared ["network machinery — shared, identical for all nine models"]
+        direction LR
+        A["connectome<br/>138,639 neurons<br/>15,091,983 edges"]
+        B["1.8 ms delay ring<br/>sparse slots<br/>10.5 MB to 30 KB"]
+        C["event-driven<br/>fan-out"]
+        D["refractory<br/>gate bitset"]
+        E["16-neuron<br/>tile skipping"]
+    end
+    subgraph model ["membrane equation — a runtime switch"]
+        direction LR
+        M1["LIF<br/>Euler"]
+        M2["LIF<br/>exact"]
+        M3["Izhikevich"]
+        M4["AdEx"]
+        M5["EIF"]
+        M6["QIF"]
+        M7["resonate<br/>-and-fire"]
+        M8["Hodgkin<br/>-Huxley"]
+        M9["GLIF"]
+    end
+    shared <==> model
+```
+
+| model | reference | integration | flops/neuron |
 |---|---|---|---|
-| single neuron | 0.0109 | 97.7× | **9.16×** |
-| silent | 0.0260 | 104.4× | **3.84×** |
-| P9 walking (2) | 0.0262 | 79.5× | **3.82×** |
-| **sugar GRNs (21)** | **0.0461** | **52.2×** | **2.17×** |
-| broad (100) | 0.0763 | 30.6× | 1.31× |
-| broad (1000) | 0.3019 | 10.1× | 0.33× |
-| saturating (40k) | 2.2536 | 3.1× | 0.04× |
+| **LIF** (Euler) | Shiu et al. 2024 &mdash; as shipped | first order | ~5 |
+| **LIF** (exact) | Rotter &amp; Diesmann 1999 | **exact** | **~4** &mdash; *fewer ops than Euler* |
+| **Izhikevich** | Izhikevich 2003 | first order | ~10 |
+| **AdEx** | Brette &amp; Gerstner 2005 | Rush&ndash;Larsen adaptation | ~12 elided / ~24 full |
+| **EIF** | Fourcaud-Trocm&eacute; et al. 2003 | first order | ~9 elided / ~21 full |
+| **QIF** | Ermentrout &amp; Kopell 1986 | first order | ~5 |
+| **Resonate-and-fire** | Izhikevich 2001 | **exact** (sub-threshold) | ~6 |
+| **Hodgkin&ndash;Huxley** | Hodgkin &amp; Huxley 1952 | Rush&ndash;Larsen gates | ~180 |
+| **GLIF** | Teeter et al. 2018 | **exact** (both states) | ~7 |
 
-All eight regimes verified **bit-identical** — full state compared as raw
-`uint32` every step, spike trains matched exactly. No regression in any regime.
+Each body is written **once** and compiled **three times** &mdash; AVX-512, AVX2, scalar &mdash; which makes
+instruction-set equivalence a property of the *build* rather than something to re-audit whenever a model is
+touched.
 
-The starting assumption was that the dense path was memory-bandwidth-bound with
-~1.5–2× of headroom. Profiling said otherwise: at 171 µs/step only 57% was the
-kernel, 26% was `torch.bernoulli` drawing *twenty-one* random numbers, and 16%
-was ctypes glue. It was **framework-bound**, and the headroom was ~30×.
+Models are **calibrated, not copied.** Each published parameter set lives in its own units and its own voltage
+scale; dropping them onto a connectome calibrated in millivolts against a 7 mV threshold gives a network that is
+either silent or in seizure. So one free gain is solved for numerically until a single synapse moves every model
+the same fraction of the way to threshold. Switching model is then a controlled experiment, not a units accident.
 
-What recovered it: fusing ~12 full-array passes into one; mapping
-threshold-and-reset onto AVX-512 mask registers so the spike bitset falls out of
-the compare for free; replacing the dense `(19, N)` delay ring (10.5 MB, ~190
-non-zeros) with sparse `(index, value)` slots; batching the Poisson draws;
-dropping the refractory counter to a gate bitset; and skipping inert 16-neuron
-tiles after renumbering by `cell_type`.
+### The same brain, the same sugar stimulus, a different membrane equation
 
-One binary, runtime-dispatched across **AVX-512 / AVX2 / scalar**, all three
-proven identical. Runs on any x86-64 since ~2013; even the no-SIMD path beats
-PyTorch.
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="docs/img/model_izhikevich.png" width="410" alt="Izhikevich"><br><b>Izhikevich</b><br><sub>7.5% live tiles &nbsp;·&nbsp; 0.0745 ms/step</sub></td>
+<td align="center"><img src="docs/img/model_hh.png" width="410" alt="Hodgkin-Huxley"><br><b>Hodgkin&ndash;Huxley</b><br><sub>2.6% live tiles &nbsp;·&nbsp; 0.2380 ms/step</sub></td>
+</tr>
+</table>
+</div>
 
-### 2. The two backends do not simulate the same model
+**Two results that invert the intuition.**
 
-The sharper result, and the one we would most like the upstream team to check.
+**Izhikevich runs *faster* than LIF** on both real protocols &mdash; 0.0745 ms/step against 0.0966 on sugar. Not
+because its arithmetic is cheaper (it is not: ~10 flops against ~5) but because it drives the network less hard:
+7.5% live tiles against LIF's 28.5%. A "more complex" model running faster is a **dynamics** result, not an
+arithmetic one.
 
-During a neuron's refractory period, **Brian 2** — the designated ground truth —
-freezes `g` and lets arriving synaptic input **accumulate**. The **PyTorch**
-backend keeps decaying `g` and **discards** the input.
+**Hodgkin&ndash;Huxley is the quietest model in the brain** &mdash; 2.6% live tiles, the lowest of all nine &mdash;
+because its potassium conductance provides intrinsic adaptation no integrate-and-fire model here has. Its ~180
+flop/neuron are only ever paid on 2.6% of the connectome, landing full HH at 0.42&times; real time instead of the
+~0.03&times; a flop count alone would predict.
 
-| | discarded weight | spikes | active-neuron Jaccard |
+Both are visible only because the connectome, the drive and the calibrated synaptic efficacy are held fixed
+underneath. That is what the switch is *for*.
+
+---
+
+## What we found in the reference implementation
+
+Along the way, three things surfaced that may matter more than the speed.
+
+### The two backends do not simulate the same model
+
+During a neuron's refractory period, **Brian 2** &mdash; the designated ground truth &mdash; freezes `g` and lets
+arriving synaptic input **accumulate**. The **PyTorch** backend keeps decaying `g` and **discards** it.
+
+| regime | discarded weight | spikes | active-neuron Jaccard |
 |---|---|---|---|
 | sugar (21) | **6.40%** | +22.5% | **0.871** |
 | broad (1000) | 15.23% | +199% | 0.666 |
 
-Separately, the PyTorch axonal delay is **one timestep longer** than Brian 2's
-(20 steps against 19) — a 5.6% longer delay on every synapse, compounding per
-hop. Wang et al. flag rounding 1.8 ms to 2.0 ms on Loihi 2 as a fidelity
+### The axonal delay differs by one timestep
+
+PyTorch delivers every spike **20 steps** after emission where Brian 2 delivers at **19** &mdash; a 5.6% longer
+delay on every synapse, compounding per hop. Wang et al. flag rounding 1.8 ms to 2.0 ms on Loihi 2 as a fidelity
 compromise; the PyTorch backend arrives at 1.9 ms by accident.
 
-**Why this went unnoticed:** Brian 2 against *itself* at two seeds scores Jaccard
-**0.850**. The divergence measures 0.871. The existing methodology does not have
-the statistical power to detect it — which is a finding about the benchmark, not
-just about the backends.
+### The existing methodology cannot detect either
 
-### 3. Nine neuron models over one connectome
-
-The membrane equation is now a runtime switch. The connectome, delay ring,
-fan-out, refractory gate, tiling and thread pool are properties of the *network*
-and are shared; a model contributes only how `(v, g, aux)` advance, when a spike
-is declared, and what the reset does.
-
-| model | reference | integration |
-|---|---|---|
-| LIF (Euler) | Shiu et al. 2024 — as shipped | first order |
-| LIF (exact) | Rotter & Diesmann 1999 | **exact**, and *fewer* ops than Euler |
-| Izhikevich | Izhikevich 2003 | first order |
-| AdEx | Brette & Gerstner 2005 | Rush–Larsen adaptation |
-| EIF | Fourcaud-Trocmé et al. 2003 | first order |
-| QIF | Ermentrout & Kopell 1986 | first order |
-| Resonate-and-fire | Izhikevich 2001 | **exact** (sub-threshold) |
-| Hodgkin–Huxley | Hodgkin & Huxley 1952 | Rush–Larsen gates |
-| GLIF | Teeter et al. 2018 | **exact** (both states) |
-
-Each body is written **once** and compiled **three times** (AVX-512 / AVX2 /
-scalar), which makes ISA equivalence structural rather than something to
-re-audit. Each model is *calibrated* rather than copied out of its paper: one
-free gain is solved for numerically so a single synapse moves every model the
-same fraction of the way to threshold — otherwise switching models would measure
-unit mismatch instead of dynamics.
-
-Two results worth stating because they invert the usual intuition:
-
-- **Izhikevich is the fastest model on the real protocols**, beating LIF, because
-  it drives the network less hard (7.5% live tiles on sugar against LIF's 28.5%).
-  A "more complex" model running faster is a *dynamics* result, not an
-  arithmetic one.
-- **Hodgkin–Huxley is the quietest** — 2.6% live tiles — because its potassium
-  conductance gives intrinsic adaptation no I&F model here has. Its ~180
-  flop/neuron are paid on 2.6% of the brain, landing full HH at 0.42× real time
-  rather than the ~0.03× its arithmetic alone predicts.
-
-### FlyBrain Studio — a live 3D interface
-
-```bash
-.venv/Scripts/python.exe flyloop/studio.py     # -> http://127.0.0.1:8765
-```
-
-All 138,639 neurons at their real FlyWire coordinates, driven by the native
-kernel. Every point is a real neuron and lights when that neuron actually spikes
-— the render is the simulation's output, not an animation of it. Model switching
-costs milliseconds, not a reload. Standard library only, no build step.
+Brian 2 against *itself* at two seeds scores Jaccard **0.850**. The refractory divergence measures **0.871**, the
+Euler-vs-exact gap **0.913** &mdash; both inside the noise floor. That is a finding about the **benchmark**, not
+only about the backends: a stochastic Poisson protocol over 100 ms produces ~1500 spikes, and trial-to-trial
+variability swamps the effect.
 
 ---
 
 ## Verify it yourself
 
-Nothing here asks to be taken on trust. Each command is the gate that the
-corresponding claim had to pass.
+Nothing here asks to be taken on trust. Each command is the gate the corresponding claim had to pass.
 
 ```bash
 python flyloop/verify_all.py 400          # 8 regimes, bit-identical + timing
@@ -138,33 +170,96 @@ python code/compare_to_brian2.py 100      # ground truth, with a noise floor
 python code/validate_models_brian2.py     # 9 models vs independent Brian 2
 ```
 
-The model gates are:
-
 | gate | what it proves |
 |---|---|
-| **A** ISA equivalence | AVX-512 / AVX2 / scalar bit-identical — vector width is a pure speed knob |
+| **A** ISA equivalence | AVX-512 / AVX2 / scalar bit-identical &mdash; vector width is a pure speed knob |
 | **B** no regression | LIF still bit-identical to PyTorch after the kernel grew eight models |
 | **C** tile-skipping | each model with skipping on and off, compared bit-for-bit |
 | **D** elision | the certified exponential elision forced off, identical bits |
-| **E** auxiliary state | `u`, `w`, `y`, `m/h/n/armed`, `θ` compared as uint32 too |
+| **E** auxiliary state | `u`, `w`, `y`, `m/h/n/armed`, `theta` compared as uint32 too |
 
-The vectorised `expf` is the only place the kernel makes an accuracy *choice*, so
-it is audited **exhaustively rather than sampled** — all **2,237,530,114**
-representable float32 in its live domain, on all three ISA paths:
+The vectorised `expf` is the only place the kernel makes an accuracy *choice*, so it is audited **exhaustively
+rather than sampled** &mdash; all **2,237,530,114** representable float32 in its live domain, on all three ISA
+paths:
 
 ```
 max 1 ULP    mean 0.0077 ULP    99.23% exactly rounded
 ```
 
-Against independent Brian 2 implementations, eight of nine models agree to the
-float32 floor; Hodgkin–Huxley's residual is shown to be first-order integrator
-convergence (error ratio 2.00 per step halving), not a transcription error.
+Against independent Brian 2 implementations, eight of nine models agree to the float32 floor;
+Hodgkin&ndash;Huxley's residual is shown to be first-order integrator convergence (error ratio 2.00 per step
+halving), not a transcription error.
+
+---
+
+## Performance
+
+| regime | native ms/step | vs torch | real time |
+|---|---|---|---|
+| single neuron | 0.0109 | 97.7&times; | **9.16&times;** |
+| silent | 0.0260 | 104.4&times; | **3.84&times;** |
+| P9 walking (2) | 0.0262 | 79.5&times; | **3.82&times;** |
+| **sugar GRNs (21)** | **0.0461** | **52.2&times;** | **2.17&times;** |
+| broad (100) | 0.0763 | 30.6&times; | 1.31&times; |
+| broad (1000) | 0.3019 | 10.1&times; | 0.33&times; |
+| saturating (40k) | 2.2536 | 3.1&times; | 0.04&times; |
+
+All eight regimes **bit-identical** &mdash; full state compared as raw `uint32` every step, spike trains matched
+exactly. No regression in any regime.
+
+The starting assumption was that the dense path was memory-bandwidth-bound with ~1.5&ndash;2&times; of headroom.
+Profiling said otherwise: at 171 &micro;s/step only 57% was the kernel, **26% was `torch.bernoulli` drawing
+twenty-one random numbers**, and 16% was ctypes glue. It was **framework-bound**, and the headroom was ~30&times;.
+
+What recovered it: fusing ~12 full-array passes into one; mapping threshold-and-reset onto AVX-512 mask registers
+so the spike bitset falls out of the compare for free; replacing the dense `(19, N)` delay ring (10.5 MB, ~190
+non-zeros) with sparse `(index, value)` slots; batching the Poisson draws; dropping the refractory counter to a
+gate bitset; and skipping inert 16-neuron tiles after renumbering by `cell_type`.
+
+One binary, runtime-dispatched across AVX-512 / AVX2 / scalar. Runs on any x86-64 since ~2013 &mdash; even the
+no-SIMD path beats PyTorch.
+
+---
+
+## FlyBrain Studio
+
+```bash
+python flyloop/studio.py     # -> http://127.0.0.1:8765
+```
+
+All 138,639 neurons at their real coordinates, driven by the native kernel, model switchable at runtime, with
+live telemetry and per-region firing rates. **Standard library only** &mdash; no Flask, no websockets, no build
+step. One Python file and one HTML file, running from the same venv as the simulation. Every image on this page
+was produced by it.
+
+---
+
+## Honest limits
+
+Kept prominent, because the numbers above are easy to over-read.
+
+- **Real time holds in the sparse regimes only.** Tile skipping is activity-dependent by construction &mdash;
+  under broad 1000-neuron drive it is 0.33&times; real time, 0.04&times; saturating. The two *published*
+  experiments (sugar, P9) are both sparse; artificial broad stimulation is not.
+- **Not faster than Loihi 2.** Sandia's 12-chip system reaches 0.0538 s/simulated-second against our 0.461
+  &mdash; roughly 10&times; ahead. The claim is real time on a *consumer device*, not beating neuromorphic
+  silicon.
+- **Level with GeNN at n=1, behind at n=8.** 0.461 s/sim-s against GeNN's 0.450 on an RTX 4070 &mdash; same
+  class, different machines. This is a **latency** result; GPUs still win batched throughput, and we measured
+  that CPU batching cannot close it ([FINDINGS.md](FINDINGS.md) section 4).
+- **The Brian 2 comparison passes, but it is a weak test.** Jaccard 0.931 against a 0.850 seed-to-seed noise
+  floor &mdash; high enough to hide the divergences above. Passing it is necessary, not sufficient.
+- **Bit-identity is a property of `torch.get_num_threads()`.** ATen's `add_(t, alpha=)` is a single-rounding FMA
+  in its vectorised body and a separate multiply-then-add in its scalar tail, so reproducibility claims must pin
+  the thread count.
+- **Timings are minima on a loaded laptop.** Background indexers inflated the PyTorch baseline from 1.66 to
+  4.97 ms/step before we noticed. Ratios are stable; absolute seconds are not.
 
 ---
 
 ## What changed, relative to upstream
 
-**New — the native kernel and its models**
+**The native kernel and its models**
 
 | file | what it is |
 |---|---|
@@ -173,11 +268,11 @@ convergence (error ratio 2.00 per step halving), not a transcription error.
 | `flyloop/native/simd.h` | scalar / AVX2 / AVX-512 op abstraction |
 | `flyloop/native/nrn_params.h` | the parameter block and model enum |
 | `flyloop/models.py` | model registry, PSP calibration, resting-state search |
-| `flyloop/native_engine.py` | the engine — state arrays, step loop, stimulation |
+| `flyloop/native_engine.py` | the engine &mdash; state arrays, step loop, stimulation |
 | `flyloop/native_lib.py` | content-addressed build + ctypes binding |
 | `flyloop/studio.py`, `flyloop/studio/` | the live 3D interface |
 
-**New — verification**
+**Verification**
 
 | file | what it proves |
 |---|---|
@@ -193,50 +288,27 @@ convergence (error ratio 2.00 per step halving), not a transcription error.
 
 | file | change |
 |---|---|
-| `code/run_pytorch.py` | event-driven fan-out + ring buffer — 3.2–5.2×, bit-identical |
+| `code/run_pytorch.py` | event-driven fan-out + ring buffer &mdash; 3.2&ndash;5.2&times;, bit-identical |
 | `flyloop/brain_engine.py` | active-set stepping, state packing, two-way dense/sparse switch |
-
-**Documentation**
-
-| document | for whom |
-|---|---|
-| [FINDINGS.md](FINDINGS.md) | the upstream team — every result with its caveats |
-| [MODELS.md](MODELS.md) | the nine models: architecture, calibration, verification |
-| [FORK.md](FORK.md) | full write-up and theory of the changes |
-| [HANDOFF.md](HANDOFF.md) | complete working record, **including dead ends** |
-| [research/INDEX.md](research/INDEX.md) | literature notes with per-note verdicts |
 
 ---
 
-## Honest limits
+## Documentation
 
-Kept deliberately prominent, because the numbers above are easy to over-read.
+| document | for whom |
+|---|---|
+| **[FINDINGS.md](FINDINGS.md)** | the upstream team &mdash; every result with its caveats |
+| **[MODELS.md](MODELS.md)** | the nine models: architecture, calibration, verification |
+| **[FORK.md](FORK.md)** | full write-up and theory of the changes |
+| **[HANDOFF.md](HANDOFF.md)** | complete working record, **including dead ends** |
+| **[research/INDEX.md](research/INDEX.md)** | literature notes, each with a verdict |
 
-- **Real time holds in the sparse regimes only.** Tile skipping is
-  activity-dependent by construction — under broad 1000-neuron drive it is
-  0.33× real time, and 0.04× when saturating. The two *published* experiments
-  (sugar, P9) are both sparse; artificial broad stimulation is not.
-- **Not faster than Loihi 2.** Sandia's 12-chip system reaches 0.0538
-  s/simulated-second against our 0.461 — roughly 10× ahead. The claim here is
-  real time on a *consumer device*, not beating neuromorphic silicon.
-- **Level with GeNN at n=1, behind at n=8.** 0.461 s/sim-s against GeNN's 0.450
-  on an RTX 4070 — same class, different machines. This is a **latency** result;
-  GPUs still win batched throughput, and we measured that CPU batching cannot
-  close it ([FINDINGS.md](FINDINGS.md) §4).
-- **The Brian 2 comparison passes, but it is a weak test.** Jaccard 0.931 against
-  a 0.850 seed-to-seed noise floor — high enough to hide the divergences in §2.
-  Passing it is necessary, not sufficient.
-- **Bit-identity is a property of `torch.get_num_threads()`.** ATen's
-  `add_(t, alpha=)` is a single-rounding FMA in its vectorised body and a
-  separate multiply-then-add in its scalar tail, so reproducibility claims must
-  pin the thread count.
-- **Timings are minima on a loaded laptop.** Background indexers inflated the
-  PyTorch baseline from 1.66 to 4.97 ms/step before we noticed. Ratios are
-  stable; absolute seconds are not.
+No pull request has been opened upstream. That repository is a *benchmark*; changing one backend's numbers alters
+a published comparison, and the model divergence changes what the comparison means. Both seemed like
+conversations to have first.
 
-No pull request has been opened upstream. That repository is a *benchmark*;
-changing one backend's numbers alters a published comparison, and §2 changes what
-the comparison means. Both seemed like conversations to have first.
+A fork of [eonsystemspbc/fly-brain](https://github.com/eonsystemspbc/fly-brain), whose multi-framework benchmark
+harness is preserved unchanged below.
 
 ---
 
