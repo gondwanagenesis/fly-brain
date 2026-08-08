@@ -16,11 +16,15 @@
 <img src="https://img.shields.io/badge/GPU-not%20required-6e7681?style=flat-square" alt="no GPU">
 </p>
 
-<img src="docs/img/hero_lif_sugar.png" width="880" alt="The whole Drosophila connectome rendered live: optic lobes in cyan, central brain in violet, and the sugar-driven subesophageal circuit firing in white.">
+<p><b>New in this fork:</b> a fused AVX-512 kernel &mdash; <b>3.1&times;&ndash;104&times;</b> over the PyTorch backend,
+bit-identical &nbsp;·&nbsp; <b>nine neuron models</b> switched at runtime<br>
+&nbsp;·&nbsp; a live 3D interface &nbsp;·&nbsp; and <b>three fidelity bugs</b> found in the reference implementation.
+&nbsp; <a href="#what-this-fork-adds"><b>Full list &darr;</b></a></p>
 
-<p><i>Not a visualisation of saved data &mdash; every point is a real neuron at its real FlyWire<br>
-coordinate, lighting when that neuron actually spikes in the running simulation.<br>
-Optic lobes in cyan, central brain in violet, the sugar-driven feeding circuit in white.</i></p>
+<img src="docs/img/hero_lif_sugar.png" width="760" alt="The whole Drosophila connectome rendered live: optic lobes in cyan, central brain in violet, and the sugar-driven subesophageal circuit firing in white.">
+
+<p><i>Not a visualisation of saved data &mdash; every point is a real neuron at its real FlyWire coordinate,<br>
+lighting when that neuron actually spikes in the running simulation.</i></p>
 
 </div>
 
