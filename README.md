@@ -26,6 +26,36 @@ Optic lobes in cyan, central brain in violet, the sugar-driven feeding circuit i
 
 ---
 
+## What this fork adds
+
+Upstream is a **benchmark harness** — it runs the Shiu et al. model across Brian 2, PyTorch, GeNN, NEST GPU and
+Brian2CUDA and compares them. Everything in this table is new here.
+
+|  | what | measured result |
+|---|---|---|
+| **Speed** | Fused single-pass native kernel; one binary, runtime-dispatched AVX-512 / AVX2 / scalar | **3.1&times;&ndash;104&times;** over the PyTorch backend, **bit-identical in 8 of 8 regimes** |
+| | Sparse delay line — the dense `(19, N)` fp32 ring becomes `(index, value)` slots | 10.5 MB &rarr; **~30 KB** resident |
+| | Inert-tile skipping over `cell_type`-reordered neurons | **71&ndash;99%** of the sweep skipped when activity is sparse |
+| | Refractory counter replaced by a gate bitset + compact countdown | the sweep now reads only `v` and `g`: **24.25 &rarr; 16.25 bytes/neuron** |
+| | Batched Poisson draws — stream-exact, not an approximation | removed **26%** of the step |
+| | int16 connectome weights — lossless, since synapse counts are exact integers | halves ~200 MB of weight traffic |
+| **Models** | **Nine membrane models, switched at runtime**: LIF (Euler + exact), Izhikevich, AdEx, EIF, QIF, resonate-and-fire, Hodgkin&ndash;Huxley, GLIF | a switch costs **milliseconds**, not a reload |
+| | Each model body written **once**, compiled **three times** | ISA equivalence is a property of the build, not an audit |
+| | Certified exponential elision (AdEx / EIF) | skips the `exp` when a rigorous bound proves it rounds away |
+| | Models **calibrated on excitability**, not copied out of their papers | one synapse moves every model the same fraction of the way to threshold |
+| **Correctness found in the reference** | The two backends do not simulate the same model — refractory input is accumulated by Brian 2, discarded by PyTorch | **6.40%** of arriving synaptic weight lost on sugar; spikes **+22.5%**; Jaccard **0.871** |
+| | The axonal delay differs by one timestep | PyTorch delivers at **20** steps where Brian 2 delivers at **19** — 5.6% longer, on every synapse |
+| | The existing methodology cannot detect either | seed-to-seed noise floor **0.850** is *above* both divergences |
+| **Assurance** | Five whole-brain gates, checked every step | ISA equivalence · no-regression vs PyTorch · tile-skip · elision · auxiliary state |
+| | Exhaustive ULP audit of the vectorised `exp` | all **2,237,530,114** float32 in its domain, **max 1 ULP** |
+| | Every model cross-checked against an independent Brian 2 implementation | 8 of 9 at the float32 floor; HH's residual shown to be integrator convergence |
+| **Tooling** | **FlyBrain Studio** — a live 3D interface | 138,639 neurons at real coordinates, standard library only |
+
+Full detail: [what changed file by file](#what-changed-file-by-file) · [the nine models](MODELS.md) ·
+[everything with caveats](FINDINGS.md) · [the working record, including dead ends](HANDOFF.md)
+
+---
+
 ## The goal
 
 **Whole-brain emulation that runs on hardware people actually own, sacrificing no information.**
@@ -257,7 +287,7 @@ Kept prominent, because the numbers above are easy to over-read.
 
 ---
 
-## What changed, relative to upstream
+## What changed, file by file
 
 **The native kernel and its models**
 
