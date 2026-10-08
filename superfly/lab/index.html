@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SUPERFLY Lab</title>
+<style>
+:root{
+  --bg:#05070d; --panel:rgba(12,17,29,.86); --line:#24304a; --line2:#34425f;
+  --text:#d8dfee; --dim:#8390ab; --faint:#56627c; --accent:#7cc4ff;
+  --amber:#ffb84d; --green:#6ee7a0; --violet:#b69cff; --pink:#f472b6; --red:#ff7a7a;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.4 var(--sans);overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;touch-action:none}
+.panel{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.panel>header{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);
+  font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.panel>header b{color:var(--text);font-weight:600}
+.panel>header .sp{flex:1}
+button{font:inherit;color:var(--text);background:#16203a;border:1px solid var(--line2);border-radius:6px;padding:3px 10px;cursor:pointer}
+button:hover{background:#1e2c4f;border-color:var(--accent)}
+.ib{padding:0 7px;line-height:18px;font-size:13px}
+/* labels projected from 3D */
+#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.lb{position:absolute;left:0;top:0;white-space:nowrap;font-size:11px;padding:1px 7px 1px 5px;border-radius:9px;
+  background:rgba(8,12,22,.72);border:1px solid var(--line);color:var(--text);will-change:transform;display:flex;gap:5px;align-items:center}
+.lb i{width:7px;height:7px;border-radius:50%;display:inline-block}
+.lb small{color:var(--faint);font-size:9px;text-transform:uppercase;letter-spacing:.06em}
+.lb.hot{border-color:var(--accent);background:rgba(18,30,56,.9)}
+.lb.brain{background:none;border:none;color:var(--dim);font-size:11px;letter-spacing:.04em}
+.lb span{overflow:hidden;text-overflow:ellipsis}
+body.compact .lb{font-size:10px;max-width:104px;padding:0 5px 0 4px}
+body.compact .lb small,body.compact .lb.brain{display:none}
+.wl{position:absolute;left:0;top:0;font-size:10px;color:#9fb4d8;background:rgba(8,12,22,.75);padding:0 5px;border-radius:6px;
+  white-space:nowrap;display:none;will-change:transform}
+body.wlabels .wl,.wl.on{display:block}
+/* world */
+#world{left:12px;bottom:38px;width:226px}
+#world canvas{display:block;width:200px;height:200px;margin:8px 12px 4px;border-radius:6px;border:1px solid var(--line)}
+#world.loom{border-color:var(--red);box-shadow:0 0 18px rgba(255,90,90,.5)}
+#needs{padding:2px 12px 0;display:grid;gap:2px}
+.nd{display:grid;grid-template-columns:50px 1fr 30px;gap:6px;align-items:center;font-size:11px;color:var(--dim);line-height:13px}
+.nd .tr{height:7px;border-radius:4px;background:#141c30;overflow:hidden}
+.nd .tr i{display:block;height:100%;width:0;border-radius:4px;transition:width .25s}
+.nd span:last-child{text-align:right;font-family:var(--mono);color:var(--faint)}
+#wmode{min-height:46px;padding:5px 12px 7px;font-size:11px;color:var(--dim);font-family:var(--mono)}
+#world.collapsed canvas,#world.collapsed #needs,#world.collapsed #wmode{display:none}
+/* chat */
+#chat{top:12px;right:12px;bottom:38px;width:340px;display:flex;flex-direction:column}
+#chat.closed{display:none}
+#phase{display:flex;align-items:center;gap:8px;padding:7px 12px 2px;font-size:12px}
+#phase .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 8px currentColor;color:var(--green)}
+#phase.listening .dot{background:var(--amber);color:var(--amber)}
+#phase.thinking .dot{background:var(--violet);color:var(--violet);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}
+#inner{padding:2px 12px 8px;font-size:12px;color:var(--dim);font-style:italic;border-bottom:1px solid var(--line);min-height:36px}
+#inner .lbl{font-style:normal;color:var(--faint);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-right:6px}
+#inner .chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;font-style:normal}
+.chip{font-size:10px;padding:0 6px;border-radius:8px;background:#141c30;border:1px solid var(--line);color:var(--dim);font-family:var(--mono)}
+#msgs{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:9px}
+.msg{max-width:92%;display:flex;flex-direction:column;gap:2px}
+.msg .meta{font-size:10px;color:var(--faint);display:flex;gap:6px;align-items:center}
+.msg .bub{padding:6px 10px;border-radius:10px;background:#141c30;border:1px solid var(--line);word-break:break-word;white-space:pre-wrap}
+.msg.you{align-self:flex-end;align-items:flex-end}
+.msg.you .bub{background:#1b3358;border-color:#2c4f84}
+.msg.aloud .bub{font-style:italic;color:#c9bff0;background:#171630;border-color:#2e2c5c}
+.msg.reply .bub{background:#12261f;border-color:#235a46}
+.v{font-size:9px;padding:0 6px;border-radius:7px;text-transform:uppercase;letter-spacing:.05em;border:1px solid}
+.v.ok{color:var(--green);border-color:#2b6b4e}.v.ok2{color:#d7e86e;border-color:#6a7430}
+.v.warn{color:var(--amber);border-color:#7a5a22}.v.info{color:var(--accent);border-color:#2c5a82}.v.dim{color:var(--dim);border-color:var(--line2)}
+#chatForm{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}
+#chatIn{flex:1;min-width:0;background:#0b1120;color:var(--text);border:1px solid var(--line2);border-radius:6px;padding:7px 9px;font:inherit}
+#chatIn:focus{outline:none;border-color:var(--accent)}
+#chatTab{top:12px;right:12px;display:none;padding:6px 14px;cursor:pointer}
+#chat.closed ~ #chatTab{display:block}
+/* info */
+#info{left:250px;right:364px;bottom:38px;max-width:560px;max-height:200px;overflow:auto;padding:9px 12px;font-size:12px}
+#info h3{margin:0 0 3px;font-size:13px;display:flex;gap:8px;align-items:center}
+#info h3 small{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;font-weight:400}
+#info p{margin:0 0 6px;color:var(--dim)}
+#info .row{display:flex;flex-wrap:wrap;gap:3px}
+#info .con{color:var(--faint);font-size:11px;margin-top:5px}
+#info .hint{color:var(--faint);font-size:11px;margin-top:6px}
+.chip.u{color:var(--text)}
+.chip.u b{font-weight:500;color:var(--accent);margin-left:3px}
+.sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+#tip{position:fixed;pointer-events:none;z-index:5;display:none;max-width:300px;padding:5px 9px;font-size:11px;
+  background:rgba(8,12,22,.95);border:1px solid var(--line2);border-radius:6px;color:var(--text);font-family:var(--mono);white-space:pre-wrap}
+/* status */
+#status{position:fixed;left:0;right:0;bottom:0;height:26px;display:flex;align-items:center;gap:16px;padding:0 12px;
+  background:rgba(8,11,19,.92);border-top:1px solid var(--line);font:11px var(--mono);color:var(--dim);white-space:nowrap;overflow:hidden}
+#status b{color:var(--text);font-weight:500}
+#status .sp{flex:1}
+#status .ok{color:var(--green)}#status .bad{color:var(--red)}
+#status button{padding:0 8px;font-size:11px;line-height:18px}
+#boot{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:9;color:var(--dim);font:13px var(--mono);text-align:center;padding:20px}
+@media (max-width:900px){
+  #chat{left:8px;right:8px;width:auto;top:auto;height:min(60vh,520px);bottom:34px;z-index:4}
+  #world{left:8px;bottom:34px;width:200px}
+  #world canvas{width:176px;height:176px}
+  #info{left:8px;right:8px;bottom:34px;max-width:none;max-height:150px;display:none}
+  #info.show{display:block;z-index:3}
+  #status{gap:10px}
+  #status .opt{display:none}
+}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="labels"></div>
+
+<section id="world" class="panel">
+  <header><b>World</b><span class="sp"></span><span id="wTime" style="text-transform:none"></span><button class="ib" id="wMin" title="collapse">&ndash;</button></header>
+  <canvas id="wc" width="440" height="440"></canvas>
+  <div id="needs"></div>
+  <div id="wmode"></div>
+</section>
+
+<section id="info" class="panel"></section>
+
+<section id="chat" class="panel">
+  <header><b>Chat</b><span class="sp"></span><span>with the fly</span><button class="ib" id="chatMin" title="hide">&times;</button></header>
+  <div id="phase"><span class="dot"></span><span id="phaseTxt">living</span></div>
+  <div id="inner"></div>
+  <div id="msgs"></div>
+  <form id="chatForm" autocomplete="off">
+    <input id="chatIn" maxlength="300" placeholder="say something to the fly…" aria-label="message">
+    <button type="submit" id="sendBtn">Send</button>
+  </form>
+</section>
+<button id="chatTab" class="panel">Chat</button>
+
+<div id="tip"></div>
+<footer id="status">
+  <span id="sConn" class="bad">&#9679; connecting</span>
+  <span>t <b id="sT">0.0</b> s</span>
+  <span><b id="sRT">&ndash;</b>&times; real time</span>
+  <span>memory <b id="sMem">0</b></span>
+  <span><b id="sN">0</b> neurons</span>
+  <span class="opt" id="sMock"></span>
+  <span class="sp"></span>
+  <span class="opt"><b id="sFps">0</b> fps / <b id="sHz">0</b> Hz stream</span>
+  <button id="btnWL" title="show/hide wire labels">wires</button>
+  <button id="btnReset" title="reset camera">reset view</button>
+</footer>
+<div id="boot">SUPERFLY Lab &middot; loading&hellip;</div>
+<script>setTimeout(function(){if(!window.__labReady){var b=document.getElementById('boot');if(b)b.textContent='Could not load three.js from the CDN (jsdelivr). Check the network connection and reload.';}},12000);</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+window.__labReady = true;
+THREE.ColorManagement.enabled = false;
+
+const $ = s => document.querySelector(s);
+const clamp = (x, a = 0, b = 1) => x < a ? a : x > b ? b : x;
+const bootEl = $('#boot');
+const setBoot = t => { bootEl.textContent = t; };
+const FOV = 40;
+
+/* ------------------------------------------------------------ constants */
+const MOD_COL = {senses:'#5ad1ff', intero:'#ff9d5c', wordlobe:'#f472b6', motor:'#6ee7a0', body:'#a3e635',
+                 flylm:'#ffb84d', memory:'#ffd166', mind:'#b69cff'};
+const KIND_COL = {port:'#5ad1ff', graft:'#f472b6', world:'#a3e635', nn:'#ffb84d', memory:'#ffd166'};
+const BRAIN_WIRE = '#8fdcff';
+const PW = 1.1;                                   // panel width in scene units (brain is 2 wide)
+const PLACE = {
+  'left':[-2.0,0,-.15], 'top-left':[-1.45,.98,-.05], 'top':[0,1.0,-.1], 'top-right':[1.6,.98,-.05],
+  'right':[2.0,0,-.15], 'far-right':[3.25,0,-.3], 'bottom-left':[-1.45,-.98,.05], 'bottom':[0,-1.0,.1],
+  'bottom-right':[1.6,-.98,.05]};
+const HZ_MODS = new Set(['senses', 'intero', 'motor']);
+const normHz = h => clamp(Math.log1p(Math.max(0, h)) / Math.log1p(150));
+const gam = x => Math.pow(clamp(x / 255), 0.6);
+const hexRGB = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ------------------------------------------------------------ state */
+let L = null;                         // layout
+let N = 0, region = null;
+let since = 0, lastFrame = null, connected = false, streamHz = 0;
+const chatSeen = new Set();
+let chatOpen = innerWidth > 900;
+let userMoved = false;
+
+/* ------------------------------------------------------------ boot */
+main().catch(e => { console.error(e); setBoot('Error: ' + (e && e.message || e)); });
+
+async function main() {
+  setBoot('loading layout…');
+  L = await (await fetch('/layout')).json();
+  setBoot('loading atlas (' + (L.n || 0).toLocaleString() + ' neurons)…');
+  const buf = await (await fetch('/atlas.bin')).arrayBuffer();
+  N = Math.floor(buf.byteLength / 8);
+  const xyz = new Int16Array(buf, 0, N * 3);
+  const cat = new Uint8Array(buf, N * 6, N);
+  region = new Uint8Array(buf, N * 7, N);
+  $('#sN').textContent = N.toLocaleString();
+  if (L.mock) $('#sMock').textContent = '[mock data]';
+
+  const NEEDS = [['energy', '#ffb84d'], ['water', '#4aa3ff'], ['sleep', '#b69cff'], ['arousal', '#ff7a7a'], ['content', '#6ee7a0']];
+  $('#needs').innerHTML = NEEDS.map(([k, c]) => `<div class="nd"><span>${k}</span><div class="tr"><i id="nb_${k}" style="background:${c}"></i></div><span id="nv_${k}">–</span></div>`).join('');
+
+  /* renderer / camera */
+  const renderer = new THREE.WebGLRenderer({antialias: true, powerPreference: 'high-performance'});
+  renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x05070d);
+  $('#stage').appendChild(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(FOV, 1, 0.05, 200);
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.rotateSpeed = 0.7; controls.minDistance = 0.5; controls.maxDistance = 40;
+  controls.addEventListener('start', () => { userMoved = true; });
+
+  /* ---------------------------------------------------- brain point cloud */
+  const cen = L.region_centroids || {};
+  const mb = cen['Mushroom body'], sez = cen['SEZ / motor out'];
+  // Orientation from the data itself (proper rotations only, no mirroring): dorsal (mushroom body) up,
+  // anterior (antennal lobe) towards the default camera.
+  const al = cen['Antennal lobe'];
+  let mx = 1, my = 1, mz = 1;
+  if (mb && sez && sez[1] > mb[1]) { my = -1; mz = -1; }
+  if (mb && al && mz * (al[2] - mb[2]) < 0) { mx = -mx; mz = -mz; }
+  const bb = L.bbox, c0 = [0, 1, 2].map(i => (bb.min[i] + bb.max[i]) / 2);
+  const S = 2 / Math.max(1, bb.max[0] - bb.min[0]);
+  const T = p => new THREE.Vector3(mx * (p[0] - c0[0]) * S, my * (p[1] - c0[1]) * S, mz * (p[2] - c0[2]) * S);
+  const pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    pos[3*i] = mx * (xyz[3*i] - c0[0]) * S;
+    pos[3*i+1] = my * (xyz[3*i+1] - c0[1]) * S;
+    pos[3*i+2] = mz * (xyz[3*i+2] - c0[2]) * S;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('cat', new THREE.BufferAttribute(cat, 1));
+  const actAttr = new THREE.BufferAttribute(new Uint8Array(N), 1, true);
+  actAttr.setUsage(THREE.DynamicDrawUsage);
+  geo.setAttribute('act', actAttr);
+  const pal = Array.from({length: 32}, () => new THREE.Vector3(.6, .6, .6));
+  (L.cats || []).forEach((c, i) => { if (i < 32) { const [r, g, b] = hexRGB(c.color); pal[i].set(r / 255, g / 255, b / 255); } });
+  const ptsMat = new THREE.ShaderMaterial({
+    uniforms: {uPal: {value: pal}, uScalePx: {value: 600}, uSize: {value: 0.0075}, uMin: {value: 1.2}, uMax: {value: 3.2}},
+    vertexShader: `
+      attribute float cat; attribute float act;
+      uniform vec3 uPal[32]; uniform float uScalePx, uSize, uMin, uMax;
+      varying vec3 vCol; varying float vA;
+      void main(){
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_Position = projectionMatrix * mv;
+        vec3 base = uPal[int(cat + 0.5)];
+        float g = pow(act, 0.55);
+        vCol = mix(base * 0.55, mix(base * 1.5 + 0.22, vec3(1.0), 0.5), g);
+        vA = 0.085 + 0.9 * g;
+        gl_PointSize = clamp((uSize + 0.02 * g) * uScalePx / max(0.01, -mv.z), uMin, uMax * (1.0 + 1.2 * g));
+      }`,
+    fragmentShader: `
+      varying vec3 vCol; varying float vA;
+      void main(){
+        vec2 d = gl_PointCoord - 0.5; float r2 = dot(d, d);
+        if (r2 > 0.25) discard;
+        float core = exp(-r2 * 7.0);
+        gl_FragColor = vec4(vCol, vA * core);
+      }`,
+    transparent: true, depthWrite: false, depthTest: true, blending: THREE.AdditiveBlending});
+  const points = new THREE.Points(geo, ptsMat);
+  points.frustumCulled = false; points.renderOrder = 2;
+  scene.add(points);
+
+  /* ---------------------------------------------------- module panels */
+  const mods = [];
+  const byId = {};
+  L.modules.forEach((m, k) => {
+    const M = makeModule(m, k);
+    mods.push(M); byId[m.id] = M;
+  });
+  function makeModule(m, k) {
+    const sp = buildSpec(m);
+    const cv = document.createElement('canvas');
+    cv.width = sp.W; cv.height = sp.H;
+    const tex = new THREE.CanvasTexture(cv);
+    tex.anisotropy = 4;
+    const accent = MOD_COL[m.id] || KIND_COL[m.kind] || '#9fb4d8';
+    const w = PW, h = PW * sp.H / sp.W;
+    const side = new THREE.MeshBasicMaterial({color: 0x1b2740});
+    const face = new THREE.MeshBasicMaterial({map: tex});
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.03), [side, side, side, side, face, face]);
+    mesh.renderOrder = 1;
+    const group = new THREE.Group();
+    const p = PLACE[m.place] || [3.25, -1 + k * .5, 0];
+    group.position.set(p[0], p[1], p[2]);
+    group.add(mesh); scene.add(group);
+    const M = {m, spec: sp, canvas: cv, ctx: cv.getContext('2d'), tex, accent, lut: makeLut(accent), mesh, group,
+               pos: group.position, w, h, cur: new Float32Array(sp.cols * sp.rows), tgt: new Float32Array(sp.cols * sp.rows),
+               raw: null, have: false, act: 0, actS: 0, flag: null, eps: null, hov: null, dirty: true, label: null};
+    mesh.userData.M = M;
+    return M;
+  }
+  function buildSpec(m) {
+    const W = 640, PAD = 14, id = m.id, units = m.units | 0;
+    const s = {W, PAD, y0: PAD, gap: 2, colLbl: false, rowLbl: false, paired: false, x0: PAD};
+    if (m.kind === 'nn') {
+      s.rows = Math.max(1, m.layers || 1); s.cols = units; s.x0 = PAD + 30; s.rowLbl = true;
+      s.cw = (W - PAD - s.x0) / s.cols; s.ch = Math.max(9, Math.min(60, Math.floor(480 / s.rows))); s.gap = s.rows > 8 ? 1 : 2;
+    } else if (m.kind === 'memory') {
+      s.cols = 6; s.rows = Math.ceil(units / 6); s.cw = (W - 2 * PAD) / 6; s.ch = 54; s.gap = 4;
+    } else if (m.unit_labels && /\s[LR]$/.test(m.unit_labels[0] || '') && units % 2 === 0) {
+      s.paired = true; s.cols = units / 2; s.rows = 2; s.colLbl = true;
+      s.cw = (W - 2 * PAD) / s.cols; s.ch = 58;
+    } else if (units > 40) {
+      s.cols = 25; s.rows = Math.ceil(units / 25); s.cw = (W - 2 * PAD) / 25; s.ch = s.cw;
+    } else {
+      s.cols = Math.max(1, units); s.rows = 1; s.colLbl = true; s.cw = (W - 2 * PAD) / s.cols; s.ch = 76; s.gap = 4;
+    }
+    s.H = Math.round(PAD * 2 + s.rows * s.ch + (s.colLbl ? 20 : 0));
+    return s;
+  }
+  function makeLut(hex) {
+    const a = hexRGB(hex), d = [18, 26, 44], out = [];
+    for (let i = 0; i < 64; i++) {
+      const t = i / 63, k = Math.min(1, t * 1.15), wv = Math.max(0, (t - .72) * 2.2) * .55;
+      const c = [0, 1, 2].map(j => Math.round((d[j] + (a[j] - d[j]) * k) * (1 - wv) + 255 * wv));
+      out.push(`rgb(${c[0]},${c[1]},${c[2]})`);
+    }
+    return out;
+  }
+  const unitOf = (M, r, c) => {
+    const s = M.spec, u = s.paired ? c * 2 + r : (M.m.kind === 'nn' ? c : r * s.cols + c);
+    return u < (M.m.units | 0) ? u : -1;
+  };
+  const layerOf = (M, r) => M.spec.rows - 1 - r;
+
+  /* ---------------------------------------------------- wires */
+  const wireGroup = new THREE.Group(); scene.add(wireGroup);
+  const wireMat = (col) => new THREE.ShaderMaterial({
+    uniforms: {uColor: {value: new THREE.Vector3(...hexRGB(col).map(x => x / 255))}, uAct: {value: 0}, uTime: {value: 0}, uBoost: {value: 1}},
+    vertexShader: `attribute float s; varying float vS; void main(){ vS = s; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `
+      varying float vS; uniform vec3 uColor; uniform float uAct, uTime, uBoost;
+      void main(){
+        float ph = fract(vS * 3.0 - uTime * (0.18 + 0.9 * uAct));
+        float pulse = smoothstep(0.0, 0.05, ph) * (1.0 - smoothstep(0.05, 0.32, ph));
+        float ends = smoothstep(0.0, 0.04, vS) * smoothstep(1.0, 0.94, vS);
+        float a = (0.17 + 0.25 * uAct + pulse * (0.2 + 0.8 * uAct)) * ends * uBoost;
+        gl_FragColor = vec4(uColor * (0.75 + 0.9 * pulse), clamp(a, 0.0, 1.0));
+      }`,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending});
+  const wires = [];
+  const labelsEl = $('#labels');
+  const centreOf = id => id.startsWith('brain:') ? (cen[id.slice(6)] ? T(cen[id.slice(6)]) : new THREE.Vector3()) : byId[id].pos.clone();
+  function anchor(M, toward) {
+    const c = M.pos, dx = toward.x - c.x, dy = toward.y - c.y;
+    const t = Math.min(1, (M.w / 2 + .03) / Math.max(1e-6, Math.abs(dx)), (M.h / 2 + .03) / Math.max(1e-6, Math.abs(dy)));
+    return new THREE.Vector3(c.x + dx * t, c.y + dy * t, c.z + .02);
+  }
+  L.wires.forEach((w, k) => {
+    const fb = w.from.startsWith('brain:'), tb = w.to.startsWith('brain:');
+    if ((!fb && !byId[w.from]) || (!tb && !byId[w.to])) return;
+    const ca = centreOf(w.from), cb = centreOf(w.to);
+    const a = fb ? ca : anchor(byId[w.from], cb), b = tb ? cb : anchor(byId[w.to], ca);
+    const mid = a.clone().add(b).multiplyScalar(.5), len = a.distanceTo(b);
+    let perp = new THREE.Vector3(-(b.y - a.y), b.x - a.x, 0).normalize();
+    if (perp.dot(mid) < 0) perp.negate();
+    const ctl = mid.clone().addScaledVector(perp, len * ((fb || tb) ? .12 : .22)); ctl.z += .18;
+    const pts = new THREE.QuadraticBezierCurve3(a, ctl, b).getPoints(64);
+    const g = new THREE.BufferGeometry().setFromPoints(pts);
+    g.setAttribute('s', new THREE.BufferAttribute(new Float32Array(pts.map((_, i) => i / 64)), 1));
+    const srcCol = fb ? BRAIN_WIRE : (MOD_COL[w.from] || KIND_COL[byId[w.from].m.kind] || '#9fb4d8');
+    const line = new THREE.Line(g, wireMat(srcCol));
+    line.renderOrder = 3; line.frustumCulled = false;
+    wireGroup.add(line);
+    const lab = document.createElement('div'); lab.className = 'wl'; lab.textContent = w.label || '';
+    if (w.label) labelsEl.appendChild(lab);
+    wires.push({w, line, fb, region: fb ? w.from.slice(6) : null, val: 0, mid: pts[32], lab, boost: 1, from: w.from, to: w.to});
+  });
+
+  /* ---------------------------------------------------- HTML labels */
+  mods.forEach(M => {
+    const d = document.createElement('div'); d.className = 'lb';
+    d.innerHTML = `<i style="background:${M.accent}"></i><span>${esc(M.m.label)}</span><small>${esc(M.m.kind)}</small>`; d.title = M.m.label;
+    labelsEl.appendChild(d); M.label = d;
+  });
+  const brainLbl = document.createElement('div'); brainLbl.className = 'lb brain';
+  brainLbl.textContent = `FlyWire brain · ${N.toLocaleString()} neurons`;
+  labelsEl.appendChild(brainLbl);
+  const brainLblPos = new THREE.Vector3(0, -.62, 0);
+
+  /* ---------------------------------------------------- framing */
+  let bounds = {minx: -1, maxx: 1, miny: -.5, maxy: .5};
+  mods.forEach(M => {
+    bounds.minx = Math.min(bounds.minx, M.pos.x - M.w / 2); bounds.maxx = Math.max(bounds.maxx, M.pos.x + M.w / 2);
+    bounds.miny = Math.min(bounds.miny, M.pos.y - M.h / 2); bounds.maxy = Math.max(bounds.maxy, M.pos.y + M.h / 2 + .12);
+  });
+  const lw = bounds.maxx - bounds.minx + .5, lh = bounds.maxy - bounds.miny + .5;
+  const lcx = (bounds.minx + bounds.maxx) / 2, lcy = (bounds.miny + bounds.maxy) / 2;
+  const tanH = Math.tan(FOV * Math.PI / 360);
+  function fit(full) {
+    const W = innerWidth, H = innerHeight, wide = W > 900;
+    renderer.setSize(W, H);
+    camera.aspect = W / H;
+    const rr = (chatOpen && wide) ? 352 : 0;
+    const wtop = $('#world').getBoundingClientRect().top;
+    const fx0 = 8, fx1 = W - rr - 8, fy0 = 8, fy1 = Math.min(H - 34, wtop - 8);
+    const fw = Math.max(100, fx1 - fx0), fh = Math.max(100, fy1 - fy0);
+    let ppu;
+    if (full) {
+      ppu = Math.min(fw / lw, fh / lh);
+      const D = H / (2 * ppu * tanH);
+      controls.target.set(0, 0, 0);
+      camera.position.set(0, D * .1, D * .995);
+    } else ppu = H / (2 * camera.position.distanceTo(controls.target) * tanH);
+    const bx = fx0 + fw / 2 - lcx * ppu, by = fy0 + fh / 2 + lcy * ppu;
+    camera.setViewOffset(W, H, -(bx - W / 2), -(by - H / 2), W, H);
+    camera.updateProjectionMatrix();
+    controls.update();
+    ptsMat.uniforms.uScalePx.value = renderer.domElement.height / (2 * tanH);
+    ptsMat.uniforms.uMin.value = 1.1 * renderer.getPixelRatio();
+    ptsMat.uniforms.uMax.value = 3.0 * renderer.getPixelRatio();
+  }
+  fit(true);
+  addEventListener('resize', () => fit(!userMoved));
+  $('#btnReset').onclick = () => { userMoved = false; fit(true); };
+  $('#btnWL').onclick = () => document.body.classList.toggle('wlabels');
+
+  /* ---------------------------------------------------- picking / info */
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  const tip = $('#tip'), info = $('#info');
+  let mouse = null, hover = null, pinned = null, downAt = null, needPick = false, infoAt = 0, infoKey = '';
+  const cv3 = renderer.domElement;
+  cv3.addEventListener('pointermove', e => { mouse = {x: e.clientX, y: e.clientY}; needPick = true; });
+  cv3.addEventListener('pointerleave', () => { mouse = null; needPick = true; });
+  cv3.addEventListener('pointerdown', e => { downAt = {x: e.clientX, y: e.clientY}; });
+  cv3.addEventListener('pointerup', e => {
+    if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 5) {
+      const M = hover ? hover.M : null;
+      pinned = (M && pinned !== M) ? M : null; infoKey = '';
+    }
+    downAt = null;
+  });
+  function cellAt(M, px, py) {
+    const s = M.spec, c = Math.floor((px - s.x0) / s.cw), r = Math.floor((py - s.y0) / s.ch);
+    if (c < 0 || r < 0 || c >= s.cols || r >= s.rows) return null;
+    return {r, c};
+  }
+  function pick() {
+    needPick = false;
+    let h = null;
+    if (mouse) {
+      const rc = cv3.getBoundingClientRect();
+      ndc.set((mouse.x - rc.left) / rc.width * 2 - 1, -((mouse.y - rc.top) / rc.height) * 2 + 1);
+      ray.setFromCamera(ndc, camera);
+      const hit = ray.intersectObjects(mods.map(M => M.mesh), false)[0];
+      if (hit) {
+        const M = hit.object.userData.M;
+        h = {M, cell: null};
+        if (hit.uv && hit.face.materialIndex >= 4) h.cell = cellAt(M, hit.uv.x * M.spec.W, (1 - hit.uv.y) * M.spec.H);
+      }
+    }
+    const prev = hover ? hover.M : null;
+    if (prev && (!h || h.M !== prev)) { prev.hov = null; prev.dirty = true; }
+    hover = h;
+    if (h) { h.M.hov = h.cell; h.M.dirty = true; }
+    cv3.style.cursor = h ? 'pointer' : 'grab';
+    if (h && h.cell) {
+      tip.style.display = 'block'; tip.textContent = tipText(h.M, h.cell.r, h.cell.c);
+      const x = Math.min(innerWidth - 310, mouse.x + 14), y = Math.min(innerHeight - 80, mouse.y + 16);
+      tip.style.left = x + 'px'; tip.style.top = y + 'px';
+    } else tip.style.display = 'none';
+  }
+  function unitLabel(M, u) {
+    const ul = M.m.unit_labels; return ul && ul[u] != null ? ul[u] : null;
+  }
+  function tipText(M, r, c) {
+    const id = M.m.id, s = M.spec;
+    if (M.m.kind === 'memory') {
+      const ep = M.eps && M.eps[r * s.cols + c];
+      if (!ep) return `${M.m.label}\nslot ${r * s.cols + c}: empty`;
+      const rec = lastFrame && (lastFrame.recalled || []).includes(ep.i) ? '   << recalled' : '';
+      return `episode #${ep.i}  t=${ep.t}s${rec}\nplace: ${ep.place || '-'}\nspeech: ${ep.speech || '-'}\nevent: ${ep.event || '-'}\nhash: ${ep.hash}`;
+    }
+    if (M.m.kind === 'nn') {
+      const v = M.raw ? (M.raw[layerOf(M, r)] || [])[c] : null;
+      return `${M.m.label}\nlayer ${layerOf(M, r)} · unit ${c}\nactivation ${v == null ? '-' : (v / 255).toFixed(2)}`;
+    }
+    const u = unitOf(M, r, c); if (u < 0) return '';
+    const lab = unitLabel(M, u) || `${M.m.label} unit ${u}`;
+    const v = M.raw ? M.raw[u] : null;
+    if (v == null) return lab + '\n-';
+    if (HZ_MODS.has(id)) return `${lab}\n${(+v).toFixed(1)} Hz`;
+    return `${lab}\n${id === 'body' ? (v > 0 ? 'active' : 'off') : 'activity ' + (v / 255).toFixed(2)}`;
+  }
+  function modStat(M) {
+    if (!M.have) return 'no data (module idle or not loaded)';
+    const t = M.tgt; let mean = 0, mx = 0, on = 0;
+    for (let i = 0; i < t.length; i++) { mean += t[i]; mx = Math.max(mx, t[i]); if (t[i] > .25) on++; }
+    mean /= Math.max(1, t.length);
+    let s = `mean ${mean.toFixed(2)} · peak ${mx.toFixed(2)} · ${on}/${t.length} cells active`;
+    if (M.m.kind === 'nn') {
+      const sp = M.spec; let best = 0, bl = 0;
+      for (let r = 0; r < sp.rows; r++) { let a = 0; for (let c = 0; c < sp.cols; c++) a += t[r * sp.cols + c]; if (a > best) { best = a; bl = layerOf(M, r); } }
+      s += ` · most active layer ${bl}`;
+    }
+    return s;
+  }
+  function renderInfo(force) {
+    const M = hover ? hover.M : pinned;
+    const now = performance.now();
+    const key = M ? M.m.id : '-';
+    if (!force && key === infoKey && now - infoAt < 250) return;
+    infoKey = key; infoAt = now;
+    info.classList.toggle('show', !!M);
+    if (!M) {
+      info.innerHTML = `<h3>FlyWire brain <small>${N.toLocaleString()} neurons</small></h3>
+        <div class="row">${(L.cats || []).map(c => `<span class="chip"><span class="sw" style="background:${esc(c.color)}"></span>${esc(c.label)}</span>`).join('')}</div>
+        <div class="hint">drag: orbit · wheel: zoom · right-drag / shift-drag: pan · hover a module for details, click to pin it</div>`;
+      return;
+    }
+    const m = M.m;
+    let h = `<h3><span class="sw" style="background:${M.accent}"></span>${esc(m.label)} <small>${esc(m.kind)} · ${esc(m.place)}${pinned === M ? ' · pinned' : ''}</small></h3>`;
+    h += `<p>${esc(m.desc)}</p>`;
+    h += `<div class="row">`;
+    if (m.unit_labels && M.raw) {
+      m.unit_labels.forEach((l, u) => {
+        const v = M.raw[u]; const vv = v == null ? '' : (HZ_MODS.has(m.id) ? (+v).toFixed(1) : m.id === 'body' ? (v > 0 ? 'on' : '') : (v / 255).toFixed(2));
+        const a = HZ_MODS.has(m.id) ? normHz(v) : clamp((v || 0) / 255);
+        h += `<span class="chip u" style="border-color:rgba(124,196,255,${.15 + .7 * a})">${esc(l)}<b>${vv}</b></span>`;
+      });
+    } else if (m.unit_labels) m.unit_labels.forEach(l => { h += `<span class="chip u">${esc(l)}</span>`; });
+    else h += `<span class="chip">${m.layers ? m.layers + ' layers × ' : ''}${m.units} units</span>`;
+    h += `</div><div class="con">${esc(modStat(M))}</div>`;
+    if (m.kind === 'memory' && M.eps) {
+      h += `<div class="con">latest: ` + M.eps.filter(Boolean).sort((a, b) => b.i - a.i).slice(0, 3).map(e => `#${e.i} “${esc(e.speech)}”`).join(' · ') + `</div>`;
+    }
+    const con = wires.filter(w => w.from === m.id || w.to === m.id)
+      .map(w => (w.from === m.id ? '→ ' + w.to : '← ' + w.from) + (w.w.label ? ` (${w.w.label})` : ''));
+    if (con.length) h += `<div class="con">wires: ${con.map(esc).join(' · ')}</div>`;
+    info.innerHTML = h;
+  }
+
+  /* ---------------------------------------------------- module drawing */
+  function drawModule(M, now) {
+    const {ctx, spec: s, cur, lut} = M, W = s.W, H = s.H;
+    ctx.fillStyle = '#0a0f1c'; ctx.fillRect(0, 0, W, H);
+    const isMem = M.m.kind === 'memory';
+    ctx.font = '600 11px ui-monospace,Menlo,Consolas,monospace'; ctx.textBaseline = 'middle';
+    for (let r = 0; r < s.rows; r++) {
+      for (let c = 0; c < s.cols; c++) {
+        const i = r * s.cols + c, x = s.x0 + c * s.cw, y = s.y0 + r * s.ch;
+        const w = s.cw - s.gap, h = s.ch - s.gap;
+        if (!isMem && unitOf(M, r, c) < 0) continue;
+        if (isMem && !(M.eps && M.eps[i])) {
+          ctx.strokeStyle = '#1e2a44'; ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, w - 1, h - 1); continue;
+        }
+        const v = cur[i];
+        ctx.fillStyle = lut[Math.min(63, Math.max(0, Math.round(v * 63)))];
+        ctx.fillRect(x, y, w, h);
+        if (M.flag && M.flag[i]) {
+          const p = .65 + .35 * Math.sin(now * 5);
+          ctx.fillStyle = '#fff6d6'; ctx.fillRect(x, y, w, h);
+          ctx.shadowColor = '#ff9d2e'; ctx.shadowBlur = 18;
+          ctx.strokeStyle = `rgba(255,150,40,${p})`; ctx.lineWidth = 6; ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+          ctx.shadowBlur = 0;
+        }
+        if (isMem) { ctx.font = '700 17px ui-monospace,Menlo,Consolas,monospace'; ctx.fillStyle = v > .5 ? 'rgba(10,14,24,.85)' : 'rgba(190,205,235,.6)'; ctx.fillText('#' + M.eps[i].i, x + 6, y + h / 2); ctx.font = '600 11px ui-monospace,Menlo,Consolas,monospace'; }
+      }
+    }
+    ctx.shadowBlur = 0;
+    if (s.rowLbl) {
+      ctx.fillStyle = '#8390ab'; ctx.font = '11px ui-monospace,Menlo,Consolas,monospace'; ctx.textAlign = 'right';
+      for (let r = 0; r < s.rows; r++) {
+        const l = layerOf(M, r);
+        if (s.rows <= 8 || l % 4 === 0 || l === s.rows - 1) ctx.fillText('L' + l, s.x0 - 5, s.y0 + r * s.ch + (s.ch - s.gap) / 2);
+      }
+      ctx.textAlign = 'left';
+    }
+    if (s.colLbl) {
+      const fs = s.cols > 8 ? 11 : 14; ctx.font = fs + 'px ui-monospace,Menlo,Consolas,monospace';
+      ctx.fillStyle = '#9aa7c4'; ctx.textAlign = 'center';
+      const mx = Math.max(3, Math.floor(s.cw / (fs * .62)));
+      for (let c = 0; c < s.cols; c++) {
+        let l = s.paired ? (M.m.unit_labels[c * 2] || '').replace(/\s[LR]$/, '') : (M.m.unit_labels && M.m.unit_labels[c]) || '';
+        l = l.replace(/^intero\./, '').split('->')[0];
+        ctx.fillText(l.length > mx ? l.slice(0, mx) : l, s.x0 + c * s.cw + (s.cw - s.gap) / 2, s.y0 + s.rows * s.ch + 9);
+      }
+      ctx.textAlign = 'left';
+    }
+    if (!M.have && !isMem) {
+      ctx.fillStyle = 'rgba(5,8,14,.55)'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#6b7896'; ctx.font = '600 22px ui-monospace,Menlo,Consolas,monospace'; ctx.textAlign = 'center';
+      ctx.fillText('idle', W / 2, H / 2); ctx.textAlign = 'left';
+    }
+    const a = clamp(M.actS);
+    const hot = hover && hover.M === M || pinned === M;
+    ctx.strokeStyle = hot ? '#ffffff' : M.accent; ctx.globalAlpha = hot ? .9 : .28 + .6 * a; ctx.lineWidth = 4;
+    ctx.strokeRect(2, 2, W - 4, H - 4); ctx.globalAlpha = 1;
+    if (hover && hover.M === M && hover.cell) {
+      const x = s.x0 + hover.cell.c * s.cw, y = s.y0 + hover.cell.r * s.ch;
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(x, y, s.cw - s.gap, s.ch - s.gap);
+    }
+    M.tex.needsUpdate = true;
+  }
+
+  /* ---------------------------------------------------- frame ingest */
+  const regCount = new Float64Array(256), regSum = new Float64Array(256), regMean = new Float64Array(256);
+  for (let i = 0; i < N; i++) regCount[region[i]]++;
+  const regIndex = {}; (L.regions || []).forEach((r, i) => { regIndex[r] = i; });
+  const dec = new TextDecoder();
+
+  function onFrame(buf) {
+    const dv = new DataView(buf), jl = dv.getUint32(0, true);
+    const f = JSON.parse(dec.decode(new Uint8Array(buf, 4, jl)));
+    const n = Math.min(N, buf.byteLength - 4 - jl);
+    const act = new Uint8Array(buf, 4 + jl, n);
+    actAttr.array.set(act); actAttr.needsUpdate = true;
+    regSum.fill(0);
+    for (let i = 0; i < n; i++) regSum[region[i]] += act[i];
+    for (let r = 0; r < 256; r++) regMean[r] = regSum[r] / Math.max(1, regCount[r]);
+    lastFrame = f;
+    const ms = f.modules || {};
+    mods.forEach(M => setTarget(M, ms[M.m.id], f));
+    wires.forEach(w => {
+      w.tgt = w.fb ? clamp(regMean[regIndex[w.region]] / 255 * 12) : (byId[w.from] ? byId[w.from].act : 0);
+    });
+    updateHud(f);
+    drawWorld(f.world || {});
+    (f.chat || []).forEach(addMsg);
+    since = f.chat_next != null ? f.chat_next : since;
+  }
+  function setTarget(M, d, f) {
+    const s = M.spec, t = M.tgt, id = M.m.id;
+    M.have = d != null; M.raw = d;
+    if (M.m.kind === 'memory') {
+      const eps = Array.isArray(d) ? d : [];
+      const slots = new Array(s.cols * s.rows).fill(null), n = slots.length;
+      eps.slice().sort((a, b) => a.i - b.i).forEach(e => {
+        let k = ((e.i % n) + n) % n; while (slots[k]) k = (k + 1) % n; slots[k] = e;
+      });
+      M.eps = slots; M.have = true;
+      const ids = eps.map(e => e.i), lo = Math.min(...ids), hi = Math.max(...ids);
+      const rec = new Set(f.recalled || []);
+      M.flag = slots.map(e => !!(e && rec.has(e.i)));
+      slots.forEach((e, k) => { t[k] = e ? .2 + .62 * (hi > lo ? (e.i - lo) / (hi - lo) : 1) : 0; if (M.flag[k]) t[k] = 1; });
+      M.act = rec.size ? 1 : (eps.length ? .15 : 0);
+      return;
+    }
+    if (d == null) { t.fill(0); M.act = 0; return; }
+    let sum = 0, mx = 0;
+    if (M.m.kind === 'nn') {
+      for (let r = 0; r < s.rows; r++) { const row = d[layerOf(M, r)] || []; for (let c = 0; c < s.cols; c++) { const v = gam(row[c] || 0); t[r * s.cols + c] = v; sum += v; mx = Math.max(mx, v); } }
+    } else {
+      for (let r = 0; r < s.rows; r++) for (let c = 0; c < s.cols; c++) {
+        const u = unitOf(M, r, c); if (u < 0) continue;
+        const v = HZ_MODS.has(id) ? normHz(d[u]) : gam(d[u] || 0);
+        t[r * s.cols + c] = v; sum += v; mx = Math.max(mx, v);
+      }
+    }
+    M.act = clamp(.6 * mx + .8 * sum / Math.max(1, t.length));
+  }
+  function updateHud(f) {
+    const w = f.world || {};
+    $('#sT').textContent = (+f.t || 0).toFixed(1);
+    $('#sRT').textContent = f.realtime != null ? (+f.realtime).toFixed(2) : '–';
+    $('#sMem').textContent = f.memory_n != null ? f.memory_n : '0';
+    const ph = f.phase || 'living';
+    $('#phase').className = ph; $('#phaseTxt').textContent = ph === 'living' ? 'living' : ph === 'listening' ? 'listening…' : 'thinking…';
+    const inner = $('#inner');
+    const key = (f.inner || '') + JSON.stringify(f.inner_labels || []);
+    if (inner.dataset.k !== key) {
+      inner.dataset.k = key;
+      inner.innerHTML = `<span class="lbl">inner</span>${f.inner ? esc(f.inner) : '<span style="color:var(--faint)">…</span>'}`
+        + ((f.inner_labels || []).length ? `<div class="chips">${f.inner_labels.map(l => `<span class="chip">${esc(Array.isArray(l) ? l.join(': ') : l)}</span>`).join('')}</div>` : '');
+    }
+    $('#wTime').textContent = w.t != null ? 't ' + (+w.t).toFixed(0) + ' s' : '';
+  }
+
+  /* ---------------------------------------------------- chat */
+  const msgsEl = $('#msgs');
+  function addMsg(c) {
+    if (chatSeen.has(c.id)) return; chatSeen.add(c.id);
+    const near = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 60;
+    const d = document.createElement('div');
+    const who = c.who === 'you' ? 'you' : c.who === 'fly-reply' ? 'reply' : 'aloud';
+    d.className = 'msg ' + (c.who === 'you' ? 'you' : c.who === 'fly-reply' ? 'fly reply' : 'fly aloud');
+    const meta = document.createElement('div'); meta.className = 'meta';
+    meta.textContent = who === 'you' ? 'you' : who === 'reply' ? 'fly' : 'fly (aloud)';
+    if (who === 'reply' && c.verdict) {
+      const v = document.createElement('span'), vt = String(c.verdict);
+      v.className = 'v ' + (/after/.test(vt) ? 'ok2' : /^verified/.test(vt) ? 'ok' : /fallback/.test(vt) ? 'warn' : /ground/.test(vt) ? 'info' : 'dim');
+      v.textContent = vt; meta.appendChild(v);
+    }
+    if (c.t) { const t = document.createElement('span'); t.textContent = 't=' + (+c.t).toFixed(1) + 's'; meta.appendChild(t); }
+    const b = document.createElement('div'); b.className = 'bub'; b.textContent = c.text;
+    d.append(meta, b); msgsEl.appendChild(d);
+    while (msgsEl.children.length > 250) msgsEl.firstChild.remove();
+    if (near || who === 'you') msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+  $('#chatForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const inp = $('#chatIn'), text = inp.value.trim();
+    if (!text) return;
+    inp.value = '';
+    try {
+      const r = await fetch('/api/say', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})});
+      const j = await r.json();
+      if (!j.ok) throw new Error('rejected');
+    } catch (err) {
+      addMsg({id: 'err' + Date.now(), who: 'fly', text: '(could not send: ' + err.message + ')'});
+    }
+  });
+  const setChat = open => { chatOpen = open; $('#chat').classList.toggle('closed', !open); fit(!userMoved); };
+  $('#chatMin').onclick = () => setChat(false);
+  $('#chatTab').onclick = () => setChat(true);
+  $('#wMin').onclick = () => { $('#world').classList.toggle('collapsed'); $('#wMin').innerHTML = $('#world').classList.contains('collapsed') ? '+' : '&ndash;'; fit(!userMoved); };
+  if (innerWidth <= 900 || innerHeight < 700) { $('#world').classList.add('collapsed'); $('#wMin').textContent = '+'; if (innerWidth <= 900) setChat(false); }
+
+  /* ---------------------------------------------------- world panel */
+  const wcv = $('#wc'), wx = wcv.getContext('2d'), WS = wcv.width;
+  const OBJ_COL = {sugar: '#f5a524', water: '#4aa3ff', bitter: '#a56bff'};
+  const trail = [];
+  function drawWorld(w) {
+    const A = w.arena || (L.world && L.world.arena) || 100, k = WS / A;
+    const light = w.light != null ? clamp(w.light) : 1;
+    const mix = (a, b, t) => Math.round(a + (b - a) * t);
+    wx.fillStyle = `rgb(${mix(5, 52, light)},${mix(7, 66, light)},${mix(14, 98, light)})`;
+    wx.fillRect(0, 0, WS, WS);
+    wx.strokeStyle = `rgba(160,180,220,${.05 + .06 * light})`; wx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) { wx.beginPath(); wx.moveTo(i * WS / 4, 0); wx.lineTo(i * WS / 4, WS); wx.moveTo(0, i * WS / 4); wx.lineTo(WS, i * WS / 4); wx.stroke(); }
+    const lamp = w.lamp || (L.world && L.world.lamp);
+    if (lamp) {
+      const lx = lamp[0] * k, ly = WS - lamp[1] * k, R = WS * .26, a = .42 + .4 * (1 - light);
+      const g = wx.createRadialGradient(lx, ly, 0, lx, ly, R);
+      g.addColorStop(0, `rgba(255,214,130,${a})`); g.addColorStop(.35, `rgba(255,170,70,${a * .45})`); g.addColorStop(1, 'rgba(255,150,50,0)');
+      wx.fillStyle = g; wx.fillRect(0, 0, WS, WS);
+      wx.fillStyle = '#fff1c2'; wx.beginPath(); wx.arc(lx, ly, 5, 0, 7); wx.fill();
+    }
+    const objs = (w.objects && w.objects.length) ? w.objects : ((L.world && L.world.objects) || []);
+    objs.forEach(o => {
+      const x = o.x * k, y = WS - o.y * k, r = Math.max(6, o.r * k), col = OBJ_COL[o.kind] || '#9fb4d8';
+      const g = wx.createRadialGradient(x, y, r * .6, x, y, r * 2.6);
+      g.addColorStop(0, col + '55'); g.addColorStop(1, col + '00');
+      wx.fillStyle = g; wx.beginPath(); wx.arc(x, y, r * 2.6, 0, 7); wx.fill();
+      wx.fillStyle = col; wx.globalAlpha = .9; wx.beginPath(); wx.arc(x, y, r, 0, 7); wx.fill(); wx.globalAlpha = 1;
+      wx.strokeStyle = 'rgba(255,255,255,.55)'; wx.lineWidth = 1.5; wx.stroke();
+    });
+    const f = w.fly;
+    if (f) {
+      const fx = f.x * k, fy = WS - f.y * k;
+      const last = trail[trail.length - 1];
+      if (!last || Math.hypot(last[0] - fx, last[1] - fy) > 1.5) { trail.push([fx, fy]); if (trail.length > 160) trail.shift(); }
+      wx.strokeStyle = 'rgba(220,235,255,.28)'; wx.lineWidth = 1.5; wx.beginPath();
+      trail.forEach((p, i) => { const q = trail[i - 1]; if (!q || Math.hypot(p[0] - q[0], p[1] - q[1]) > WS * .3) wx.moveTo(p[0], p[1]); else wx.lineTo(p[0], p[1]); });
+      wx.stroke();
+      const hd = f.heading || 0, dx = Math.cos(hd), dy = -Math.sin(hd), nx = -dy, ny = dx;
+      const asleep = w.needs && w.needs.asleep;
+      wx.fillStyle = asleep ? '#6f84b8' : '#f4f7ff'; wx.strokeStyle = '#0a0f1c'; wx.lineWidth = 1.5;
+      wx.beginPath(); wx.moveTo(fx + dx * 14, fy + dy * 14); wx.lineTo(fx - dx * 8 + nx * 8, fy - dy * 8 + ny * 8);
+      wx.lineTo(fx - dx * 4, fy - dy * 4); wx.lineTo(fx - dx * 8 - nx * 8, fy - dy * 8 - ny * 8); wx.closePath(); wx.fill(); wx.stroke();
+      if (asleep) { wx.fillStyle = '#b8c6ee'; wx.font = '600 16px sans-serif'; wx.fillText('z z', fx + 10, fy - 10); }
+    }
+    const wd = w.wind;
+    if (wd) {
+      const ox = 34, oy = 34, sp = clamp(wd.speed || 0), len = 10 + 34 * Math.min(1, sp * 1.5), a = wd.dir || 0, ax = Math.cos(a), ay = -Math.sin(a);
+      wx.strokeStyle = '#8fdcff'; wx.fillStyle = '#8fdcff'; wx.lineWidth = 3;
+      const x0 = ox - ax * len / 2, y0 = oy - ay * len / 2, x1 = ox + ax * len / 2, y1 = oy + ay * len / 2;
+      wx.beginPath(); wx.moveTo(x0, y0); wx.lineTo(x1, y1); wx.stroke();
+      wx.beginPath(); wx.moveTo(x1 + ax * 8, y1 + ay * 8); wx.lineTo(x1 - ay * 6, y1 + ax * 6); wx.lineTo(x1 + ay * 6, y1 - ax * 6); wx.closePath(); wx.fill();
+      wx.font = '12px ui-monospace,monospace'; wx.fillStyle = 'rgba(190,225,255,.85)'; wx.fillText('wind ' + (wd.speed || 0).toFixed(2), 8, WS - 10);
+    }
+    const loom = w.loom || 0;
+    $('#world').classList.toggle('loom', loom > 0);
+    if (loom > 0) {
+      wx.fillStyle = `rgba(0,0,0,${.12 + .3 * clamp(loom)})`; wx.fillRect(0, 0, WS, WS);
+      wx.strokeStyle = 'rgba(255,90,90,.9)'; wx.lineWidth = 8; wx.strokeRect(4, 4, WS - 8, WS - 8);
+      wx.fillStyle = '#ff9a9a'; wx.font = '700 20px sans-serif'; wx.textAlign = 'center'; wx.fillText('LOOM', WS / 2, 30); wx.textAlign = 'left';
+    }
+    const nd = w.needs || {};
+    NEEDS.forEach(([n]) => {
+      const v = nd[n]; const e = $('#nb_' + n);
+      if (v == null) return; e.style.width = (clamp(+v) * 100).toFixed(0) + '%'; $('#nv_' + n).textContent = (+v).toFixed(2);
+    });
+    const on = f && f.on ? f.on : '–';
+    $('#wmode').innerHTML = `mode <b style="color:var(--text)">${esc(f ? f.mode : '–')}</b> · on <b style="color:var(--text)">${esc(on)}</b>`
+      + (nd.asleep ? ' · <span style="color:var(--violet)">asleep</span>' : '')
+      + (nd.hunger != null ? `<br>hunger ${(+nd.hunger).toFixed(2)} · thirst ${(+nd.thirst).toFixed(2)}` : '');
+  }
+
+  /* ---------------------------------------------------- poll loop */
+  let polls = [];
+  async function poll() {
+    const t0 = performance.now();
+    try {
+      const r = await fetch('/frame.bin?since=' + since, {cache: 'no-store'});
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      onFrame(await r.arrayBuffer());
+      if (!connected) { connected = true; $('#sConn').className = 'ok'; $('#sConn').innerHTML = '&#9679; live'; }
+      if (bootEl.style.display !== 'none') { bootEl.style.display = 'none'; fit(!userMoved); }
+      polls.push(performance.now()); while (polls.length && polls[0] < performance.now() - 2000) polls.shift();
+      streamHz = polls.length / 2;
+    } catch (e) {
+      if (connected || !bootEl.style.display) console.warn('frame poll failed', e);
+      connected = false; $('#sConn').className = 'bad'; $('#sConn').innerHTML = '&#9679; disconnected';
+    }
+    setTimeout(poll, Math.max(15, 100 - (performance.now() - t0)));
+  }
+  poll();
+
+  /* ---------------------------------------------------- animate */
+  const v3 = new THREE.Vector3();
+  let last = performance.now(), fpsN = 0, fpsT = last, drawT = 0;
+  function project(p, el, dy) {
+    v3.copy(p); v3.project(camera);
+    if (v3.z > 1 || v3.z < -1) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.style.transform = `translate(${((v3.x * .5 + .5) * innerWidth).toFixed(1)}px,${((-v3.y * .5 + .5) * innerHeight + dy).toFixed(1)}px) translate(-50%,-100%)`;
+  }
+  const tmp = new THREE.Vector3();
+  function animate(ts) {
+    requestAnimationFrame(animate);
+    const now = ts / 1000, dt = Math.min(.1, (ts - last) / 1000); last = ts;
+    controls.update();
+    const compact = innerHeight / (2 * camera.position.distanceTo(controls.target) * tanH) < 112;
+    if (compact !== document.body.classList.contains('compact')) document.body.classList.toggle('compact', compact);
+    camera.updateMatrixWorld();
+    // soft billboard: panels turn towards the camera, so they stay readable while orbiting
+    mods.forEach(M => {
+      const ang = Math.atan2(camera.position.x - M.pos.x, camera.position.z - M.pos.z);
+      M.group.rotation.y = clamp(ang * .6, -1.1, 1.1);
+    });
+    scene.updateMatrixWorld();
+    if (needPick) pick();
+    // smooth values, redraw module textures at ~20 Hz
+    const k = 1 - Math.exp(-dt * 14);
+    mods.forEach(M => {
+      let ch = false;
+      for (let i = 0; i < M.cur.length; i++) { const d = M.tgt[i] - M.cur[i]; if (Math.abs(d) > .003) { M.cur[i] += d * k; ch = true; } else if (d !== 0) { M.cur[i] = M.tgt[i]; ch = true; } }
+      const da = M.act - M.actS; if (Math.abs(da) > .004) { M.actS += da * k; ch = true; }
+      if (ch || (M.flag && M.flag.some(Boolean))) M.dirty = true;
+    });
+    drawT += dt;
+    if (drawT > .05) { drawT = 0; mods.forEach(M => { if (M.dirty) { drawModule(M, now); M.dirty = false; } }); }
+    const hm = hover ? hover.M.m.id : (pinned ? pinned.m.id : null);
+    wires.forEach(w => {
+      w.val += ((w.tgt || 0) - w.val) * k;
+      const u = w.line.material.uniforms, rel = hm && (w.from === hm || w.to === hm);
+      u.uAct.value = w.val; u.uTime.value = now;
+      w.boost += ((hm ? (rel ? 2.2 : .35) : 1) - w.boost) * k; u.uBoost.value = w.boost;
+      w.lab.classList.toggle('on', !!rel);
+      if (w.lab.textContent) project(w.mid, w.lab, 0);
+    });
+    mods.forEach(M => {
+      tmp.set(M.pos.x, M.pos.y + M.h / 2 + .03, M.pos.z); project(tmp, M.label, 0);
+      M.label.classList.toggle('hot', hm === M.m.id);
+    });
+    project(brainLblPos, brainLbl, 14);
+    renderInfo(false);
+    renderer.render(scene, camera);
+    fpsN++;
+    if (ts - fpsT > 1000) { $('#sFps').textContent = fpsN; $('#sHz').textContent = streamHz.toFixed(0); fpsN = 0; fpsT = ts; }
+  }
+  renderInfo(true);
+  requestAnimationFrame(animate);
+  window.__lab = {scene, camera, controls, mods, wires, get frame() { return lastFrame; }};
+}
+</script>
+</body>
+</html>
