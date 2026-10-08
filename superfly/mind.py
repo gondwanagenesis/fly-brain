@@ -69,6 +69,8 @@ TERMS = {
     ("action", "walk_forward"): ["walk", "walked", "walking"],
     ("action", "walk_backward"): ["back away", "backed away"],
     ("event", "sleep"): ["sleep", "slept", "asleep", "sleeping"],
+    # the only alarm this fly has is a startle after a shadow (transient, SPECS B2)
+    ("event", "shadow"): ["startled", "scared", "afraid", "frightened", "fear", "alarmed"],
 }
 _TERM_RE = sorted(((t, lab) for lab, ts in TERMS.items() for t in ts), key=lambda x: -len(x[0]))
 EXPERIENCE_VERBS = r"\b(saw|see|seen|seeing|smell|smelled|smelt|taste|tasted|felt|feel|feeling|" \
@@ -108,8 +110,9 @@ def check_reply(reply, supported):
                      not (l[0] == "action" and ("event", l[1]) in supported))
         if bad:
             probs.append({"sentence": sent.strip(), "unsupported": [list(b) for b in bad]})
-        elif not cl and re.search(EXPERIENCE_VERBS, low) and not NEGATION.search(low) \
-                and re.search(r"\b(remember|saw|smelled|tasted|visited|met|ate|went|heard|felt)\b", low):
+        elif not cl and not NEGATION.search(low) \
+                and re.search(r"\b(remember|remembered|saw|smelled|tasted|visited|met|ate|went|heard|"
+                              r"felt|played|swam|swimming|watched|chased|liked|loved)\b", low):
             probs.append({"sentence": sent.strip(), "unsupported": [["experience", "unrecorded"]]})
     return probs
 
