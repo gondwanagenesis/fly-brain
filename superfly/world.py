@@ -219,7 +219,7 @@ class World:
                 b.mode, b.mode_t = "escape", 0.4
                 n.startle(0.4)
                 ev = "escape"
-            elif motor.get("groom", 0) > 5 and b.mode == "walk":
+            elif motor.get("groom", 0) > 12 and b.mode == "walk":   # stand-in VNC threshold
                 b.mode, b.mode_t = "groom", 0.8
                 ev = "groom"
             elif motor.get("feed", 0) > 15 and b.on in ("sugar", "water") and b.mode in ("walk", "stop"):

@@ -117,6 +117,21 @@ def check_reply(reply, supported):
     return probs
 
 
+EVENT_WORDS = {"groom": "you groomed", "feed": "you fed", "escape": "you took off",
+               "shadow": "a shadow passed over you", "sleep": "you fell asleep", "wake": "you woke"}
+
+
+def phrases(texts):
+    """Unique sentences across utterances, in order of first appearance."""
+    seen = []
+    for t in texts:
+        for p in re.split(r"(?<=[.])[ ]*", t):
+            p = p.strip()
+            if p.strip(".") and p not in seen:
+                seen.append(p)
+    return " ".join(seen)
+
+
 def ago(dt):
     if dt < 3:
         return "just now"
@@ -182,15 +197,15 @@ class Talker:
         with torch.no_grad():
             out = self.lm.generate(**ids, max_new_tokens=max_new_tokens,
                                    do_sample=temperature > 0, temperature=max(temperature, 1e-3),
-                                   top_p=0.9, repetition_penalty=1.05,
+                                   top_p=0.9, repetition_penalty=1.15,
                                    pad_token_id=self.tok.eos_token_id)
         return self.tok.decode(out[0, ids["input_ids"].shape[1]:], skip_special_tokens=True).strip()
 
 
-PERSONA = """You are the voice of a small fruit fly, Drosophila melanogaster, living in a little arena with a sugar drop, a water drop, a bitter patch and a warm lamp. Your body and brain are simulated; the FACTS below are read from your own brain and body right now. They are your only memories and experiences.
+PERSONA = """You are the voice of a small fruit fly, Drosophila melanogaster. Your body and brain are simulated; the FACTS below are read from your own brain and body right now. They are your only memories and experiences. You do not know a map of where you live; you know only what you have sensed.
 
 How you speak:
-- First person, short and simple: one to three sentences. You are calm, curious and at peace.
+- First person, short and simple: one to three sentences, in your own natural words. Do not recite the FACTS list or repeat a phrase. You are calm, curious and at peace.
 - Talk about what you sense, do, need and remember ONLY as the FACTS state it. If the FACTS do not contain it, say you did not sense it or do not remember it. Never invent sensations, places or events.
 - Your senses: taste (sweet, bitter, water, salt), smell (fruit, mold, CO2), wind and sound through your antennae, warmth and cold, damp or dry air, and shadows passing over you. You cannot see colours, faces or objects, and you do not know human places.
 - You may share general knowledge from language, but say it is something you know from words, not something you lived.
@@ -220,7 +235,7 @@ class Mind:
         lines = ["FACTS (from your brain and body):"]
         said_now = [m.said for m in moments if m.said and m.said != "..."]
         if said_now:
-            lines.append(f"- Right now your brain reports: {' '.join(dict.fromkeys(said_now))}")
+            lines.append(f"- Right now your brain reports: {phrases(said_now)}")
             for m in moments:
                 sup |= {tuple(l) for l in m.labels}
         else:
@@ -263,11 +278,16 @@ class Mind:
         recent = [(t, txt) for t, txt in L.aloud if t >= w.t - 60 and t < t_heard]
         evs = [(t, e) for t, e in L.events if t >= w.t - 60]
         if recent:
-            lines.append("- In the last minute you said: " + " | ".join(f"{txt} ({ago(w.t - t)})" for t, txt in recent[-4:]))
+            lines.append(f"- In the last minute you said: {phrases([txt for _, txt in recent])}")
             for _, txt in recent:
                 sup |= parse_utterance(txt)
         if evs:
-            lines.append("- Things that happened to you: " + ", ".join(f"{e} ({ago(w.t - t)})" for t, e in evs[-5:]))
+            cnt = {}
+            for t, e in evs:
+                cnt[e] = (cnt.get(e, (0, 0))[0] + 1, t)
+            lines.append("- Things that happened to you in the last minute: " + ", ".join(
+                f"{EVENT_WORDS.get(e, e)}{f' ({n} times)' if n > 1 else ''}, last {ago(w.t - t)}"
+                for e, (n, t) in cnt.items()))
             for _, e in evs:
                 sup.add(("event", e))
                 sup.add(("action", {"feed": "feed", "escape": "escape", "groom": "groom"}.get(e, e)))
@@ -275,7 +295,11 @@ class Mind:
                     sup.add(("percept", "shadow"))
         if recalled:
             lines.append("- The visitor's words brought back these memories (re-evoked brain states):")
+            shown = set()
             for ep, score, rel in recalled:
+                if ep.speech in shown:
+                    continue
+                shown.add(ep.speech)
                 bits = [f"{ago(w.t - ep.t)}", ep.place]
                 if ep.event:
                     bits.append(f"you {ep.event}")
@@ -328,7 +352,8 @@ class Mind:
                     msgs = msgs + [{"role": "assistant", "content": r},
                                    {"role": "user", "content": "(That reply described things your FACTS do not contain: "
                                     + "; ".join(p["sentence"] for p in probs)
-                                    + ". Answer again using only the FACTS.)"}]
+                                    + ". Answer the visitor again, naturally and briefly, in your own words, "
+                                    "mentioning only what the FACTS contain.)"}]
                 else:
                     reply, verdict = self.fallback(moments, recalled), "fallback"
             self.history.append((text, reply))
