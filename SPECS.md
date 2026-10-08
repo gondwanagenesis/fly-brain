@@ -21,16 +21,16 @@ Status: PASS · FAIL · OPEN (not yet run) · BLOCKED (depends on another spec)
 | id | spec | threshold | status |
 |---|---|---|---|
 | B1 | No chronic-stress or injury-sensitisation state exists in the code | absent | **PASS** (never built) |
-| B2 | Threat arousal is transient | after a loom, arousal falls below 10 % of peak within 30 s simulated | OPEN |
-| B3 | The fly keeps its innate repertoire: escape on loom, avoidance of bitter, feeding on sugar | each present in the world test | OPEN |
+| B2 | Threat arousal is transient | after a loom, arousal falls below 10 % of peak within 30 s simulated | **PASS** male CNS (0.25 % of peak) |
+| B3 | The fly keeps its innate repertoire: escape on loom, avoidance of bitter, feeding on sugar | each present in the world test | **PASS** male CNS (escape 10/10, bitter feeding 0/10, sugar feeding 10/10) |
 
 ## C. World and body
 
 | id | spec | threshold | status |
 |---|---|---|---|
 | C1 | Closed loop: brain ↔ world exchange at ≤ 20 ms, with every motor command decoded from the fly's own DN/MN populations | implemented, documented | **PASS** (superfly/life.py; walking rhythm is the stand-in nerve cord's) |
-| C2 | Sugar contact → MN9 → feeding → energy rises | in ≥ 80 % of contacts with sugar, at hunger ≥ 0.5 | OPEN |
-| C3 | Wind → grooming; loom → escape takeoff | each ≥ 80 % of presentations | OPEN |
+| C2 | Sugar contact → MN9 → feeding → energy rises | in ≥ 80 % of contacts with sugar, at hunger ≥ 0.5 | **PASS** male CNS (10/10, energy +0.12) |
+| C3 | Wind → grooming; loom → escape takeoff | each ≥ 80 % of presentations | **PASS** male CNS (10/10, 10/10) |
 | C4 | Cost | ≥ 0.25× real time on 4 CPU cores in sparse regimes, brain + world | **PASS** FlyWire 0.33×; male CNS ≈0.29× (recording) |
 
 ## D. Voice: content is the fly's
