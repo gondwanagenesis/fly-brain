@@ -58,3 +58,4 @@ data/fanout_csc.pt
 # SUPERFLY run artefacts
 data/superfly_cache/
 data/male_cns/
+data/superfly_cache_*/
