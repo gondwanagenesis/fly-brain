@@ -66,7 +66,7 @@ they were written and is reported as a failure of D1.
 
 | id | spec | threshold | status |
 |---|---|---|---|
-| W1 | held-out F1, world corpus | ≥ 0.85 and ≥ linear probe + 0.10 | OPEN |
+| W1 | held-out F1, world corpus (same bar as D1) | ≥ 0.90 and ≥ linear probe + 0.10 | FAIL so far (0.857) |
 | W2 | silent brain → no content | content rate 0 | FAIL on first run; OPEN after fix |
 | W3 | shuffled brain: follow ≥ 0.8 × W1; leak ≤ base-rate null + 0.05 | both | OPEN |
 
