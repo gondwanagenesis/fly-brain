@@ -50,9 +50,11 @@ class SuperFly:
         self.atlas = at = atlas or Atlas()
         conn = load_connectome(at) if (word_pns or xmb or plasticity) else None
         gb = GraftBuilder(at, seed=seed)
-        self.g_words = gb.word_sense(conn, n_pn=word_pns) if word_pns else None
         self.g_xmb = gb.expanded_mushroom_body(conn, n_kc=xmb, share=xmb_share) \
             if xmb else None
+        self.g_words = gb.word_sense(conn, n_pn=word_pns,
+                                     also=[self.g_xmb] if self.g_xmb else []) \
+            if word_pns else None
         if terminals:
             gb.peripheral_terminals()
         # with plasticity on, dopamine's KC/MBON action IS the plasticity
@@ -224,6 +226,7 @@ class SuperFly:
         self._last = e.counts.copy()
         win = e.t_ms - self._t_last
         self._t_last = e.t_ms
+        self._last_window = (d / dt_s).astype(np.float32)   # per-neuron Hz
         f = np.bincount(self._feat_ix, weights=d[self._feat_slots],
                         minlength=len(self.feat_names)) / self._feat_n / dt_s
         acts = {a: float(d[s].sum() / max(s.size, 1) / dt_s)
@@ -236,6 +239,18 @@ class SuperFly:
                 for k, s in self.region_groups.items() if s.size}
         return Observation(e.t_ms, win, f.astype(np.float32), acts, mb, val,
                            regs, int(d.sum()))
+
+    # ------------------------------------------------------------ voice features
+    def voice_features(self, obs):
+        """What the language bridge sees: per-cell-type rates of the central
+        brain (Kenyon-cell types dropped) followed by every Kenyon cell's own
+        rate. Must match superfly/experiments/make_corpus.py."""
+        if not hasattr(self, "_vf_ix"):
+            self._vf_ix = np.array([i for i, t in enumerate(self.feat_names)
+                                    if not t.startswith("KC")])
+            self._vf_kc = self.atlas["mb.KC"].idx(self.e)
+        return np.concatenate([obs.features[self._vf_ix],
+                               self._last_window[self._vf_kc]]).astype(np.float32)
 
     def present(self, concepts=None, words=(), ms=300.0, settle_ms=50.0):
         """Present a stimulus and observe the brain's response to it."""

@@ -69,6 +69,7 @@ def main(steps=600):
     # B ------------------------------------------------------------------
     u1 = up
     u1.full_reset()
+    u1.gen.manual_seed(7)          # same Poisson stream as the fresh u2
     u2 = SuperflyEngine(DATA, sensory_ids=SHIU_SUGAR, seed=7, rng="torch")
     pl = MBPlasticity(u2, at)
     u2.add_emitter(pl)

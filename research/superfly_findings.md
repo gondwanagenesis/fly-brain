@@ -94,3 +94,52 @@ own "Shiu 2024, gain 1.0" row scores 0.77 on the core tier. The differences are
 known: this kernel reproduces the PyTorch refractory semantics (input discarded
 while refractory, g reset on spike), and the graph includes 1–4 synapse edges.
 The full-suite run is in `data/results/superfly/flybench/`.
+
+## 6. The fly's own learning: what works and what does not yet
+
+`python -m superfly.experiments.teach_words 6` (DAN-substitution conditioning:
+word + PAM = reward, word + PPL1 = punishment, 'blip' unpaired, 'moo' never
+presented; every episode from a quiet brain; 4 × 600 ms tests per word).
+
+| setting | coding | reward trace | punishment trace | controls | ignition |
+|---|---|---|---|---|---|
+| published LIF 1.0, tone 600 | 5–6 % KCs | wrong compartment | wrong | moved most | 6 episodes |
+| adaptive LIF 1.0, tone 1000, f ≥ 0.3 | 6–9 % KCs | **correct compartment** (−0.87 Hz) | **correct** (−0.34 Hz) | as large as the traces | **none** |
+| + expanded MB (20,000 grafted KCs) | 7–8 % (native 3.1 %, grafted 2.8 %) | **correct**, net approach +27.5 | not specific | contaminated by test ignition | 4 episodes |
+
+**Not yet a demonstrated memory.** The machinery is in place and verified: the
+teacher drives the right dopamine neurons, the word codes are sparse and
+distinct, and the traces form in the paired compartments. The blocker is the
+model's bistability. Word-evoked MBON changes are ~1 Hz under uniform synaptic
+weights. Anything that strengthens them, a larger mushroom body or more MBON
+drive, moves the brain toward its broadcast state.
+
+Related corrections, each opt-in:
+- **Dopamine as plasticity**: DAN→KC/MBON fast excitation removed while
+  plasticity is on (with it, 50,629 of 62,261 synapses changed in 3 trials).
+- **MBON spontaneous activity** (`SuperFly.tone`): without it, 0/96 MBONs fire
+  to a sparse KC code. The published LIF ignites above ~800 Hz of tonic input;
+  the adaptive LIF is stable to ≥ 1500 Hz.
+
+## 7. The untaught SUPERFLY is the original fly
+
+`python -m superfly.tests.test_identity 600` — **PASS**. Native engine vs
+SuperflyEngine (ports attached, torch RNG): bit-identical state and spikes for
+600 steps. SuperflyEngine vs SuperflyEngine + MBPlasticity, nothing learned:
+bit-identical (906 spikes).
+
+## 8. What the fly does, read from its own motor neurons
+
+From the 800-episode corpus (`make_corpus`, published LIF 1.0), descending and
+motor populations ≥ 5 Hz:
+
+- feeding (MN9): with sugar (49) and high salt (29)
+- grooming (DNg11/DNg62/DNge078): only with wind/JO-C+E (21/21), as in Shiu Fig. 5
+- escape (giant fibre DNp01): with sound/JO-A+B (32/32)
+- turning (DNa01/02): whenever the brain is broadly active (451 episodes)
+- forward or backward walking: never
+
+The linear-probe ceiling on the voice's features (central brain only, every
+percept, word and action label) is **F1 0.575**. That is how much this brain
+lets any decoder recover; smells, temperature and humidity collapse into one
+broadcast state.

@@ -169,7 +169,7 @@ class GraftBuilder:
                       mean_claws=float(k.mean()))
         return g
 
-    def word_sense(self, conn, n_pn=150, name="words"):
+    def word_sense(self, conn, n_pn=150, name="words", also=()):
         """A second antennal lobe, for words.
 
         ``n_pn`` synthetic projection neurons. Every real Kenyon cell receives
@@ -192,9 +192,12 @@ class GraftBuilder:
         claws = claws[claws > 0]
         syn = w[e]
         g = self._alloc(name, n_pn, n_pn=n_pn)
-        k = rng.choice(claws, kc_rows.size)          # claws per KC
+        # grafted KCs (e.g. an expanded mushroom body) hear words too
+        extra = [np.arange(gx.slot0, gx.slot0 + gx.n) for gx in also]
+        targets = np.concatenate([kc_rows] + extra)
+        k = rng.choice(claws, targets.size)          # claws per KC
         src = np.concatenate([rng.choice(n_pn, kk, replace=False) for kk in k])
-        dst = np.repeat(kc_rows, k)
+        dst = np.repeat(targets, k)
         self._add(g.slot0 + src, dst, rng.choice(syn, src.size))
         g.meta.update(mean_claws=float(k.mean()), edges=int(src.size))
         return g

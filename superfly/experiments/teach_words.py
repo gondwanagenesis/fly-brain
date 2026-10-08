@@ -97,7 +97,8 @@ def main(trials=6, eta_dep=0.01, eta_pot=0.0025, f_min=0.3):
     # f_min: KC->MBON depression is partial in the fly (Hige et al. 2015 report
     # pairing leaves a fraction of the response), and a fully silenced MBON
     # removes inhibition that keeps this model's brain out of its broadcast.
-    fly = SuperFly(plasticity_kw=dict(eta_dep=eta_dep, eta_pot=eta_pot, f_min=f_min))
+    xmb = int(os.environ.get("SUPERFLY_XMB", "0"))
+    fly = SuperFly(xmb=xmb, plasticity_kw=dict(eta_dep=eta_dep, eta_pot=eta_pot, f_min=f_min))
     e, mb = fly.e, fly.mb
     S = Session(fly)
     print(f"model {e.model} gain {e.gain}; plastic edges {mb.n_edges}; "
@@ -165,7 +166,8 @@ def main(trials=6, eta_dep=0.01, eta_pot=0.0025, f_min=0.3):
     print(f"reward trace specific: {spec_yum}  punishment trace specific: {spec_zap}  "
           f"controls quiet: {controls_quiet}")
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / f"teach_words_{e.model}_g{e.gain}.json").write_text(json.dumps(res, indent=1))
+    res["xmb"] = xmb
+    (OUT / f"teach_words_{e.model}_g{e.gain}_xmb{xmb}.json").write_text(json.dumps(res, indent=1))
     print("\nLEARNED CORRECTLY" if ok else "\nDID NOT LEARN AS PREDICTED")
     return res
 

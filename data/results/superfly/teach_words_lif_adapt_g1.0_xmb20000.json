@@ -1,0 +1,62 @@
+{
+ "model": "lif_adapt",
+ "gain": 1.0,
+ "trials": 6,
+ "eta_dep": 0.01,
+ "eta_pot": 0.0025,
+ "words": {
+  "yum": {
+   "kc_frac": 0.07833538547086627,
+   "d_pam_cmp": -0.9978070175438596,
+   "d_ppl1_cmp": -0.2658045977011494,
+   "d_valence": 27.499311698073548
+  },
+  "zap": {
+   "kc_frac": 0.0725364419907058,
+   "d_pam_cmp": -2.4999999999999996,
+   "d_ppl1_cmp": -1.932471264367816,
+   "d_valence": -3.1717354412893712
+  },
+  "blip": {
+   "kc_frac": 0.11119275529252891,
+   "d_pam_cmp": 0.28508771929824583,
+   "d_ppl1_cmp": -0.28017241379310337,
+   "d_valence": -21.410526163319666
+  },
+  "moo": {
+   "kc_frac": 0.19342058227747547,
+   "d_pam_cmp": 3.157894736842105,
+   "d_ppl1_cmp": 1.831896551724138,
+   "d_valence": -26.914366933163024
+  }
+ },
+ "edges_changed": 59855,
+ "ignited": [
+  [
+   "test:zap:1",
+   0.487
+  ],
+  [
+   "train0:zap:paired",
+   0.499
+  ],
+  [
+   "train5:blip:paired",
+   0.55
+  ],
+  [
+   "test:moo:1",
+   0.511
+  ]
+ ],
+ "excluded_trials": [
+  "train0:zap",
+  "train5:blip"
+ ],
+ "f_min": 0.3,
+ "specific_reward": true,
+ "specific_punish": false,
+ "controls_quiet": false,
+ "learned_correctly": false,
+ "xmb": 20000
+}

@@ -66,8 +66,7 @@ class Vocab:
                 continue
             out.append(w)
         s = " ".join(out)
-        s = re.sub(r" ([.,!?'])", r"\1", s).replace(" ' ", "'")
-        return s
+        return re.sub(r" ([.,!?])", r"\1", s)
 
     def state_dict(self):
         return {"itos": self.itos}
@@ -81,7 +80,8 @@ class Vocab:
 
 
 def tokenize(s):
-    return re.findall(r"[a-z0-9_]+|\.\.\.|[.,!?']", s.lower())
+    # a quoted word ('zap') is ONE token: the name of something the fly heard
+    return re.findall(r"'[a-z]+'|[a-z0-9_]+|\.\.\.|[.,!?]", s.lower())
 
 
 @dataclass
