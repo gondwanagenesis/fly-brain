@@ -270,7 +270,9 @@ class Atlas:
             self._add(f"dn.{beh}", self.select(super_class="descending",
                                                cell_type=types),
                       "action", f"descending & cell_type in {types}", cite)
-        self._add("motor.MN9", np.isin(self.sim_ids, list(MN9.values())),
+        mn9 = np.isin(self.sim_ids, list(MN9.values())) if CONNECTOME == "flywire783" \
+            else self.select(cell_type="MN9")
+        self._add("motor.MN9", mn9,
                   "action", "MN9 (CB0701), proboscis extension",
                   "feeding: Shiu et al. 2024 readout")
         self._add("motor.all", self.select(super_class=["motor", "endocrine"]),

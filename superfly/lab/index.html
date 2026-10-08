@@ -390,7 +390,7 @@ async function main() {
     labelsEl.appendChild(d); M.label = d;
   });
   const brainLbl = document.createElement('div'); brainLbl.className = 'lb brain';
-  brainLbl.textContent = `FlyWire brain · ${N.toLocaleString()} neurons`;
+  brainLbl.textContent = `${L.connectome==="male_cns"?"Male CNS (brain + nerve cord)":"FlyWire brain"} · ${N.toLocaleString()} neurons`;
   labelsEl.appendChild(brainLbl);
   const brainLblPos = new THREE.Vector3(0, -.62, 0);
 
@@ -519,7 +519,7 @@ async function main() {
     infoKey = key; infoAt = now;
     info.classList.toggle('show', !!M);
     if (!M) {
-      info.innerHTML = `<h3>FlyWire brain <small>${N.toLocaleString()} neurons</small></h3>
+      info.innerHTML = `<h3>${L.connectome==="male_cns"?"Male CNS":"FlyWire brain"} <small>${N.toLocaleString()} neurons</small></h3>
         <div class="row">${(L.cats || []).map(c => `<span class="chip"><span class="sw" style="background:${esc(c.color)}"></span>${esc(c.label)}</span>`).join('')}</div>
         <div class="hint">drag: orbit · wheel: zoom · right-drag / shift-drag: pan · hover a module for details, click to pin it</div>`;
       return;

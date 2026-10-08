@@ -36,7 +36,9 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = Path(__file__).resolve().parent / "lab"
-ATLAS = ROOT / "data" / "flywire_meta" / "atlas_aligned.npz"
+sys.path.insert(0, str(ROOT))
+from superfly.anatomy import DATA, CONNECTOME   # noqa: E402
+ATLAS = DATA / "flywire_meta" / "atlas_aligned.npz"
 
 SENSE_KEYS = ["sugar", "bitter", "water", "salt", "umami", "co2", "geosmin",
               "male_pheromone", "fruit_odor", "sound", "wind", "heat", "cold",
@@ -231,7 +233,7 @@ class Lab:
                 "bbox": {"min": xyz.min(0).tolist(), "max": xyz.max(0).tolist()},
                 "modules": MODULES, "wires": WIRES, "world": world,
                 "sense_keys": SENSE_KEYS, "intero_keys": INTERO_KEYS, "motor_keys": MOTOR_KEYS,
-                "mock": self.mock}
+                "mock": self.mock, "connectome": CONNECTOME}
 
     def frame(self, since=0):
         with self.lock:
