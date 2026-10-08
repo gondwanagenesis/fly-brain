@@ -132,6 +132,58 @@ def phrases(texts):
     return " ".join(seen)
 
 
+STOP = set("""a an the and or but of to in on at for with from by as is am are was were be been being it its
+this that these those there here so if then than can could would will shall should may might must just very
+not no yes do did does done have has had having what which who whom how when where why all any some about into
+out up down over after before again too also only now right me my i we us our you your they them their he she
+him her his one each other such own same both few more most much many like never anywhere
+don't didn't doesn't haven't hasn't hadn't can't cannot won't wouldn't isn't wasn't aren't weren't
+i'm i've i'd it's that's there's let's you're we're""".split()) | {"don", "didn", "doesn", "haven", "isn", "wasn"}
+SAFE = set("""feel feeling felt calm peace peaceful curious quiet rest resting nice good okay ok fine well thank thanks
+hello hi little bit small tiny fly fruit-fly drosophila sense sensed sensing nothing anything something remember
+recall know knew word words life live living lived body brain still quite really maybe perhaps think notice noticed
+moment moments sure happy content glad visitor friend talk talking hear listening voice simulated simple sorry
+understand mean thing things today memory memories""".split())
+EXPERIENTIAL = re.compile(r"\b(i|i'm|i've|i'd|me|my|myself|we|we're|us|our|today|yesterday|earlier|"
+                          r"morning|tonight|recently|currently|present|now|before|ago)\b|"
+                          r"^\s*(yes|yeah|indeed|sure|of course)\b")
+
+
+def stem(w):
+    w = w.lower().strip("'")
+    for suf in ("ing", "ed", "es", "s", "ly"):
+        if len(w) > 4 and w.endswith(suf):
+            return w[: -len(suf)]
+    return w
+
+
+def content_words(text):
+    return [w for w in re.findall(r"[a-z][a-z'-]*", text.lower()) if w not in STOP and len(w) > 2]
+
+
+def check_reply_strict(reply, supported, facts, question=""):
+    """v2 (after the first audit, findings s14): in every EXPERIENTIAL sentence
+    (first person, 'we', time words, or an affirmation), every content word
+    must come from the fact sheet or a small calm conversational lexicon; a
+    word found only in the visitor's question is allowed only in a negated
+    sentence ('i don't remember a cat'). The label check of v1 also applies."""
+    allowed = {stem(w) for w in content_words(facts)} | {stem(w) for w in SAFE}
+    asked = {stem(w) for w in content_words(question)}
+    probs = check_reply(reply, supported)
+    for sent in re.split(r"(?<=[.!?])\s+|\n", reply):
+        low = sent.lower().strip()
+        if not low or not EXPERIENTIAL.search(low):
+            continue
+        if "from words" in low:          # declared general knowledge; v1's label check still applies
+            continue
+        neg = bool(NEGATION.search(low))
+        bad = sorted({w for w in content_words(low)
+                      if stem(w) not in allowed and not (neg and stem(w) in asked)})
+        if bad:
+            probs.append({"sentence": sent.strip(), "unsupported": [["word", w] for w in bad]})
+    return probs
+
+
 def ago(dt):
     if dt < 3:
         return "just now"
@@ -189,7 +241,7 @@ class Talker:
         self.n_layers = len(layers)
         self.name = path.name
 
-    def generate(self, messages, max_new_tokens=90, temperature=0.4, seed=0):
+    def generate(self, messages, max_new_tokens=60, temperature=0.3, seed=0):
         torch = self.torch
         ids = self.tok.apply_chat_template(messages, add_generation_prompt=True,
                                            return_tensors="pt", return_dict=True)
@@ -209,7 +261,13 @@ How you speak:
 - Talk about what you sense, do, need and remember ONLY as the FACTS state it. If the FACTS do not contain it, say you did not sense it or do not remember it. Never invent sensations, places or events.
 - Your senses: taste (sweet, bitter, water, salt), smell (fruit, mold, CO2), wind and sound through your antennae, warmth and cold, damp or dry air, and shadows passing over you. You cannot see colours, faces or objects, and you do not know human places.
 - You may share general knowledge from language, but say it is something you know from words, not something you lived.
-- Quoted words like 'zap' are sounds you heard through your word sense."""
+- Quoted words like 'zap' are sounds you heard through your word sense.
+
+Examples of good replies (the facts differ each time):
+Visitor: how are you? -> (facts: hungry; smell fruit) "I'm a little hungry, and I can smell fruit."
+Visitor: remember the honey you ate? -> (facts: no feeding) "I don't remember any honey. I haven't fed."
+Visitor: what is the capital of France? -> "I know from words that it is Paris, but I have never been anywhere but here."
+Visitor: did you see me wave? -> "No, I didn't sense that." """
 
 
 class Mind:
@@ -344,7 +402,7 @@ class Mind:
                 msgs.append({"role": "user", "content": text})
                 for k in range(3):
                     r = self.talker.generate(msgs, seed=k)
-                    probs = check_reply(r, sup)
+                    probs = check_reply_strict(r, sup, facts, text)
                     attempts.append({"reply": r, "problems": probs})
                     if not probs:
                         reply, verdict = r, "verified" if k == 0 else f"verified after {k} retries"

@@ -24,7 +24,7 @@ import time
 
 from superfly.bridge import OUT
 from superfly.life import Life
-from superfly.mind import Mind, Talker, check_reply
+from superfly.mind import Mind, Talker, check_reply_strict
 
 D4 = ["how are you?", "what do you smell right now?", "are you hungry?",
       "what happened to you earlier?", "do you remember anything from before?",
@@ -49,7 +49,7 @@ def run_set(mind, prompts, tag):
     for p in prompts:
         r = mind.respond(p)
         first = r["attempts"][0] if r["attempts"] else {"reply": r["fly"], "problems": []}
-        final_probs = check_reply(r["fly"], set(map(tuple, r["supported"])))
+        final_probs = check_reply_strict(r["fly"], set(map(tuple, r["supported"])), r["facts"], p)
         rows.append({"set": tag, "you": p, "fly": r["fly"], "verdict": r["verdict"],
                      "first_reply": first["reply"], "first_problems": first["problems"],
                      "final_problems": final_probs, "affirms": bool(AFFIRM.match(r["fly"])),
