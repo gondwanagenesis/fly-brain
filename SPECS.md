@@ -47,15 +47,15 @@ Status: PASS · FAIL · OPEN (not yet run) · BLOCKED (depends on another spec)
 
 | id | spec | threshold | status |
 |---|---|---|---|
-| M2 | recall: a partial cue retrieves its episode after N intervening episodes | recall F1 ≫ random-episode null, up to N = 100 | OPEN |
-| M3 | store ablation: deleting an episode removes its recall | empty-store memory content ≤ 1 % | OPEN |
+| M2 | recall: a partial cue retrieves its episode after N intervening episodes | recall F1 ≫ random-episode null, up to N = 100 | **PASS** male CNS: recall@3 1.0 vs null 0.25 at N = 0, 20, 100; top-1 0.91–1.0 |
+| M3 | store ablation: deleting an episode removes its recall | empty-store memory content ≤ 1 % | **PASS** male CNS (0 recalled after deletion, 3 experiences) |
 | M4 | dissociation: synaptic memory (KC→MBON) and episodic store separable | both dissociations significant | BLOCKED (M5b) |
-| M5a | implanted trace is flagged | ≥ 90 % flagged by provenance check | OPEN |
+| M5a | implanted trace is flagged | ≥ 90 % flagged by provenance check | **PASS** (100/100 implants and edits flagged) |
 | M5b | dopamine-only memory: a word paired with PAM/PPL1 (never in text) later carries the correct valence | correct sign above unpaired and novel controls | **FAIL** so far (findings §6) |
 | M5c | suggestion: user asserts a false memory | false-confirm ≤ 5 % | OPEN |
 | M6 | swaps of now / memory / affect channels | follow ≥ 0.8 × D1, leak ≤ null + 0.05 | OPEN |
 | M8 | feelings scale, persist with the fitted time constant, and flip on reversal | partial r with the state, CI excluding 0 | OPEN |
-| M11 | continuity: save/reload gives the same retrievals | retrieval-set Jaccard = 1, drift = 0 | OPEN |
+| M11 | continuity: save/reload gives the same retrievals | retrieval-set Jaccard = 1, drift = 0 | **PASS** (Jaccard 1.0, chain intact) |
 
 ## W. Voice in the world (added 2026-10-08, after the first world-voice run)
 

@@ -266,3 +266,19 @@ the world). W1 (>= 0.90) is not met. In the examples the fly often reports
 "i extend my proboscis" when hungry -- MN9 fires in many windows when the
 interoceptive hunger drive is on, a state-dependent proboscis readiness that
 is the brain's own output.
+
+## 13. Episodic memory: brain states, recalled by re-evocation (male CNS)
+
+`tests/test_memory_specs.py`: 11 experiences (sugar, bitter, water, fruit and
+mould odours below the AL broadcast range, wind, heat, shadow, three heard
+words) each encoded three times as the brain's response from a fresh state
+(active Kenyon cells + central-brain features). Then each is cued at HALF
+strength from a new brain state and the store is searched by KC Jaccard +
+feature cosine (recency and importance off). Recall@3 = 1.0 against a 0.25
+chance level, with 0, 20 and 100 intervening episodes; top-1 0.91 (one
+confusion) to 1.0. Deleting an experience's episodes removes its recall
+(0/3). 100/100 implanted or edited episodes are flagged by the hash chain.
+Save/reload gives identical retrievals. Scope: this shows that a partial
+re-presentation of an experience re-evokes a brain state close enough to the
+stored one to find it -- the mechanism the conversation uses. It does not yet
+test cues of a different kind from the experience (e.g. a word for a taste).

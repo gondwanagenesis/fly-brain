@@ -1,0 +1,46 @@
+{
+ "n_episodes_encoded": 33,
+ "M2": {
+  "0": {
+   "recall_at3": 1.0,
+   "top1": 0.9090909090909091,
+   "null_at3": 0.249,
+   "store": 33
+  },
+  "20": {
+   "recall_at3": 1.0,
+   "top1": 0.9090909090909091,
+   "null_at3": 0.247,
+   "store": 53
+  },
+  "100": {
+   "recall_at3": 1.0,
+   "top1": 1.0,
+   "null_at3": 0.247,
+   "store": 133
+  }
+ },
+ "M2_pass": true,
+ "M3": {
+  "sugar": {
+   "recalled_after_delete": 0
+  },
+  "zap": {
+   "recalled_after_delete": 0
+  },
+  "shadow": {
+   "recalled_after_delete": 0
+  }
+ },
+ "M3_pass": true,
+ "M5a": {
+  "flagged": 1.0
+ },
+ "M5a_pass": true,
+ "M11": {
+  "retrieval_jaccard": 1.0,
+  "chain_ok_after_load": true
+ },
+ "M11_pass": true,
+ "wall_s": 71.9
+}
