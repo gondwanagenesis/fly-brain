@@ -90,6 +90,11 @@ CONCEPTS = [
     Concept("dry", "hygro", ("humidity.dry",), ("dry", "arid", "desert")),
     Concept("humid", "hygro", ("humidity.humid", "humidity.moist"),
             ("humid", "moist", "damp", "rain", "mist")),
+    # appended last so voices trained on the first 15 concepts keep their order
+    Concept("shadow", "visual", ("vision.loom",),
+            ("shadow", "looming", "dark shape", "swatter", "something above"),
+            note="LC4/LPLC2 loom detectors; the simulated brain has no eye, so a "
+                 "loom drives these populations directly"),
 ]
 CONCEPT = {c.key: c for c in CONCEPTS}
 

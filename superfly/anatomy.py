@@ -190,6 +190,10 @@ class Atlas:
         for t, key in [("R1-6", "R1_6"), ("R7", "R7"), ("R8", "R8")]:
             self._add(f"vision.{key}", self.select(cell_type=t, **S), "senses",
                       f"cell_type=={t!r}")
+        # loom detectors: lobula columnar/plate neurons that drive the giant
+        # fibre (von Reyn 2017; flybench task 4 drives the same populations)
+        self._add("vision.loom", self.select(cell_type=["LC4", "LPLC2"]), "senses",
+                  "cell_type in LC4|LPLC2 (visual projection, loom detectors)")
         self._add("vision.ocellar", self.select(cell_sub_class="ocellar", **S),
                   "senses", "cell_sub_class=='ocellar'")
         # ---- mechanosensation: Johnston's organ subgroups ------------
