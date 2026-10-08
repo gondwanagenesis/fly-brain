@@ -170,3 +170,82 @@ in most test sentences but with low confidence (0.14–0.5), so most requests
 never reached the fly. Retrained with presence targets, synonyms and more
 templates (results below once recorded).
 
+
+## 10. Living in a world (2026-10-08)
+
+**Why.** A brain that only answers one stimulus at a time has nothing to talk
+about. Reviews 06 (feelings), 08 (grounded self) and 09 (world) all point to
+the same minimum: a body with needs, in a place with structure, so that the
+brain's activity has causes and consequences over time.
+
+**What was built.** `superfly/world.py` (a 100 mm arena: sugar drop with a
+fruit-odour plume, water drop with a humidity field, bitter patch with a
+geosmin plume, a warm lamp, drifting wind with gusts, a day/night cycle, rare
+looming shadows), and `superfly/life.py` (the brain and the world exchange
+every 20 ms). Every receptor population is driven per side; hunger and thirst
+drive the interoceptive neurons named in review 06 (MBON11, PPL101, ISN, ITP);
+every movement other than the stand-in nerve cord's walking rhythm comes from
+the fly's own descending neurons and MN9. Review 09's corrections were applied:
+walking in bouts and pauses (time-average 3-5 mm/s at rest), a 30 s minimum gap
+between shadows (repeated looms build a persistent state in real flies,
+Gibson et al. 2015, which this fly is spared), take-off away from the shadow,
+lamp peak 30 C. The world costs ~27 us per exchange, 0.3 % of the brain.
+
+**First measurements (FlyWire).** 0.33x real time on 4 cores (SPECS C4
+threshold 0.25x). A looming shadow drives the giant fibre to 50-131 Hz and the
+fly takes off. Wind drives the turning DNs (DNa01/02) at 15-30 Hz, so the fly
+"turns" in most windows; that is the brain's own output, not a decoding error.
+
+**The voice failed in the world, and why.** The first voice, trained on 60-150 Hz
+stimuli, said "i smell co2" with no CO2 source: world odours are <= 18 Hz
+(the antennal lobe broadcasts above ~25 Hz, s4), outside its training range.
+So the corpus was re-recorded inside the world (`experiments/record_life.py`,
+800 life segments, 3,200 windows; labels from the world's receptor drive, the
+needs, the word lobe and the fly's own motor neurons). Result: held-out F1
+**0.857** (linear probe 0.698); shuffled brain follows 0.857. Two failures:
+(1) a silent brain produced "i smell mold" (content rate 1.0), because the
+world corpus contains no silent windows (interoception is always on) -- the
+loader now adds them, as the first corpus had by design; (2) raw shuffled
+"leak" 0.359 is above the D3 threshold, but labels such as "turn" and "wind"
+are frequent, so leak is now reported against its base-rate null
+(`leak_null_f1`: another window's true labels scored against this one's).
+
+## 11. The male CNS: brain, optic lobes and nerve cord of one animal
+
+**Why.** The owner's direction (2026-10-08): use the most complete connectome.
+FlyWire FAFB is one female's brain and stops at the neck, which is why the body
+needed a stand-in nerve cord. The Janelia male CNS v1.0 (Berg et al., Cell
+2026) has brain, both optic lobes and the ventral nerve cord in one animal;
+BANC (female brain + cord, Nature 2026) is the fallback for anything missing
+(review 10).
+
+**Conversion** (`superfly/connectomes/male_cns.py`, 51 s): 165,122 traced
+neurons, 25,563,197 edges, 124,025,046 synapses (FlyWire: 138,639 / 15.1M /
+~54M). Signs by the rule found in Shiu et al.'s own FlyWire file (GABA and
+glutamate inhibitory, everything else excitatory; checked against the file:
+84,162 of 85,881 cholinergic neurons excitatory, 21,863 of 24,804
+glutamatergic inhibitory), plus histamine inhibitory. 34.7 % of neurons
+inhibitory. Labels transferred from FlyWire by cell type, preferring the male
+type when FlyWire has it (it is often finer: LB3c vs flywireType LB3); every
+SUPERFLY population resolves (23 labellar sugar GRNs, 38 bitter, DNp01, MN9,
+MBON11, PPL101, ITP, LC4/LPLC2 311, KC 4,064).
+
+**Calibration** (`experiments/calibrate_connectome.py`, same stimuli on both):
+
+| connectome, gain | sugar->MN9 | active (sugar) | bitter->MN9 | wind->groom | loom->GF | active (bitter) |
+|---|---|---|---|---|---|---|
+| FlyWire, 1.0 | 75 Hz | 0.3 % | 0 | 12.8 Hz | 180 Hz | 0.09 % |
+| male CNS, 1.0 | 63 | **10 %** | 1 | 36 | 305 | 10 % |
+| male CNS, 0.75 | 46 | 7.8 % | 0 | 57 | 289 | 7.9 % |
+| male CNS, 0.70 | 45 | 7.3 % | 0 | 47 | 285 | 7.1 % |
+| **male CNS, 0.65** | **44** | **0.6 %** | **0** | **50** | **280** | 6.5 % |
+| male CNS, 0.60 | 20 | 0.4 % | 0 | 44 | 275 | 5.8 % |
+| male CNS, 0.55 | 14 | 0.2 % | 0 | - | - | 0.4 % |
+| male CNS, 0.45 | 0 | 0.1 % | 0 | 38 | 256 | 0.2 % |
+
+At Shiu's FlyWire-fitted scale the male CNS broadcasts (10 % of neurons, and
+every stimulus triggers grooming), as other groups also reported (review 10:
+synapse density ~1.8x FlyWire). A sharp transition separates 0.65 from 0.70.
+**Default male gain: 0.65** -- the highest gain at which the four signature
+responses stay specific. Open difference: bitter and wind still recruit
+3-6 % of the male network (FlyWire < 1 %).

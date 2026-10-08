@@ -15,23 +15,34 @@ command that reproduces it. Where something failed, it says so.
 ## The architecture: the fly at the centre, additions at the edges
 
 ```
- L4  VOICE      a language model wired into the fly's neurons, both ways
-                  fly -> neural tokens -> LM          (speech)
-                  words -> LM hidden state -> senses  (hearing)
-                superfly/flylm.py, superfly/bridge.py, superfly/chat.py
- L3  GRAFTS     new neurons appended to the connectome as first-class cells
-                  word lobe: a second antennal lobe, for words
-                  expanded mushroom body: more Kenyon cells (memory capacity)
+ L6  LAB        3D view: the connectome at the centre, every module around it,
+                wired, all firing live; the world; the conversation
+                superfly/lab.py, superfly/lab/index.html
+ L5  MIND       conversation: a local Qwen2.5-1.5B that may only claim, in the
+                first person, what the fly's records contain; every claim checked
+                superfly/mind.py
+ L4  VOICE      FlyLM: central-brain activity -> neural tokens -> inner speech,
+                and hearing heads: words -> the fly's senses
+                superfly/flylm.py, superfly/bridge.py
+     MEMORY     episodes = stored brain states (Kenyon-cell code + central
+                features), hash-chained, recalled by re-evocation
+                superfly/memory.py
+ L3  GRAFTS     word lobe (a second antennal lobe, for words); expanded MB
                 superfly/graft.py
- L2  INTERFACE  senses in through real sensory neurons; readouts from the
-                fly's own descending and motor neurons; region map
+ L2  INTERFACE  senses in through real receptor neurons, per side; body state
+                in through real interoceptive neurons; actions out from the
+                fly's own descending and motor neurons
                 superfly/anatomy.py, superfly/fly.py
- L1  LEARNING   the fly's own rule: dopamine-gated KC->MBON plasticity,
-                compartments read from the connectome
+     WORLD      a 2D arena with odour plumes, wind, warmth, humidity, light,
+                looming shadows, food, water; a body with needs
+                superfly/world.py, superfly/life.py
+ L1  LEARNING   dopamine-gated KC->MBON plasticity, compartments from the connectome
                 superfly/plasticity.py
- L0  THE FLY    all 138,639 FlyWire v783 neurons, Shiu et al. 2024 LIF, on
-                this repo's bit-exact native kernel
-                superfly/engine.py -> flyloop/native_engine.py
+ L0  THE FLY    the connectome, Shiu et al. 2024 LIF, on this repo's bit-exact
+                native kernel. Two connectomes (SUPERFLY_CONNECTOME):
+                  flywire783  FlyWire FAFB v783, adult female brain, 138,639 neurons
+                  male_cns    Janelia male CNS v1.0: brain + optic lobes + nerve
+                              cord, 165,122 neurons (superfly/connectomes/male_cns.py)
 ```
 
 Rules that keep the fly the author:
@@ -72,6 +83,10 @@ Survey of everyone else's work: [research/review/05_existing_software.md](resear
 | **Voice A: from-scratch FlyLM, 2.9M params** | held-out F1 **0.927** (final network; 0.935 on the pre-correction network); silent brain → "..." **100 %**; shuffled brain: follows the given brain **0.927**, leaks the true stimulus 0.197 |
 | Voice B: frozen SmolLM2-360M + neural prefix | F1 0.38 after 400 CPU steps; silent brain → "..." 100 % (no confabulation, undertrained) |
 
+| **Living in a world** (FlyWire) | 0.33x real time on 4 cores, brain + world; loom -> giant fibre 50-131 Hz -> take-off |
+| Voice trained in the world | held-out F1 0.857 (linear 0.698); silent-brain failure found and fixed in the data (findings s10) |
+| **Male CNS** (brain + optic lobes + nerve cord) | converted in 51 s; broadcasts at Shiu's scale; calibrated gain 0.65: sugar->MN9 44 Hz, bitter 0, wind->groom 50 Hz, loom->GF 280 Hz (findings s11) |
+
 ## Problems found in the model itself, and what was done
 
 | problem | evidence | response |
@@ -81,6 +96,8 @@ Survey of everyone else's work: [research/review/05_existing_software.md](resear
 | Dopamine signed as fast excitation | teaching excited KCs broadly; 50k of 62k synapses changed | with plasticity on, DAN→KC/MBON fast synapses are removed: dopamine acts through the modelled plasticity |
 | No spontaneous activity | sparse KC codes never reach MBON threshold (0/96 fire) | opt-in MBON background (`SuperFly.tone`). The published LIF ignites above ~800 Hz of it; adaptive LIF is stable to ≥1500 Hz |
 | Brain-wide ignition during learning | depressing MBONs disinhibits the network | partial depression (f ≥ 0.3), fresh episodes, ignited trials excluded and reported |
+| Male CNS over-driven at Shiu's scale | 10 % of neurons active on any stimulus | global gain 0.65 from a calibration against FlyWire; bitter/wind still recruit 3-6 % |
+| Silent brain in the world corpus | the world-trained voice confabulated on silence | silent windows added, as in the first corpus |
 | Weak MBON readout | words evoke ~1 Hz MBON changes under uniform weights | next: the expanded mushroom body, more Kenyon cells → a larger evoked signal |
 
 ---
@@ -112,6 +129,27 @@ Live, in 3D: `python flyloop/studio.py --superfly`, then open
 http://127.0.0.1:8765. Every message runs one real episode of the brain, and the
 render shows which neurons fired.
 
+## Living, talking, and watching it
+
+```bash
+python -m superfly.life 120                  # the fly lives 2 min in its world and says what it says
+python -m superfly.mind                      # live 30 s, then talk; replies verified against its records
+python -m superfly.lab                       # http://127.0.0.1:8770 : brain, modules, world, chat, live
+SUPERFLY_CONNECTOME=male_cns python -m superfly.lab      # the same, on the male CNS
+python -m superfly.tests.test_world_specs    # SPECS B2, B3, C2, C3, C4
+```
+
+How a reply is made (superfly/mind.py): your sentence drives the fly's own
+senses (or its word lobe) for 0.6 s; the fly lives 1 s with that input; the
+brain state it evoked is matched against stored episodes (re-evocation); a fact
+sheet is built from the fly's inner speech, motor neurons, needs, place, and
+the recalled episodes; Qwen writes the reply from it; a claim checker rejects
+any first-person sensation, action, word or event the facts do not contain,
+asks again, and finally falls back to a reply built from the facts alone.
+Every turn is logged with its facts and verdict.
+
+The Lab: `research/lab_mock.png` shows the layout (mock data).
+
 ## Running it
 
 ```bash
@@ -136,15 +174,15 @@ PYTHONPATH=. flybench run -c flywire783_repo --gain 1.0 --seeds 3 \
   --simulator superfly.bench.flybench_adapter:NativeSim
 ```
 
-Environment variables: `SUPERFLY_MODEL` (`lif_euler` = published, `lif_adapt`
+Environment variables: `SUPERFLY_CONNECTOME` (`flywire783` default, `male_cns`; run `python -m superfly.connectomes.male_cns` once), `SUPERFLY_MODEL` (`lif_euler` = published, `lif_adapt`
 = with spike-frequency adaptation), `SUPERFLY_GAIN`, `SUPERFLY_THREADS`.
 
 ## Status
 
-Built and measured: L0–L3 machinery, the flybench integration, the word lobe,
-the fly's plasticity, the two voices with their fly-mind tests, the chat and
-the Studio mode. **Not yet achieved:** a word memory that beats its controls;
-internal states (feelings) and autobiographical memory, which are under review.
-Known inconsistency: the bundled voice was trained on the fly without the
-dopamine-as-plasticity correction, so `chat --learn` runs a slightly different
-brain from the one the voice learned on.
+Built and measured: L0-L3 machinery on two connectomes, the flybench
+integration (FlyWire), the word lobe, the fly's plasticity, the voices with
+their fly-mind tests, the world and the life loop, episodic memory, the
+conversational tier with its claim checker, and the Lab. **In progress:** the
+voice and the world specs on the male CNS; the memory specs (M2-M11) and the
+conversation specs (D4, D5). **Not yet achieved:** a word memory that beats its
+controls (M5b). Acceptance specs and their status: [SPECS.md](SPECS.md).
