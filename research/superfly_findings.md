@@ -249,3 +249,20 @@ synapse density ~1.8x FlyWire). A sharp transition separates 0.65 from 0.70.
 **Default male gain: 0.65** -- the highest gain at which the four signature
 responses stay specific. Open difference: bitter and wind still recruit
 3-6 % of the male network (FlyWire < 1 %).
+
+## 12. The male CNS in its world: body specs pass, the voice is grounded
+
+World specs on the male CNS (gain 0.65, 10 trials each,
+`tests/test_world_specs.py`): sugar contact while hungry -> MN9 -> feeding in
+10/10 (energy +0.12); bitter contact -> feeding 0/10; wind gust -> grooming
+10/10; looming shadow -> giant fibre -> take-off 10/10; arousal 30 s after a
+shadow at 0.25 % of its peak (the fly settles; SPECS B2). Real time 0.29x.
+
+Voice trained in the world on the male CNS (2,000 windows + 12 % silent):
+held-out F1 0.842 (linear probe 0.615); silent brain -> "..." (W2 pass);
+shuffled brain followed at 0.842 and the true stimulus "leaks" at 0.332
+against a base-rate null of 0.331 (W3 pass: content follows the brain, not
+the world). W1 (>= 0.90) is not met. In the examples the fly often reports
+"i extend my proboscis" when hungry -- MN9 fires in many windows when the
+interoceptive hunger drive is on, a state-dependent proboscis readiness that
+is the brain's own output.
