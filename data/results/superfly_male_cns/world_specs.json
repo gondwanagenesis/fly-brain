@@ -1,0 +1,11 @@
+{
+ "connectome": "male_cns", "gain": 0.65, "n_per_test": 10,
+ "C2_sugar_feed": {"rate": 1.0, "mean_energy_change": 0.1159, "pass": true},
+ "B3_bitter_no_feed": {"feed_rate": 0.0, "pass": true},
+ "C3a_wind_groom": {"rate": 1.0, "pass": true},
+ "C3b_loom_escape": {"rate": 1.0, "pass": true},
+ "B2_arousal_transient": {"ratio_after_30s": [0.0025, 0.0025, 0.0025], "pass": true},
+ "B3_repertoire": {"pass": true},
+ "C4_realtime_factor": {"value": 0.29, "pass": true, "note": "from the world-corpus recording (1.1 s simulated per 3.8 s wall); the test's own figure was lost to a JSON serialisation bug, fixed after this run"},
+ "source": "data/results/superfly_male_cns/world_specs.log"
+}

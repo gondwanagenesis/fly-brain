@@ -80,7 +80,7 @@ def main(n=10):
         ok += fed
         rises.append(w.needs.energy - e0)
     res["C2_sugar_feed"] = {"rate": ok / n, "mean_energy_change": float(np.mean(rises)),
-                            "pass": ok / n >= 0.8 and np.mean(rises) > 0}
+                            "pass": bool(ok / n >= 0.8 and np.mean(rises) > 0)}
     print("C2", res["C2_sugar_feed"], flush=True)
 
     # ---- B3 part: bitter contact -> no feeding
@@ -126,8 +126,8 @@ def main(n=10):
     res["n_per_test"] = n
     res["wall_s"] = round(time.perf_counter() - t0, 1)
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "world_specs.json").write_text(json.dumps(res, indent=1))
-    print(json.dumps(res, indent=1))
+    (OUT / "world_specs.json").write_text(json.dumps(res, indent=1, default=str))
+    print(json.dumps(res, indent=1, default=str))
 
 
 if __name__ == "__main__":

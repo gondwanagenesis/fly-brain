@@ -1,0 +1,25 @@
+SuperFly: 165122 native + 150 grafted neurons, 8203 cell-type features, plastic edges 61210, built in 25.6s
+C2 {'rate': 1.0, 'mean_energy_change': 0.11592000000000316, 'pass': np.True_}
+B3 bitter {'feed_rate': 0.0, 'pass': True}
+C3a {'rate': 1.0, 'pass': True}
+C3b {'rate': 1.0, 'pass': True} B2 {'ratio_after_30s': [0.0025, 0.0025, 0.0025], 'pass': True}
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/user/fly-brain/superfly/tests/test_world_specs.py", line 134, in <module>
+    main(int(sys.argv[1]) if len(sys.argv) > 1 else 10)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/fly-brain/superfly/tests/test_world_specs.py", line 129, in main
+    (OUT / "world_specs.json").write_text(json.dumps(res, indent=1))
+                                          ~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/json/__init__.py", line 242, in dumps
+    **kw).encode(obj)
+          ~~~~~~^^^^^
+  File "/usr/lib/python3.13/json/encoder.py", line 202, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "/usr/lib/python3.13/json/encoder.py", line 263, in iterencode
+    return _iterencode(o, 0)
+  File "/usr/lib/python3.13/json/encoder.py", line 182, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+                    f'is not JSON serializable')
+TypeError: Object of type bool is not JSON serializable
