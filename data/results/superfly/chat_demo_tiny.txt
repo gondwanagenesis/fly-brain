@@ -1,0 +1,70 @@
+YOU: hello fly
+  [heard -> senses: nothing it can sense]
+  [motor neurons: none; 0 spikes]
+  [senses   ....................    0.0 Hz]
+  [early    ....................    0.0 Hz]
+  [thinking ....................    0.0 Hz]
+  [action   ....................    0.0 Hz]
+  [grafted  ....................    0.0 Hz]
+FLY: ...
+
+YOU: here is some sugar for you
+  [heard -> senses: sugar 0.7]
+  [motor neurons: feed 56 Hz; 2867 spikes]
+  [senses   #############.......    9.9 Hz]
+  [early    ....................    0.0 Hz]
+  [thinking #...................    0.2 Hz]
+  [action   ###########.........    6.6 Hz]
+  [grafted  ....................    0.0 Hz]
+FLY: i taste sugar. i want to eat.
+
+YOU: careful, bitter poison
+  [heard -> senses: bitter 0.7]
+  [motor neurons: none; 1598 spikes]
+  [senses   ##############......   13.3 Hz]
+  [early    ....................    0.1 Hz]
+  [thinking ....................    0.1 Hz]
+  [action   #...................    0.1 Hz]
+  [grafted  ....................    0.0 Hz]
+FLY: i taste something bitter.
+
+YOU: a strong breeze is blowing
+  [heard -> senses: wind 1.0]
+  [motor neurons: groom 11 Hz; 20697 spikes]
+  [senses   ####################   59.8 Hz]
+  [early    #...................    0.2 Hz]
+  [thinking ###.................    0.6 Hz]
+  [action   ######..............    1.8 Hz]
+  [grafted  ....................    0.0 Hz]
+FLY: wind on my antennae. i clean my antennae.
+
+YOU: listen to this buzz
+  [heard -> senses: sound 0.7]
+  [motor neurons: escape 24 Hz; 10152 spikes]
+  [senses   ###################.   34.4 Hz]
+  [early    ....................    0.0 Hz]
+  [thinking #...................    0.1 Hz]
+  [action   ##..................    0.5 Hz]
+  [grafted  ....................    0.0 Hz]
+FLY: a sound. i fly away.
+
+YOU: say 'zap'
+  [heard -> senses: nothing it can sense; words ['zap']]
+  [motor neurons: none; 3097 spikes]
+  [senses   ....................    0.0 Hz]
+  [early    ....................    0.0 Hz]
+  [thinking #####...............    1.4 Hz]
+  [action   ....................    0.0 Hz]
+  [grafted  ###################.   31.5 Hz]
+FLY: i hear 'zap'.
+
+YOU: lots of honey and a bit of salt
+  [heard -> senses: sugar 1.0]
+  [motor neurons: feed 58 Hz; 4151 spikes]
+  [senses   ###############.....   14.8 Hz]
+  [early    ....................    0.1 Hz]
+  [thinking ##..................    0.4 Hz]
+  [action   ############........    7.5 Hz]
+  [grafted  ....................    0.0 Hz]
+FLY: something sweet. i want to eat.
+

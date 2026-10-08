@@ -1,0 +1,202 @@
+{
+ "held_out": {
+  "precision": 0.96,
+  "recall": 0.9113924050632911,
+  "f1": 0.935064935064935
+ },
+ "zero_brain_outputs": [
+  "..."
+ ],
+ "zero_brain_content_rate": 0.0,
+ "shuffled_follow_f1": 0.935064935064935,
+ "shuffled_leak_f1": 0.19805194805194806,
+ "examples": [
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "humid"
+    ],
+    [
+     "percept",
+     "sound"
+    ]
+   ],
+   "said": "i smell another fly. damp air. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "co2"
+    ],
+    [
+     "percept",
+     "water"
+    ]
+   ],
+   "said": "water. i smell co2. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "said": "i smell fruit. i turn."
+  },
+  {
+   "truth": [
+    [
+     "percept",
+     "bitter"
+    ]
+   ],
+   "said": "i taste something bitter."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "feed"
+    ],
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "heat"
+    ],
+    [
+     "percept",
+     "sugar"
+    ]
+   ],
+   "said": "something sweet. it is hot. i extend my proboscis. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "dry"
+    ],
+    [
+     "word",
+     "rin"
+    ]
+   ],
+   "said": "dry air. i hear 'rin'. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "feed"
+    ],
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "geosmin"
+    ],
+    [
+     "percept",
+     "salt"
+    ],
+    [
+     "word",
+     "bouba"
+    ]
+   ],
+   "said": "i taste salt. i smell mold. i hear 'bouba'. i extend my proboscis. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "geosmin"
+    ],
+    [
+     "percept",
+     "heat"
+    ],
+    [
+     "word",
+     "kiki"
+    ]
+   ],
+   "said": "it is hot. i hear 'kiki'. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "co2"
+    ]
+   ],
+   "said": "i smell co2. i turn."
+  },
+  {
+   "truth": [],
+   "said": "..."
+  },
+  {
+   "truth": [],
+   "said": "..."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "geosmin"
+    ],
+    [
+     "percept",
+     "heat"
+    ]
+   ],
+   "said": "it is hot. i turn."
+  }
+ ],
+ "voice": "FlyLM from scratch",
+ "params": 2911282,
+ "linear_probe": {
+  "precision": 0.29101019462465244,
+  "recall": 0.9936708860759493,
+  "f1": 0.4501792114695341
+ },
+ "fly_model": "lif_euler",
+ "fly_gain": 1.0
+}

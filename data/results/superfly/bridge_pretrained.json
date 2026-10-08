@@ -1,0 +1,202 @@
+{
+ "held_out": {
+  "precision": 0.4557522123893805,
+  "recall": 0.3259493670886076,
+  "f1": 0.3800738007380074
+ },
+ "zero_brain_outputs": [
+  "..."
+ ],
+ "zero_brain_content_rate": 0.0,
+ "shuffled_follow_f1": 0.3933823529411764,
+ "shuffled_leak_f1": 0.1948529411764706,
+ "examples": [
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "humid"
+    ],
+    [
+     "percept",
+     "sound"
+    ]
+   ],
+   "said": "i smell mold. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "co2"
+    ],
+    [
+     "percept",
+     "water"
+    ]
+   ],
+   "said": "i smell fruit. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "said": "i smell fruit. i turn."
+  },
+  {
+   "truth": [
+    [
+     "percept",
+     "bitter"
+    ]
+   ],
+   "said": "..."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "feed"
+    ],
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "heat"
+    ],
+    [
+     "percept",
+     "sugar"
+    ]
+   ],
+   "said": "i smell mold. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "dry"
+    ],
+    [
+     "word",
+     "rin"
+    ]
+   ],
+   "said": "i smell mold. i hear 'nano'. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "feed"
+    ],
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "geosmin"
+    ],
+    [
+     "percept",
+     "salt"
+    ],
+    [
+     "word",
+     "bouba"
+    ]
+   ],
+   "said": "i don't like. the fly says: i like. the fly says: i like. the fly says: i"
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "geosmin"
+    ],
+    [
+     "percept",
+     "heat"
+    ],
+    [
+     "word",
+     "kiki"
+    ]
+   ],
+   "said": "i smell fruit. i hear 'flipper'. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "co2"
+    ]
+   ],
+   "said": "i smell fruit. i turn."
+  },
+  {
+   "truth": [],
+   "said": "..."
+  },
+  {
+   "truth": [],
+   "said": "..."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "geosmin"
+    ],
+    [
+     "percept",
+     "heat"
+    ]
+   ],
+   "said": "i smell fruit. i turn."
+  }
+ ],
+ "voice": "SmolLM2-360M frozen + neural prefix",
+ "trainable_params": 5852675,
+ "linear_probe": {
+  "precision": 0.28689275893675525,
+  "recall": 0.990506329113924,
+  "f1": 0.44491826581378824
+ },
+ "fly_model": "lif_euler",
+ "fly_gain": 1.0
+}
