@@ -50,10 +50,13 @@ class SuperflyEngine(NativeBrainEngine):
                     change discards the rest of the block.
     """
 
-    def __init__(self, data_dir=str(ROOT / "data"), sensory_ids=(), seed=0,
+    def __init__(self, data_dir=None, sensory_ids=(), seed=0,
                  threads=None, reorder="cell_type", model="lif_euler",
                  extend=None, poisson_block=128, rng="numpy", gain=None):
         import os
+        if data_dir is None:
+            from superfly.anatomy import DATA
+            data_dir = str(DATA)
         if threads is None and os.environ.get("SUPERFLY_THREADS"):
             threads = int(os.environ["SUPERFLY_THREADS"])
         model = os.environ.get("SUPERFLY_MODEL", model)

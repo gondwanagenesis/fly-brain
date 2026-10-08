@@ -25,6 +25,7 @@ attached to a descending type is a claim from the literature and is kept in
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -32,7 +33,13 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "data"
+# Which connectome the fly is built from (SUPERFLY_CONNECTOME):
+#   flywire783  FlyWire FAFB v783, adult female brain (Dorkenwald/Schlegel 2024)
+#   male_cns    Janelia male central nervous system: brain + optic lobes + VNC,
+#               converted to the same file layout by superfly/connectomes/male_cns.py
+CONNECTOME = os.environ.get("SUPERFLY_CONNECTOME", "flywire783")
+DATA = ROOT / "data" if CONNECTOME == "flywire783" else ROOT / "data" / CONNECTOME
+SUFFIX = "" if CONNECTOME == "flywire783" else "_" + CONNECTOME
 ANN_URL = ("https://raw.githubusercontent.com/flyconnectome/flywire_annotations/"
            "main/supplemental_files/Supplemental_file1_neuron_annotations.tsv")
 

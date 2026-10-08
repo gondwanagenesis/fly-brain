@@ -21,7 +21,7 @@ import pandas as pd
 from superfly.anatomy import Atlas, REGIONS
 from superfly.engine import SuperflyEngine, Readout, ROOT
 
-OUT = ROOT / "data" / "results" / "superfly"
+from superfly.bridge import OUT  # noqa: E402 (per connectome)
 
 CHANNELS = {
     "sugar (annotated LB3c)":  ["taste.sugar"],

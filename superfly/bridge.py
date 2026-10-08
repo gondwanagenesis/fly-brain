@@ -40,8 +40,9 @@ import torch.nn.functional as F
 from superfly.engine import ROOT
 from superfly.flylm import FlyLM, FlyLMConfig, Vocab, pad_batch, n_params
 
-CACHE = ROOT / "data" / "superfly_cache"
-OUT = ROOT / "data" / "results" / "superfly"
+from superfly.anatomy import SUFFIX                 # noqa: E402
+CACHE = ROOT / "data" / f"superfly_cache{SUFFIX}"   # per connectome
+OUT = ROOT / "data" / "results" / f"superfly{SUFFIX}"
 
 # ------------------------------------------------------------------ grammar
 PERCEPT = {

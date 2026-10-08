@@ -43,7 +43,7 @@ import numpy as np
 from superfly.fly import SuperFly
 from superfly.engine import ROOT
 
-OUT = ROOT / "data" / "results" / "superfly"
+from superfly.bridge import OUT  # noqa: E402 (per connectome)
 WORDS = {"yum": +1, "zap": -1, "blip": 0, "moo": None}   # None: never trained
 import os
 WORD_HZ = float(os.environ.get("SUPERFLY_WORD_HZ", 70.0))   # ~5-9 % of KCs

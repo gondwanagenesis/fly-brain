@@ -30,7 +30,7 @@ from superfly.fly import SuperFly
 from superfly.language import CONCEPTS, ACTIONS
 from superfly.engine import ROOT
 
-OUT = ROOT / "data" / "superfly_cache"
+from superfly.bridge import CACHE as OUT  # noqa: E402 (per connectome)
 VOCAB = ["zap", "yum", "blip", "moo", "dax", "wug", "fep", "kiki", "bouba",
          "toma", "lupo", "rin", "sol", "nef", "vax", "pim"]
 ACT_HZ = {"feed": 5.0, "groom": 5.0, "walk_forward": 5.0, "turn": 5.0,

@@ -18,7 +18,7 @@ import pandas as pd
 from superfly.anatomy import Atlas
 from superfly.engine import SuperflyEngine, ROOT
 
-OUT = ROOT / "data" / "results" / "superfly"
+from superfly.bridge import OUT  # noqa: E402 (per connectome)
 GLOMS = ["DA1", "DA2", "V", "DM1", "VA1v", "DL3"]
 
 

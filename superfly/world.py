@@ -103,6 +103,7 @@ class Body:
     mode: str = "walk"          # walk | stop | groom | feed | escape | sleep
     mode_t: float = 0.0         # time left in a timed mode
     on: str = ""                # object kind under the fly
+    bout: bool = False          # walking bout (True) or pause (review 09 s5)
     log: list = field(default_factory=list)
 
 
@@ -121,7 +122,7 @@ class World:
         self.gust = 0.0
         self.loom = 0.0             # remaining loom time (s)
         self.loom_side = 0
-        self.next_loom = self.rng.exponential(loom_every_s)
+        self.next_loom = 30.0 + self.rng.exponential(loom_every_s)
         self.body = Body(heading=self.rng.uniform(0, 2 * np.pi))
         self.needs = Needs()
 
@@ -138,7 +139,7 @@ class World:
 
     def temperature(self, x, y):
         d2 = (x - self.lamp[0]) ** 2 + (y - self.lamp[1]) ** 2
-        return 24.0 + 7.0 * math.exp(-d2 / (2 * 14.0 ** 2)) - 1.5 * (1 - self.light())
+        return 24.0 + 6.0 * math.exp(-d2 / (2 * 14.0 ** 2)) - 1.5 * (1 - self.light())
 
     def humidity(self, x, y):
         w = next(o for o in self.objects if o.kind == "water")
@@ -196,7 +197,9 @@ class World:
         self.next_loom -= dt
         if self.next_loom <= 0 and not n.asleep:
             self.loom, self.loom_side = 0.35, rng.choice([-1, 1])
-            self.next_loom = rng.exponential(self.loom_every)
+            # a refractory gap: repeated shadows build a persistent state in
+            # flies (Gibson et al. 2015), which this fly is spared (SPECS B)
+            self.next_loom = 30.0 + rng.exponential(self.loom_every)
             b.log.append((round(self.t, 1), "shadow"))
         # ---- the VNC: modes from the brain's own descending commands ----
         ev = None
@@ -224,18 +227,25 @@ class World:
                 ev = "feed"
         # ---- kinematics ----
         if b.mode == "walk":
-            explore = 4.0 + 8.0 * max(n.hunger, n.thirst) + 6.0 * n.arousal
+            # bouts and pauses: bout speed 14-28 mm/s, time-average 3-5 mm/s
+            # at rest (review 09 s5); need and arousal start bouts sooner
+            drive = 0.2 + 0.8 * max(n.hunger, n.thirst) + 1.5 * n.arousal
+            if b.bout and rng.random() < dt * 0.5:
+                b.bout = False
+            elif not b.bout and rng.random() < dt * drive:
+                b.bout = True
             fwd = min(10.0, motor.get("walk_forward", 0) / 4.0)
             back = motor.get("walk_backward", 0) > 10
-            b.speed = -4.0 if back else explore + fwd
+            b.speed = -4.0 if back else ((16.0 + fwd) if b.bout else 0.0)
             # DNa02 activity predicts IPSIlateral turning (Rayshubskiy et al.
             # 2020); heading is counter-clockwise, so left turns are positive
             turn = (motor.get("turn_left", 0) - motor.get("turn_right", 0)) * 0.05   # rad/s per Hz
             b.heading += turn * dt + 1.2 * math.sqrt(dt) * rng.normal()      # + CPG wander
         elif b.mode == "escape":
             b.speed = 60.0
-            if b.mode_t > 0.38:
-                b.heading += math.pi + rng.normal(0, 0.6)
+            if b.mode_t > 0.38:                 # take off away from the shadow
+                away = -self.loom_side if self.loom_side else rng.choice([-1, 1])
+                b.heading += away * math.pi / 2 + rng.normal(0, 0.4)
         else:
             b.speed = 0.0
         b.x += b.speed * math.cos(b.heading) * dt
