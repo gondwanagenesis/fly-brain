@@ -64,6 +64,54 @@ def aten_vector_width():
     return 16 if "AVX512" in cap else 8
 
 
+_TAIL_FUSED = None
+
+
+def aten_tail_fused():
+    """Does ATen's SCALAR TAIL of ``add_(t, alpha=)`` round fused on THIS host?
+
+    The vectorised body is a single-rounding FMA everywhere. The scalar tail
+    is whatever the compiler that built PyTorch made of ``a + alpha * b``:
+    MSVC (Windows wheels) keeps the multiply and the add separate, while GCC
+    (Linux wheels) contracts them into an FMA by default. So the seam the
+    kernel must reproduce is a property of the installed wheel, not of the
+    CPU -- measured on Windows/torch 2.13 it exists, on Linux/torch 2.14 it
+    does not (research/audit/a13_linux_torch_divergence.py).
+
+    Measured, not assumed: run the reference op on values where the fused and
+    unfused roundings differ, and see which one the tail produced.
+    """
+    global _TAIL_FUSED
+    if _TAIL_FUSED is not None:
+        return _TAIL_FUSED
+    import numpy as np
+    W = aten_vector_width()
+    rng = np.random.default_rng(0)
+    v = rng.uniform(-80.0, -40.0, 1 << 16).astype(np.float32)
+    t = rng.uniform(-90.0, 10.0, 1 << 16).astype(np.float32)
+    a = np.float32(0.1 / 20.0)
+    unf = (v + (a * t).astype(np.float32)).astype(np.float32)
+    fus = (v.astype(np.float64)
+           + np.float64(a) * t.astype(np.float64)).astype(np.float32)
+    d = np.flatnonzero(unf.view(np.uint32) != fus.view(np.uint32))[: W - 1]
+    if d.size < W - 1:
+        return False
+    # one full vector of filler, then a W-1 element tail of discriminators
+    vv = np.concatenate([v[:W], v[d]])
+    tt = np.concatenate([t[:W], t[d]])
+    tv = torch.from_numpy(vv.copy())
+    with torch.no_grad():
+        tv.add_(torch.from_numpy(tt), alpha=0.1 / 20.0)
+    tail = tv.numpy()[W:]
+    is_f = np.array_equal(tail.view(np.uint32), fus[d].view(np.uint32))
+    is_u = np.array_equal(tail.view(np.uint32), unf[d].view(np.uint32))
+    if is_f == is_u:
+        raise RuntimeError("ATen scalar tail is neither uniformly fused nor "
+                           "uniformly unfused; the seam model does not apply")
+    _TAIL_FUSED = bool(is_f)
+    return _TAIL_FUSED
+
+
 def _source_fingerprint():
     h = hashlib.sha256()
     h.update(_SRC.read_bytes())

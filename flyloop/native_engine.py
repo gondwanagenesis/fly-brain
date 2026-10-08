@@ -36,7 +36,8 @@ import torch
 
 import models as nrn_models
 from brain_engine import MODEL_PARAMS, DT
-from native_lib import ISA_NAME as _ISA_NAME, aten_vector_width, lib as _lib, ptr as _p
+from native_lib import (ISA_NAME as _ISA_NAME, aten_tail_fused,
+                        aten_vector_width, lib as _lib, ptr as _p)
 
 class NativeBrainEngine:
     """Whole-brain LIF stepped by the fused native kernel."""
@@ -221,6 +222,12 @@ class NativeBrainEngine:
         for c in range(self.n_chunks):
             lo, hi = int(bounds[c]), int(bounds[c + 1])
             fma_orig[lo:lo + ((hi - lo) // self.tail_w) * self.tail_w] = True
+        # ...unless this PyTorch wheel rounds its scalar tail fused too, in
+        # which case there is no seam at all (GCC-built Linux wheels; see
+        # native_lib.aten_tail_fused). Probed at run time, never assumed.
+        self.aten_tail_fused = aten_tail_fused()
+        if self.aten_tail_fused:
+            fma_orig[:] = True
         fma_new = fma_orig[self.perm] if self.perm is not None else fma_orig
         self.fma_bits = np.zeros(((N + 63) >> 6) + 1, dtype=np.uint64)
         _w = np.nonzero(fma_new)[0]
