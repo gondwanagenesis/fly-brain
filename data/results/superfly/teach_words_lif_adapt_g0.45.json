@@ -1,0 +1,39 @@
+{
+ "model": "lif_adapt",
+ "gain": 0.45,
+ "trials": 3,
+ "pre": {
+  "yum": 0.0,
+  "zap": 0.0,
+  "blip": 0.0,
+  "moo": 0.0
+ },
+ "post": {
+  "yum": 0.0,
+  "zap": 0.0,
+  "blip": 0.0,
+  "moo": 0.0
+ },
+ "change": {
+  "yum": 0.0,
+  "zap": 0.0,
+  "blip": 0.0,
+  "moo": 0.0
+ },
+ "kc_active": {
+  "yum": 157,
+  "zap": 146,
+  "blip": 300,
+  "moo": 179
+ },
+ "overlap": {
+  "yum-zap": 0.06315789473684211,
+  "yum-blip": 0.09069212410501193,
+  "yum-moo": 0.04024767801857585,
+  "zap-blip": 0.07990314769975787,
+  "zap-moo": 0.03503184713375796,
+  "blip-moo": 0.06444444444444444
+ },
+ "edges_changed": 14757,
+ "learned_correctly": false
+}

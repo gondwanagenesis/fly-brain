@@ -1,0 +1,64 @@
+{
+ "model": "lif_euler",
+ "gain": 1.0,
+ "trials": 3,
+ "eta_dep": 0.004,
+ "eta_pot": 0.001,
+ "words": {
+  "yum": {
+   "kc_frac": 0.06316399459146224,
+   "d_pam_cmp": 4.473684210526316,
+   "d_ppl1_cmp": -2.9885057471264362,
+   "d_valence": -321.84906499915553
+  },
+  "zap": {
+   "kc_frac": 0.04307514004249565,
+   "d_pam_cmp": -3.5087719298245617,
+   "d_ppl1_cmp": -0.6896551724137934,
+   "d_valence": 84.98513446229822
+  },
+  "blip": {
+   "kc_frac": 0.06335715665443307,
+   "d_pam_cmp": -6.4035087719298245,
+   "d_ppl1_cmp": -2.528735632183909,
+   "d_valence": 116.563283157538
+  },
+  "moo": {
+   "kc_frac": 0.681668920224068,
+   "d_pam_cmp": 14.298245614035086,
+   "d_ppl1_cmp": 2.471264367816092,
+   "d_valence": -366.7739796743794
+  }
+ },
+ "edges_changed": 47019,
+ "ignited": [
+  [
+   "train0:blip:paired",
+   0.702
+  ],
+  [
+   "train1:yum:word",
+   0.654
+  ],
+  [
+   "train1:yum:paired",
+   0.692
+  ],
+  [
+   "train1:zap:paired",
+   0.69
+  ],
+  [
+   "baseline:moo",
+   0.598
+  ],
+  [
+   "test:moo",
+   0.682
+  ]
+ ],
+ "specific_reward": false,
+ "specific_punish": false,
+ "controls_quiet": false,
+ "learned_correctly": false
+}

@@ -18,7 +18,7 @@ import numpy as np
 
 from superfly.anatomy import Atlas, REGIONS
 from superfly.engine import SuperflyEngine, Readout
-from superfly.graft import GraftBuilder, load_connectome
+from superfly.graft import GraftBuilder, load_connectome, word_code
 from superfly.language import CONCEPTS, CONCEPT, ACTIONS
 from superfly.plasticity import MBPlasticity
 
@@ -42,16 +42,25 @@ class Observation:
 
 
 class SuperFly:
-    def __init__(self, atlas: Atlas | None = None, *, words=32, xmb=0,
+    def __init__(self, atlas: Atlas | None = None, *, word_pns=150, xmb=0,
                  xmb_share=0.5, plasticity=True, seed=0, threads=None,
-                 verbose=True):
+                 model=None, gain=None, terminals=False, plasticity_kw=None,
+                 da_modulatory=None, verbose=True):
         t0 = time.perf_counter()
         self.atlas = at = atlas or Atlas()
-        conn = load_connectome(at) if (words or xmb) else None
+        conn = load_connectome(at) if (word_pns or xmb or plasticity) else None
         gb = GraftBuilder(at, seed=seed)
-        self.g_words = gb.word_sense(conn, n_words=words) if words else None
+        self.g_words = gb.word_sense(conn, n_pn=word_pns) if word_pns else None
         self.g_xmb = gb.expanded_mushroom_body(conn, n_kc=xmb, share=xmb_share) \
             if xmb else None
+        if terminals:
+            gb.peripheral_terminals()
+        # with plasticity on, dopamine's KC/MBON action IS the plasticity
+        if da_modulatory is None:
+            da_modulatory = plasticity
+        if da_modulatory:
+            gb.dopamine_modulatory()
+        self.da_modulatory = bool(da_modulatory)
         self.gb = gb
         sensory = set()
         for c in CONCEPTS:
@@ -59,9 +68,11 @@ class SuperFly:
                 sensory.update(int(x) for x in at[p].ids)
         if self.g_words is not None:
             sensory.update(int(x) for x in self.g_words.ids)
+        kw = {} if model is None else {"model": model}
         self.e = e = SuperflyEngine(sensory_ids=sorted(sensory), seed=seed,
-                                  threads=threads,
-                                  extend=gb.extender() if gb.grafts else None)
+                                    threads=threads, gain=gain,
+                                    extend=gb.extender() if (gb.grafts or terminals or da_modulatory) else None,
+                                    **kw)
         # ---- concept -> positions in the stimulated set
         self.concept_pos = {}
         for c in CONCEPTS:
@@ -69,21 +80,22 @@ class SuperFly:
             self.concept_pos[c.key] = e.stim_positions(slots)
         self.word_pos = None
         if self.g_words is not None:
-            ws = e.indices_of(self.g_words.ids).reshape(words, -1)
-            self.word_pos = [e.stim_positions(r) for r in ws]
-        self.lexicon = {}                    # word -> word-sense channel
+            self.word_pos = e.stim_positions(e.indices_of(self.g_words.ids))
+        self.lexicon = {}                    # word -> the PNs it activates
         # ---- learning
         self.mb = None
         if plasticity:
             kc = at["mb.KC"].idx(e)
             if self.g_xmb is not None:
                 kc = np.concatenate([kc, e.indices_of(self.g_xmb.ids)])
-            self.mb = MBPlasticity(e, at, kc_slots=kc)
+            self.mb = MBPlasticity(e, at, kc_slots=kc, conn=conn,
+                                   **(plasticity_kw or {}))
             e.add_emitter(self.mb)
             e.add_ticker(self.mb, self.mb.every)
         self.pam = at["mb.PAM"].idx(e)
         self.ppl1 = at["mb.PPL1"].idx(e)
         self._teach = None
+        self._tone = None                    # (slots, rate_hz, g) background input
         e.add_emitter(self)                  # DAN teaching through the synaptic port
         # ---- readouts
         ann = at.ann
@@ -99,7 +111,7 @@ class SuperFly:
         self._feat_n = np.bincount(self._feat_ix, minlength=len(tix)).astype(float)
         self.act_groups = {a: at[f"dn.{a}"].idx(e) for a in ACTIONS if a != "feed"}
         self.act_groups["feed"] = at["motor.MN9"].idx(e)
-        reg = at.region_slots(e)[:e.n_native] if e.N > e.n_native else at.region_slots(e)
+        reg = at.region_slots(e)
         self.region_groups = {k: np.flatnonzero(reg == i)
                               for i, (k, _, _) in enumerate(REGIONS)}
         self.mbon_slots = at["mb.MBON"].idx(e)
@@ -112,45 +124,74 @@ class SuperFly:
                   f"built in {time.perf_counter() - t0:.1f}s", flush=True)
 
     # ------------------------------------------------------------ teaching
-    def teach(self, sign, hz=60.0, w=8.0):
+    def teach(self, sign, hz=40.0, mv=40.0):
         """Activate reward (sign>0, PAM) or punishment (sign<0, PPL1) DANs by
         Poisson 'virtual synapses' (synaptic port), the in-silico analogue of
         the optogenetic DAN activation used to train flies. 0 stops it."""
         if not sign:
             self._teach = None
             return
-        self._teach = (self.pam if sign > 0 else self.ppl1, hz * abs(sign), w)
+        self._teach = (self.pam if sign > 0 else self.ppl1, hz * abs(sign), mv)
+
+    def tone(self, rate_hz=0.0, g=2.0, pop="mb.MBON"):
+        """Spontaneous activity for a population, as tonic synaptic input.
+
+        Real MBONs fire spontaneously (Hige et al. 2015 recorded baselines of
+        a few to ~20 Hz) and learning shows up as a change from it. The Shiu
+        model has no spontaneous activity anywhere, so a sparse KC code never
+        reaches MBON threshold and the memory has no readout. This adds a
+        Poisson background through the synaptic port -- refractoriness and
+        integration untouched -- and is OFF by default."""
+        self._tone = (self.atlas[pop].idx(self.e), float(rate_hz), float(g)) \
+            if rate_hz > 0 else None
 
     def emit(self, engine, prev):
+        out_i, out_v = [], []
+        if self._tone is not None:
+            slots, hz, g = self._tone
+            hit = engine.rng.random(slots.size) < hz * engine.dt / 1000.0
+            if hit.any():
+                out_i.append(slots[hit])
+                out_v.append(np.full(int(hit.sum()), g, dtype=np.float32))
+        r = self._emit_teach(engine)
+        if r is not None:
+            out_i.append(r[0])
+            out_v.append(r[1])
+        if not out_i:
+            return None
+        return np.concatenate(out_i), np.concatenate(out_v)
+
+    def _emit_teach(self, engine):
         if self._teach is None:
             return None
-        slots, hz, w = self._teach
+        slots, hz, mv = self._teach
         hit = engine.rng.random(slots.size) < hz * engine.dt / 1000.0
         if not hit.any():
             return None
         s = slots[hit]
-        return s, np.full(s.size, w * engine.w_scale, dtype=np.float32)
+        # a fixed depolarisation per event, independent of the network gain:
+        # the teacher is an experimenter's light pulse, not a fly synapse
+        return s, np.full(s.size, mv, dtype=np.float32)
 
     # ------------------------------------------------------------ senses
     def word_channel(self, word, allocate=True):
+        """Positions (in the stimulated set) of the PNs this word activates."""
         if self.word_pos is None:
             return None
         if word not in self.lexicon:
-            if not allocate or len(self.lexicon) >= len(self.word_pos):
-                return None
-            self.lexicon[word] = len(self.lexicon)
-        return self.lexicon[word]
+            self.lexicon[word] = word_code(word, n_pn=self.word_pos.size)
+        return self.word_pos[self.lexicon[word]]
 
-    def sense(self, concepts=None, words=(), word_hz=120.0):
+    def sense(self, concepts=None, words=(), word_hz=150.0):
         """Set the sensory drive: concepts = {key: intensity 0..1}."""
         e = self.e
         e._rate_np[:] = 0.0
         for k, inten in (concepts or {}).items():
             e._rate_np[self.concept_pos[k]] = CONCEPT[k].rate_hz * float(inten)
         for wd in words:
-            ch = self.word_channel(wd)
-            if ch is not None:
-                e._rate_np[self.word_pos[ch]] = word_hz
+            pos = self.word_channel(wd)
+            if pos is not None:
+                e._rate_np[pos] = word_hz
         e._refresh_refrac()
         e._poi_block = None
 
@@ -158,6 +199,7 @@ class SuperFly:
         return self.e.run(ms)
 
     def rest(self, ms=200.0):
+        """No stimulus and no teaching (spontaneous activity, if on, continues)."""
         self.sense({})
         self.teach(0)
         return self.run(ms)

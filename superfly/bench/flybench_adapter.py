@@ -18,7 +18,7 @@ Two pieces:
                        contract. params.extra["variant"] picks the fly:
                          shiu      the published model, nothing attached
                          superfly  + MB plasticity, grafts present, untaught
-                         ntfix     + literature neurotransmitter corrections
+                         terminals + no central input onto sensory terminals
 
     flybench run -c flywire783_repo --gain 1.0 \
         --simulator superfly.bench.flybench_adapter:NativeSim
@@ -89,9 +89,9 @@ def _engine(variant):
     if variant == "shiu":
         e = SuperflyEngine(threads=threads)
         extra = None
-    elif variant in ("superfly", "ntfix"):
+    elif variant in ("superfly", "terminals"):
         from superfly.fly import SuperFly
-        f = SuperFly(threads=threads, ntfix=(variant == "ntfix"), verbose=False)
+        f = SuperFly(threads=threads, terminals=(variant == "terminals"), verbose=False)
         e, extra = f.e, f
     else:
         raise ValueError(f"unknown variant {variant!r}")

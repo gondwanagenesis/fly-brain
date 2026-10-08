@@ -105,6 +105,7 @@ REGIONS = [
     ("ascending",       "Ascending (from body)",    "senses"),
     ("descending",      "Descending (to body)",     "action"),
     ("motor",           "Motor / endocrine",        "action"),
+    ("grafted",         "Grafted (SUPERFLY)",       "graft"),
 ]
 REGION_KEYS = [r[0] for r in REGIONS]
 
@@ -310,8 +311,14 @@ class Atlas:
         return {REGIONS[i][0]: int(c[i]) for i in range(len(REGIONS))}
 
     def region_slots(self, engine):
-        """Region code per ENGINE slot (applies the engine's permutation)."""
-        return self.region[engine.perm] if engine.perm is not None else self.region
+        """Region code per ENGINE slot (applies the engine's permutation).
+        Grafted neurons, appended after the native ones, get 'grafted'."""
+        reg = self.region
+        if engine.N > reg.size:
+            reg = np.concatenate([reg, np.full(engine.N - reg.size,
+                                               REGION_KEYS.index("grafted"),
+                                               dtype=reg.dtype)])
+        return reg[engine.perm] if engine.perm is not None else reg
 
     def table(self):
         rows = [(p.name, p.group, len(p), p.query, p.role)

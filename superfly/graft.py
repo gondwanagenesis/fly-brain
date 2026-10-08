@@ -169,23 +169,34 @@ class GraftBuilder:
                       mean_claws=float(k.mean()))
         return g
 
-    def word_sense(self, conn, n_words=32, pns_per_word=7, name="words"):
-        """Synthetic word projection neurons -> real KCs, PN-statistics."""
+    def word_sense(self, conn, n_pn=150, name="words"):
+        """A second antennal lobe, for words.
+
+        ``n_pn`` synthetic projection neurons. Every real Kenyon cell receives
+        claws from them with the SAME statistics as its real PN input: the
+        number of claws is drawn from the measured PN-partner count of KCs,
+        the synapse count of each claw from the measured PN->KC distribution.
+        A word is then a combinatorial pattern over these PNs (see
+        ``word_code``), exactly as an odour is a pattern over glomeruli, so
+        KCs recruited by a word are those whose claws happen to sample enough
+        of its active PNs -- sparse, random, convergent coding, the textbook
+        mushroom-body scheme (Litwin-Kumar et al. 2017).
+        """
         pre, post, w = conn
         at, rng = self.atlas, self.rng
         KC = self._csv_mask("mb.KC")
-        PN = self._csv_mask("al.uPN")
+        PN = self._csv_mask("al.PN")
         e = PN[pre] & KC[post]
-        fan = np.bincount(pre[e], minlength=at.N)
-        fan = fan[fan > 0]
-        syn = w[e]
         kc_rows = self._rows(KC)
-        g = self._alloc(name, n_words * pns_per_word, n_words=n_words,
-                        pns_per_word=pns_per_word)
-        for i in range(g.n):
-            nk = int(rng.choice(fan))
-            tgt = rng.choice(kc_rows, nk, replace=False)
-            self._add(np.full(nk, g.slot0 + i), tgt, rng.choice(syn, nk))
+        claws = np.bincount(post[e], minlength=at.N)[kc_rows]
+        claws = claws[claws > 0]
+        syn = w[e]
+        g = self._alloc(name, n_pn, n_pn=n_pn)
+        k = rng.choice(claws, kc_rows.size)          # claws per KC
+        src = np.concatenate([rng.choice(n_pn, kk, replace=False) for kk in k])
+        dst = np.repeat(kc_rows, k)
+        self._add(g.slot0 + src, dst, rng.choice(syn, src.size))
+        g.meta.update(mean_claws=float(k.mean()), edges=int(src.size))
         return g
 
     # ------------------------------------------------------------- corrections
@@ -209,12 +220,33 @@ class GraftBuilder:
             (self.atlas.ann.super_class == "sensory").to_numpy(bool))
         return self._block_post.size
 
+    def dopamine_modulatory(self):
+        """Dopamine acts on Kenyon cells and MBONs through plasticity, not as a
+        fast excitatory transmitter.
+
+        The Shiu convention signs every monoamine synapse excitatory, so a DAN
+        spike depolarises the KCs and MBONs it contacts. Mushroom-body
+        dopamine receptors (Dop1R1, Dop1R2, DopEcR) are G-protein coupled:
+        their documented effect is the plasticity of KC->MBON synapses
+        (superfly/plasticity.py), which is modelled explicitly. Keeping the
+        fast excitation as well counts the same dopamine twice, and makes
+        every teaching pulse excite KCs broadly, so every KC becomes eligible
+        and learning loses its specificity (measured: 50,629 of 62,261 edges
+        changed in a 3-trial protocol). Removes DAN->KC and DAN->MBON edges.
+        """
+        at = self.atlas
+        dan = self._csv_mask("mb.DAN")
+        tgt = self._csv_mask("mb.KC") | self._csv_mask("mb.MBON")
+        self._drop_pairs = (dan, tgt)
+        return int(dan.sum()), int(tgt.sum())
+
     # ------------------------------------------------------------- build
     def extender(self):
         """The ``extend`` callable for NativeBrainEngine (pre-permutation)."""
         edges = self._edges
         n_total = self.n_total
         block = getattr(self, "_block_post", None)
+        drop = getattr(self, "_drop_pairs", None)
 
         def extend(engine):
             N0 = engine.N
@@ -231,6 +263,13 @@ class GraftBuilder:
                 val = np.concatenate([val0, av])
             else:
                 pre, post, val = pre0, post0, val0
+            if drop is not None:
+                pm, qm = drop
+                ext_p = np.zeros(n_total, bool); ext_p[:pm.size] = pm
+                ext_q = np.zeros(n_total, bool); ext_q[:qm.size] = qm
+                cut = ext_p[pre] & ext_q[post]
+                engine.n_dropped_da = int(cut.sum())
+                pre, post, val = pre[~cut], post[~cut], val[~cut]
             if block is not None and block.size:
                 cut = np.isin(post, block)
                 engine.n_blocked_edges = int(cut.sum())
@@ -253,6 +292,25 @@ class GraftBuilder:
     def slots(self, engine, name):
         g = next(x for x in self.grafts if x.name == name)
         return engine.indices_of(g.ids)
+
+
+def word_code(word, n_pn=150, per_ngram=12, n=3):
+    """PNs a word activates: hashed character n-grams of '^word$'.
+
+    Deterministic (no Python hash randomisation), and similar-sounding words
+    share n-grams and therefore PNs -- so they overlap in the mushroom body
+    the way similar odours do, and what is learned about one generalises a
+    little to the other, as it does for odours.
+    """
+    import hashlib
+    s = f"^{word.lower()}$"
+    grams = {s[i:i + n] for i in range(max(1, len(s) - n + 1))}
+    act = set()
+    for gr in sorted(grams):
+        h = hashlib.sha256(gr.encode()).digest()
+        r = np.random.default_rng(int.from_bytes(h[:8], "little"))
+        act.update(int(x) for x in r.choice(n_pn, per_ngram, replace=False))
+    return np.array(sorted(act), dtype=np.int64)
 
 
 def load_connectome(atlas, data_dir=None):

@@ -1,0 +1,41 @@
+{
+ "model": "lif_adapt",
+ "gain": 1.0,
+ "trials": 6,
+ "eta_dep": 0.01,
+ "eta_pot": 0.0025,
+ "words": {
+  "yum": {
+   "kc_frac": 0.08890283948232568,
+   "d_pam_cmp": -0.8662280701754387,
+   "d_ppl1_cmp": -0.5747126436781611,
+   "d_valence": 6.953702358198585
+  },
+  "zap": {
+   "kc_frac": 0.08446011203399652,
+   "d_pam_cmp": -0.16447368421052633,
+   "d_ppl1_cmp": -0.34482758620689663,
+   "d_valence": -12.294787096320494
+  },
+  "blip": {
+   "kc_frac": 0.13096387869422446,
+   "d_pam_cmp": -0.07675438596491233,
+   "d_ppl1_cmp": -0.2586206896551724,
+   "d_valence": -7.892977148533548
+  },
+  "moo": {
+   "kc_frac": 0.09696735561135793,
+   "d_pam_cmp": -0.2960526315789473,
+   "d_ppl1_cmp": -0.5100574712643677,
+   "d_valence": -17.54145313869871
+  }
+ },
+ "edges_changed": 20147,
+ "ignited": [],
+ "excluded_trials": [],
+ "f_min": 0.3,
+ "specific_reward": true,
+ "specific_punish": true,
+ "controls_quiet": false,
+ "learned_correctly": false
+}

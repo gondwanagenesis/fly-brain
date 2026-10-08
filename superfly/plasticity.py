@@ -49,9 +49,9 @@ import numpy as np
 class MBPlasticity:
     """Dopamine-gated KC->MBON plasticity as a synaptic-port emitter."""
 
-    def __init__(self, engine, atlas, *, kc_slots=None, tick_ms=5.0,
+    def __init__(self, engine, atlas, *, kc_slots=None, conn=None, tick_ms=5.0,
                  tau_kc_ms=1000.0, tau_da_ms=1000.0, eta_dep=0.02,
-                 eta_pot=0.005, tau_recover_ms=None, f_max=1.5):
+                 eta_pot=0.005, tau_recover_ms=None, f_max=1.5, f_min=0.0):
         e = engine
         self.tick_ms = float(tick_ms)
         self.every = max(1, int(round(tick_ms / e.dt)))
@@ -59,6 +59,7 @@ class MBPlasticity:
         self.eta_dep, self.eta_pot = float(eta_dep), float(eta_pot)
         self.tau_recover = tau_recover_ms
         self.f_max = float(f_max)
+        self.f_min = float(f_min)
 
         N = e.N
         kc = (atlas["mb.KC"].idx(e) if kc_slots is None
@@ -92,14 +93,28 @@ class MBPlasticity:
         self.kc_local = kc_local
 
         # ---- compartment map from DAN->MBON synapses ----
+        # Taken from the ORIGINAL connectome when given (``conn``, CSV index
+        # space): those synapses say WHERE each DAN's dopamine acts, and stay
+        # the map even when SUPERFLY removes their fast excitatory effect
+        # (graft.GraftBuilder.dopamine_modulatory).
         A = np.zeros((mbon.size, dan.size), dtype=np.float64)
-        dan_local = np.full(N, -1, dtype=np.int64)
-        dan_local[dan] = np.arange(dan.size)
-        for j, d in enumerate(dan):
-            a, b = e.crow[d], e.crow[d + 1]
-            tgt = m_local[e.post[a:b]]
-            ok = tgt >= 0
-            np.add.at(A[:, j], tgt[ok], np.abs(e.val[a:b][ok]).astype(np.float64))
+        if conn is not None:
+            pre, post, w = conn
+            slot_to_csv = (engine.perm if engine.perm is not None
+                           else np.arange(engine.N))
+            dan_csv = np.full(atlas.N, -1, dtype=np.int64)
+            dan_csv[slot_to_csv[dan]] = np.arange(dan.size)
+            mb_csv = np.full(atlas.N, -1, dtype=np.int64)
+            mb_csv[slot_to_csv[mbon]] = np.arange(mbon.size)
+            sel = (dan_csv[pre] >= 0) & (mb_csv[post] >= 0)
+            np.add.at(A, (mb_csv[post[sel]], dan_csv[pre[sel]]),
+                      np.abs(w[sel]).astype(np.float64))
+        else:
+            for j, d in enumerate(dan):
+                a, b = e.crow[d], e.crow[d + 1]
+                tgt = m_local[e.post[a:b]]
+                ok = tgt >= 0
+                np.add.at(A[:, j], tgt[ok], np.abs(e.val[a:b][ok]).astype(np.float64))
         rs = A.sum(1, keepdims=True)
         self.A = np.divide(A, rs, out=np.zeros_like(A), where=rs > 0)
         # valence of each MBON from the dopamine that teaches it: an MBON whose
@@ -186,7 +201,7 @@ class MBPlasticity:
             df = r if df is None else df + r
             touched = True
         if touched:
-            self.f = np.clip(self.f + df, 0.0, self.f_max).astype(np.float32)
+            self.f = np.clip(self.f + df, self.f_min, self.f_max).astype(np.float32)
             self.dw = ((self.f - 1.0) * self.w0 * self.w_scale).astype(np.float32)
             self.any_learned = bool(np.any(self.f != 1.0))
 
