@@ -69,8 +69,9 @@ REAL_TIME_MS_PER_STEP = 0.1     # dt; 1.0x real time == 10,000 steps/second
 class Sim:
     """The simulation thread and everything the browser can see of it."""
 
-    def __init__(self, data_dir=DATA, model="lif_euler", threads=4):
+    def __init__(self, data_dir=DATA, model="lif_euler", threads=4, superfly=False):
         self.lock = threading.Lock()
+        self.superfly = None
         atlas = np.load(DATA / "flywire_meta" / "atlas_aligned.npz",
                         allow_pickle=False)
         self.xyz = atlas["xyz"]
@@ -83,10 +84,37 @@ class Sim:
 
         print("loading connectome ...", flush=True)
         t0 = time.perf_counter()
-        self.engine = NativeBrainEngine(
-            data_dir=str(data_dir), stim_ids=SUGAR, seed=1234,
-            threads=threads, reorder="cell_type", model=model)
+        if superfly:
+            # SUPERFLY mode: the brain is the uplifted fly (word lobe grafted),
+            # driven through its senses by /say instead of a fixed protocol.
+            sys.path.insert(0, str(ROOT))
+            from superfly.fly import SuperFly
+            from superfly.chat import TinyVoice
+            self.superfly = SuperFly(threads=threads, plasticity=False)
+            self.voice = TinyVoice()
+            self.engine = self.superfly.e
+        else:
+            self.engine = NativeBrainEngine(
+                data_dir=str(data_dir), stim_ids=SUGAR, seed=1234,
+                threads=threads, reorder="cell_type", model=model)
         self.N = self.engine.N
+        n_graft = self.N - self.xyz.shape[0]
+        if n_graft > 0:
+            # Grafted neurons have no FlyWire coordinate: draw them as their
+            # own category in a small cloud beside the mushroom-body calyx.
+            mb = self.region == self.region_labels.index("Mushroom body") \
+                if "Mushroom body" in self.region_labels else self.region >= 0
+            c = self.xyz[mb].astype(np.float32).mean(0)
+            rng = np.random.default_rng(0)
+            pts = (c + np.array([-90.0, 0.0, 60.0])
+                   + rng.normal(0, 25.0, (n_graft, 3))).astype(np.int16)
+            self.cat_labels.append("Grafted (SUPERFLY)")
+            self.cat_colors.append("#f472b6")
+            self.region_labels.append("Grafted (SUPERFLY)")
+            self.xyz = np.concatenate([self.xyz, pts])
+            self.cat = np.concatenate([self.cat, np.full(n_graft, len(self.cat_labels) - 1, self.cat.dtype)])
+            self.region = np.concatenate([self.region, np.full(n_graft, len(self.region_labels) - 1, self.region.dtype)])
+            self.n_regions = len(self.region_labels)
         print(f"  {self.N} neurons, {time.perf_counter()-t0:.1f}s, "
               f"ISA={self.engine.isa}", flush=True)
 
@@ -117,7 +145,11 @@ class Sim:
         self.region_rate = np.zeros(self.n_regions, dtype=np.float32)
         self.history = []           # (sim_ms, spikes/step) for the raster strip
 
-        self.engine.inject(self.rate_hz)
+        if self.superfly is None:
+            self.engine.inject(self.rate_hz)
+        else:
+            self.protocol = "superfly"
+            self.rate_hz = 0.0
         self._stop = False
         self.thread = threading.Thread(target=self._loop, daemon=True)
         self.thread.start()
@@ -205,7 +237,7 @@ class Sim:
                 self.engine.inject(self.rate_hz)
                 self.act[:] = 0
                 self.history.clear()
-            if "protocol" in cmd:
+            if "protocol" in cmd and self.superfly is None:
                 self._set_protocol(cmd["protocol"])
             if "model" in cmd and cmd["model"] != self.engine.model:
                 self.engine.set_model(cmd["model"])
@@ -213,6 +245,18 @@ class Sim:
                 self.act[:] = 0
                 self.history.clear()
         return self.state()
+
+    def say(self, text):
+        """One SUPERFLY turn: a real episode of the fly's brain, then its voice."""
+        from superfly.chat import turn
+        with self.lock:
+            turn(self.superfly, self.voice, text, verbose=False)
+            res = dict(turn.last)
+            # show what fired during the episode
+            w = self.superfly._last_window
+            self.act[:] = np.clip(w / 40.0, 0, 1)
+            np.clip(self.act * 255.0, 0, 255, out=self.act_u8, casting="unsafe")
+        return res
 
     def _set_protocol(self, name):
         eng = self.engine
@@ -319,6 +363,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 "regions": SIM.region_labels,
                 "models": CATALOGUE,
                 "state": SIM.state(),
+                "superfly": SIM.superfly is not None,
             }).encode()
             return self._send(body, "application/json")
         if path == "/frame.bin":
@@ -336,6 +381,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         n = int(self.headers.get("Content-Length", 0))
         raw = self.rfile.read(n) if n else b"{}"
+        if self.path == "/say":
+            if SIM.superfly is None:
+                return self.send_error(404, "start the studio with --superfly")
+            body = json.loads(raw)
+            return self._send(json.dumps(SIM.say(str(body.get("text", ""))[:300])).encode(),
+                              "application/json")
         if self.path == "/control":
             return self._send(json.dumps(SIM.apply(json.loads(raw))).encode(),
                               "application/json")
@@ -365,10 +416,12 @@ class Server(socketserver.ThreadingTCPServer):
 
 def main():
     global SIM, CATALOGUE
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
-    print("FlyBrain Studio")
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    superfly = "--superfly" in sys.argv
+    port = int(args[0]) if args else 8765
+    print("FlyBrain Studio" + (" -- SUPERFLY mode" if superfly else ""))
     CATALOGUE = model_catalogue()
-    SIM = Sim()
+    SIM = Sim(superfly=superfly)
     with Server(("127.0.0.1", port), Handler) as srv:
         print(f"\n  ->  http://127.0.0.1:{port}\n")
         try:

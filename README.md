@@ -30,6 +30,19 @@ coordinate, and it lights when that neuron actually spikes in the running simula
 
 ---
 
+## SUPERFLY: the next layer
+
+**[SUPERFLY.md](SUPERFLY.md)** builds on this engine. It is an uplifted fly
+that is still the fly: its own dopamine learning, grafted neurons (a word lobe,
+an expanded mushroom body), and a small language model wired into its neurons
+both ways. Every addition is checked for how much of the behaviour is still
+the fly's, including on an external benchmark,
+[flybench](https://github.com/brandoncho369/flybench), where this engine
+running the published model scores 0.796. Measured results, open problems and
+refuted hypotheses are in [research/superfly_findings.md](research/superfly_findings.md).
+
+---
+
 ## What this fork adds
 
 Upstream is a **benchmark harness**. It runs the Shiu et al. model across Brian 2, PyTorch, GeNN, NEST GPU and

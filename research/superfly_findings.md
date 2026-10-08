@@ -139,7 +139,34 @@ motor populations ≥ 5 Hz:
 - turning (DNa01/02): whenever the brain is broadly active (451 episodes)
 - forward or backward walking: never
 
-The linear-probe ceiling on the voice's features (central brain only, every
-percept, word and action label) is **F1 0.575**. That is how much this brain
-lets any decoder recover; smells, temperature and humidity collapse into one
-broadcast state.
+**Correction.** An earlier version of this log called a linear probe's F1
+0.575 a "ceiling" on what the brain allows any decoder to recover. That was
+wrong. The probe overfits (7,553 varying features, 640 training episodes;
+recall 0.99, precision 0.41), and the voice below reaches 0.92 on the same
+held-out episodes. With per-label thresholds the linear baseline scores 0.45.
+It is a weak baseline, not a ceiling.
+
+## 9. The voice: a language model wired into the fly's neurons
+
+`python -m superfly.bridge tiny` — voice A, a 2.9M-parameter transformer
+trained from scratch. Its only input is neural tokens projected from the
+central brain (cell-type rates plus each Kenyon cell); it never sees the
+stimulus. 800-episode corpus, 20 % held out.
+
+| fly-mind test | voice A (first run) |
+|---|---|
+| held-out content F1 | **0.924** (precision 0.941, recall 0.908) |
+| zero brain (silent fly) | **"..." every time** (content rate 0.0) |
+| shuffled brain: follows the brain it is given | F1 **0.924** |
+| shuffled brain: leaks the true stimulus | F1 **0.193** |
+
+Example (held out): the fly tasted salt with mold present, its MN9 fired,
+and the word 'bouba' was played. It said *"i taste salt. i smell mold. i hear
+'pim'. i extend my proboscis. i turn."* The percepts and actions are right;
+the word is wrong.
+
+Hearing (human sentence → senses) first run: the correct sense ranked first
+in most test sentences but with low confidence (0.14–0.5), so most requests
+never reached the fly. Retrained with presence targets, synonyms and more
+templates (results below once recorded).
+

@@ -63,7 +63,9 @@ class TinyVoice:
     def hear(self, text):
         ids = torch.as_tensor([self.vocab.encode(text, bos=False, eos=False)])
         c, _, r = self.m.hear(ids)
-        concepts = {k: float(v) for k, v in zip(self.keys, c[0]) if v > 0.35}
+        from superfly.language import _intensity
+        inten = _intensity(" " + text.lower() + " ")
+        concepts = {k: inten for k, v in zip(self.keys, c[0]) if v > 0.5}
         words = re.findall(r"'([a-z]+)'", text.lower())
         return concepts, words, float(r[0])
 
@@ -85,6 +87,10 @@ def turn(fly, voice, text, ms=250.0, verbose=True):
     fly.teach(0)
     obs = fly.observe()
     said = voice.speak(fly.voice_features(obs))
+    turn.last = dict(said=said, concepts=concepts, words=words, reward=reward,
+                     actions={k: round(v, 1) for k, v in obs.actions.items()},
+                     regions={k: round(v, 2) for k, v in obs.regions.items()},
+                     spikes=obs.spikes)
     if verbose:
         heard = ", ".join(f"{k} {v:.1f}" for k, v in concepts.items()) or "nothing it can sense"
         print(f"  [heard -> senses: {heard}"
@@ -104,11 +110,22 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--voice", default="tiny", choices=["tiny"])
     ap.add_argument("--once", default=None)
+    ap.add_argument("--script", default=None, help="file with one line per turn")
+    ap.add_argument("--learn", action="store_true",
+                    help="dopamine-gated learning on (a slightly different "
+                         "network from the one the bundled voice was trained on)")
     a = ap.parse_args()
     voice = TinyVoice()
-    fly = SuperFly(plasticity=True)
+    fly = SuperFly(plasticity=a.learn)
     if a.once:
         turn(fly, voice, a.once)
+        return
+    if a.script:
+        for line in open(a.script):
+            if line.strip():
+                print(f"YOU: {line.strip()}")
+                turn(fly, voice, line.strip())
+                print()
         return
     print("\nSUPERFLY. Talk to the fly (empty line to quit). Try: 'here is some "
           "sugar', 'a strong breeze', 'say 'zap', bad fly'.\n")

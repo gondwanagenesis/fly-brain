@@ -123,7 +123,11 @@ def utterance(C, W, A, concept_keys, action_keys, rng):
 # ------------------------------------------------------------------ hearing
 HEAR_TEMPLATES = ["here is some {s}", "{s} for you", "can you taste the {s}?",
                   "there is {s} nearby", "feel the {s}", "a bit of {s}",
-                  "lots of {s}!", "careful, {s}", "try this {s}"]
+                  "lots of {s}!", "careful, {s}", "try this {s}",
+                  "here is some {s} for you", "do you like {s}?", "i brought {s}",
+                  "a strong {s}", "some {s} is coming", "watch out, {s}",
+                  "the {s} is here", "a little {s}", "so much {s}"]
+FILLER = ["", "", "", "fly, ", "hey, ", "look, ", "ok, "]
 PRAISE = ["good fly", "well done", "yes, good", "nice job"]
 SCOLD = ["bad fly", "no!", "stop that", "don't"]
 
@@ -133,12 +137,12 @@ def human_sentence(rng, concept_keys, words_pool):
     from superfly.language import CONCEPT
     target = np.zeros(len(concept_keys), np.float32)
     parts, reward, word = [], 0.0, ""
-    for k in rng.choice(concept_keys, rng.choice([0, 1, 1, 2]), replace=False):
+    for k in rng.choice(concept_keys, rng.choice([0, 1, 1, 1, 2]), replace=False):
         syn = str(rng.choice(CONCEPT[str(k)].words))
         t = str(rng.choice(HEAR_TEMPLATES))
-        parts.append(t.format(s=syn))
-        target[concept_keys.index(str(k))] = 1.0 if t.startswith("lots") else (
-            0.4 if t.startswith("a bit") else 0.7)
+        parts.append(str(rng.choice(FILLER)) + t.format(s=syn))
+        target[concept_keys.index(str(k))] = 1.0          # presence; strength
+        # comes from the adverbs at run time (language._intensity)
     if rng.random() < 0.3:
         word = str(rng.choice(words_pool))
         parts.append(str(rng.choice(["say '{w}'", "listen: '{w}'", "the word '{w}'"])).format(w=word))
@@ -149,7 +153,8 @@ def human_sentence(rng, concept_keys, words_pool):
         parts.append(str(rng.choice(SCOLD))); reward = -1.0
     if not parts:
         parts = [str(rng.choice(["hello", "hi fly", "how are you?", "what do you sense?"]))]
-    return ", ".join(parts), target, word, reward
+    joiner = str(rng.choice([", ", " and ", ". "]))
+    return joiner.join(parts), target, word, reward
 
 
 # ------------------------------------------------------------------ data
@@ -218,7 +223,8 @@ def fly_mind_tests(speak, D, n_shuffle=1):
 
 
 def linear_probe(D):
-    """Ceiling: per-label logistic regression on the same features."""
+    """Linear baseline: per-label logistic regression on the same features,
+    weight-decayed, each label's threshold tuned on the training split."""
     X = torch.as_tensor(D["X"])
     tr, te = D["tr"], D["te"]
     labs = sorted({l for i in range(len(X)) for l in
@@ -230,24 +236,34 @@ def linear_probe(D):
             Y[i, li[l]] = 1
     Y = torch.as_tensor(Y)
     lin = nn.Linear(X.shape[1], len(labs))
-    opt = torch.optim.AdamW(lin.parameters(), 1e-3, weight_decay=1e-2)
-    for _ in range(400):
+    opt = torch.optim.AdamW(lin.parameters(), 1e-3, weight_decay=0.1)
+    for _ in range(600):
         opt.zero_grad()
         F.binary_cross_entropy_with_logits(lin(X[tr]), Y[tr]).backward()
         opt.step()
     with torch.no_grad():
-        P = (torch.sigmoid(lin(X[te])) > 0.5).numpy()
+        ptr = torch.sigmoid(lin(X[tr])).numpy()
+        pte = torch.sigmoid(lin(X[te])).numpy()
+    thr = np.full(len(labs), 0.5)
+    for j in range(len(labs)):                 # per-label F1-optimal threshold
+        best = -1
+        for t in np.linspace(0.05, 0.95, 19):
+            p_, y_ = ptr[:, j] > t, Y[tr, j].numpy() > 0
+            f = 2 * (p_ & y_).sum() / max(p_.sum() + y_.sum(), 1)
+            if f > best:
+                best, thr[j] = f, t
+    P = pte > thr
     pred = [{labs[j] for j in np.flatnonzero(p)} for p in P]
     truth = [{labs[j] for j in np.flatnonzero(y)} for y in Y[te].numpy()]
     return score(pred, truth)
 
 
 # ------------------------------------------------------------------ voice A
-def train_tiny(D, steps=2500, bs=32, lr=3e-4, seed=0):
+def train_tiny(D, steps=4000, bs=32, lr=3e-4, seed=0):
     torch.manual_seed(seed)
     words_pool = sorted({str(w) for w in D["W"] if w})
     rng0 = np.random.default_rng(seed + 1)
-    hear_txt = [human_sentence(rng0, D["ck"], words_pool)[0] for _ in range(4000)]
+    hear_txt = [human_sentence(rng0, D["ck"], words_pool)[0] for _ in range(20000)]
     vocab = Vocab(all_sentences(D) + hear_txt + ["..."],
                   extra=[f"'{w}'" for w in words_pool])
     cfg = FlyLMConfig(vocab=len(vocab), n_feat=D["X"].shape[1],
@@ -272,7 +288,7 @@ def train_tiny(D, steps=2500, bs=32, lr=3e-4, seed=0):
         hc, _, hr = m.hear(hids)
         tc = torch.as_tensor(np.stack([h[1] for h in hs]))
         tr_ = torch.as_tensor([h[3] for h in hs], dtype=torch.float32)
-        loss = loss + F.binary_cross_entropy(hc, tc) + F.mse_loss(hr, tr_)
+        loss = loss + 2.0 * F.binary_cross_entropy(hc, tc) + F.mse_loss(hr, tr_)
         opt.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(m.parameters(), 1.0)
@@ -363,7 +379,7 @@ def main(which="tiny"):
     print(f"corpus: {len(D['X'])} episodes, {D['X'].shape[1]} varying features, "
           f"fly model {D['model']} gain {D['gain']}", flush=True)
     probe = linear_probe(D)
-    print(f"linear-probe ceiling: F1 {probe['f1']:.3f}", flush=True)
+    print(f"linear baseline: F1 {probe['f1']:.3f}", flush=True)
     if which == "tiny":
         m, vocab, speak = train_tiny(D)
         info = {"voice": "FlyLM from scratch", "params": n_params(m)}

@@ -90,6 +90,17 @@
             background:linear-gradient(90deg,var(--acc),var(--hot));transition:width .12s}
   .r .n{font:10.5px/1 var(--mono);color:var(--dim);text-align:right}
 
+  /* ---------- SUPERFLY chat (only with --superfly) ---------- */
+  #chat{right:14px; bottom:14px; width:290px; height:40vh; display:none;
+        flex-direction:column}
+  body.sf #chat{display:flex}
+  body.sf #right{max-height:calc(60vh - 100px); overflow:auto}
+  #chat-log{flex:1; overflow:auto; padding:8px 12px; font-size:12px; line-height:1.5}
+  #chat-log .you{color:var(--dim)} #chat-log .fly{color:var(--hot); margin-bottom:2px}
+  #chat-log .ev{font:10px/1.45 var(--mono); color:var(--faint); margin-bottom:8px}
+  #chat-in{display:flex; gap:6px; padding:8px 10px; border-top:1px solid var(--line)}
+  #chat-in input{flex:1; background:rgba(0,0,0,.35); color:var(--ink);
+        border:1px solid var(--line2); border-radius:7px; padding:6px 8px; font:12px var(--mono)}
   #bottom{left:344px; right:318px; bottom:14px; padding:10px 14px;
           display:flex;gap:8px 14px;align-items:center;flex-wrap:wrap;
           justify-content:center}
@@ -155,6 +166,14 @@
   </div>
   <canvas id="spark"></canvas>
   <div id="regions"></div>
+</div>
+
+<div class="panel" id="chat">
+  <h2>SUPERFLY &mdash; talk to the fly</h2>
+  <div id="chat-log"><div class="ev">Each message is one real episode of the brain:
+  your words reach its real sensory neurons, and its voice sees only its central brain.</div></div>
+  <form id="chat-in"><input id="chat-text" autocomplete="off"
+    placeholder="here is some sugar / say 'zap'"><button class="b">Say</button></form>
 </div>
 
 <div class="panel" id="bottom">
@@ -546,6 +565,25 @@ bind("#b-decay", "#v-decay", v => v + " ms", "decay_ms", v => v);
   buildGeometry(new Int16Array(buf, 0, N*3), new Uint8Array(buf, N*6, N));
   applyState(META.state);
   $("#boot").remove();
+  if (META.superfly) {
+    document.body.classList.add("sf");
+    const log = $("#chat-log");
+    const add = (cls, txt) => { const d = document.createElement("div");
+      d.className = cls; d.textContent = txt; log.appendChild(d); log.scrollTop = log.scrollHeight; };
+    $("#chat-in").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const t = $("#chat-text").value.trim(); if (!t) return;
+      $("#chat-text").value = ""; add("you", "you: " + t);
+      const r = await fetch("/say", {method:"POST", body: JSON.stringify({text: t})}).then(r=>r.json());
+      add("fly", "fly: " + r.said);
+      const senses = Object.entries(r.concepts).map(([k,v])=>`${k} ${v.toFixed(1)}`).join(", ") || "none";
+      const acts = Object.entries(r.actions).filter(([k,v])=>v>=1).map(([k,v])=>`${k} ${v} Hz`).join(", ") || "none";
+      add("ev", `senses driven: ${senses}${r.words.length? "; words "+r.words.join(" "):""}` +
+                `${Math.abs(r.reward)>0.5? (r.reward>0?"; praise→dopamine":"; scolding→dopamine"):""}` +
+                ` | motor: ${acts} | ${r.spikes.toLocaleString()} spikes`);
+    });
+  }
+
 
   let busy = false;
   async function pump(){
