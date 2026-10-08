@@ -156,7 +156,7 @@ class FlyLM(nn.Module):
         return self.head(h[:, self.c.k_neural:-1])
 
     @torch.no_grad()
-    def speak(self, feats, vocab, max_len=24, neural=None, greedy=True, temp=0.8):
+    def speak(self, feats, vocab, max_len=40, neural=None, greedy=True, temp=0.8):
         self.eval()
         if feats.dim() == 1:
             feats = feats[None]

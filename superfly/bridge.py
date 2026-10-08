@@ -289,8 +289,9 @@ def train_tiny(D, steps=4000, bs=32, lr=3e-4, seed=0):
     hear_txt = [human_sentence(rng0, D["ck"], words_pool)[0] for _ in range(20000)]
     vocab = Vocab(all_sentences(D) + hear_txt + ["..."],
                   extra=[f"'{w}'" for w in words_pool])
+    longest = max(len(vocab.encode(t)) for t in all_sentences(D) + hear_txt)
     cfg = FlyLMConfig(vocab=len(vocab), n_feat=D["X"].shape[1],
-                      n_concepts=len(D["ck"]), ctx=48)
+                      n_concepts=len(D["ck"]), ctx=max(48, longest + 4))
     m = FlyLM(cfg)
     opt = torch.optim.AdamW(m.parameters(), lr, weight_decay=0.05)
     rng = np.random.default_rng(seed)
