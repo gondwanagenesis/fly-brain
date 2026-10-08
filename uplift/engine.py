@@ -53,6 +53,9 @@ class UpliftEngine(NativeBrainEngine):
     def __init__(self, data_dir=str(ROOT / "data"), sensory_ids=(), seed=0,
                  threads=None, reorder="cell_type", model="lif_euler",
                  extend=None, poisson_block=128, rng="numpy"):
+        import os
+        if threads is None and os.environ.get("UPLIFT_THREADS"):
+            threads = int(os.environ["UPLIFT_THREADS"])
         self.rng = np.random.default_rng(seed)
         # rng="torch" reproduces NativeBrainEngine's Poisson stream exactly
         # (same generator, same 4096-step block), for the identity gate.
