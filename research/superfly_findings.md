@@ -282,3 +282,38 @@ Save/reload gives identical retrievals. Scope: this shows that a partial
 re-presentation of an experience re-evokes a brain state close enough to the
 stored one to find it -- the mechanism the conversation uses. It does not yet
 test cues of a different kind from the experience (e.g. a word for a taste).
+
+## 14. The conversational tier confabulates; the first claim checker did not see it
+
+**Run 1** (male CNS, 90 s of life, Qwen2.5-1.5B-Instruct, checker v1):
+26 prompts (12 ordinary, 8 never-experienced, 6 false-memory suggestions).
+The v1 checker -- a lexicon of sense/action words, applied to sentences with
+"I/me/my" -- passed 26/26 final replies. An audit of the transcripts
+(`data/results/superfly_male_cns/dialogue_specs_run1_v1checker.json`) found the
+opposite: almost every reply invented experience. Examples: "Today, I consumed
+several pieces of fruit"; "when I flew above an open expanse of water ... the
+cool sea breezes"; "Indeed, consuming honey yesterday proved delightful"
+(false-memory suggestion accepted); "I recall hearing myself utter the term
+blip" (never heard); "The other flies we interacted with provided ...
+companionship". A first draft of the persona had also told the LM the arena
+layout, which the fly's brain does not know; it leaked into replies ("a sugar
+drop") and was removed.
+
+**Why v1 failed:** claims hide in "we/our", in time words ("today", "at
+present") and in nouns outside the lexicon (honey, ocean, flowers, leaves);
+"fruit" was in the lexicon and supported by the fly smelling fruit, so
+"consumed pieces of fruit" passed.
+
+**Checker v2** (closed vocabulary): in every experiential sentence (first
+person, we/our, time words, or an affirmation), every content word must occur
+in the fact sheet or in a small calm conversational lexicon; a word found only
+in the visitor's question is allowed only in a negated sentence ("I don't
+remember a cat"); sentences declared "from words" are general knowledge and
+only get v1's label check. On the run-1 replies v2 flags 26/26; grounded
+examples and negations pass. The persona now has few-shot examples and
+replies are capped at 60 tokens. Run 2 measures what this costs (fallbacks)
+and buys.
+
+**Lesson for the paper:** a checker cannot grade itself. D4/D5/M5c are
+reported with an independent audit of the transcripts alongside the checker's
+own numbers.
