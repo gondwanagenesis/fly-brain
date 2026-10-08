@@ -1,0 +1,67 @@
+{
+ "connectome": "flywire783",
+ "N": 138639,
+ "rows": [
+  {
+   "gain": 1.0,
+   "stim": "rest",
+   "MN9": 0.0,
+   "groom": 0.0,
+   "escape": 0.0,
+   "turn": 0.0,
+   "walk_forward": 0.0,
+   "mean_hz": 0.0,
+   "active_frac": 0.0,
+   "realtime": 4.374
+  },
+  {
+   "gain": 1.0,
+   "stim": "sugar",
+   "MN9": 75.0,
+   "groom": 0.0,
+   "escape": 0.0,
+   "turn": 0.0,
+   "walk_forward": 0.0,
+   "mean_hz": 0.119,
+   "active_frac": 0.003,
+   "realtime": 1.744
+  },
+  {
+   "gain": 1.0,
+   "stim": "bitter",
+   "MN9": 0.0,
+   "groom": 0.0,
+   "escape": 0.0,
+   "turn": 0.0,
+   "walk_forward": 0.0,
+   "mean_hz": 0.068,
+   "active_frac": 0.0009,
+   "realtime": 2.662
+  },
+  {
+   "gain": 1.0,
+   "stim": "wind",
+   "MN9": 0.0,
+   "groom": 12.8,
+   "escape": 0.0,
+   "turn": 0.0,
+   "walk_forward": 0.0,
+   "mean_hz": 0.595,
+   "active_frac": 0.0073,
+   "realtime": 1.244
+  },
+  {
+   "gain": 1.0,
+   "stim": "shadow",
+   "MN9": 0.0,
+   "groom": 0.0,
+   "escape": 180.0,
+   "turn": 0.0,
+   "walk_forward": 0.0,
+   "mean_hz": 0.624,
+   "active_frac": 0.0092,
+   "realtime": 0.75
+  }
+ ],
+ "wall_s": 2.1
+}

@@ -112,7 +112,7 @@ def utterance(C, W, A, concept_keys, action_keys, rng):
     for k, v in zip(concept_keys, C):
         if v > 0:
             p = str(rng.choice(PERCEPT[str(k)]))
-            if v < 0.5 and rng.random() < 0.5:
+            if v < 0.5 and rng.random() < 0.5 and not p.startswith("a "):
                 p = "a little " + p if not p.startswith("i ") else p + " a little"
             bits.append(p)
     if W:
@@ -164,9 +164,22 @@ def human_sentence(rng, concept_keys, words_pool):
 
 
 # ------------------------------------------------------------------ data
-def load(path=None, seed=0):
+def load(path=None, seed=0, silent=0.12):
+    """silent: add this fraction of silent-brain windows (all rates 0, no
+    labels) when the corpus has none. A brain with no input is exactly silent
+    in this model (calibration 'rest': 0 spikes), so these rows are what
+    recording such windows would give. The first corpus had 12 % silence by
+    design; the world corpus never does, because interoception is always on,
+    and a voice trained on it confabulated on a silent brain (D2)."""
     d = np.load(path or CACHE / "corpus.npz", allow_pickle=False)
     X = np.log1p(d["X"].astype(np.float32))
+    C, W, A = d["C"], d["W"], d["A"]
+    if silent and not (X.sum(1) == 0).any():
+        k = int(round(silent * len(X)))
+        X = np.concatenate([X, np.zeros((k, X.shape[1]), np.float32)])
+        C = np.concatenate([C, np.zeros((k, C.shape[1]), C.dtype)])
+        W = np.concatenate([W, np.full(k, "", W.dtype)])
+        A = np.concatenate([A, np.zeros((k, A.shape[1]), A.dtype)])
     n = len(X)
     rng = np.random.default_rng(seed)
     idx = rng.permutation(n)
@@ -175,7 +188,7 @@ def load(path=None, seed=0):
     mu, sd = X[tr].mean(0), X[tr].std(0) + 1e-3
     keep = X[tr].std(0) > 0                       # features that ever vary
     Xn = ((X - mu) / sd)[:, keep]
-    return dict(X=Xn.astype(np.float32), C=d["C"], W=d["W"], A=d["A"],
+    return dict(X=Xn.astype(np.float32), C=C, W=W, A=A,
                 ck=[str(x) for x in d["concept_keys"]],
                 ak=[str(x) for x in d["action_keys"]],
                 tr=tr, te=te, mu=mu, sd=sd, keep=keep,
@@ -223,6 +236,10 @@ def fly_mind_tests(speak, D, n_shuffle=1):
     leak = score(spred, truth)
     rep["shuffled_follow_f1"] = follow["f1"]
     rep["shuffled_leak_f1"] = leak["f1"]
+    # what "leak" scores from label base rates alone: another window's true
+    # labels scored against this window's (frequent labels like 'turn' match
+    # by chance). The leak that matters is the excess over this null.
+    rep["leak_null_f1"] = score([truth[j] for j in perm], truth)["f1"]
     rep["examples"] = [{"truth": sorted(map(list, t)), "said": s}
                        for t, s in list(zip(truth, out))[:12]]
     return rep

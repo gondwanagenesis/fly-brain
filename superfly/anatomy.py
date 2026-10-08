@@ -40,6 +40,11 @@ ROOT = Path(__file__).resolve().parent.parent
 CONNECTOME = os.environ.get("SUPERFLY_CONNECTOME", "flywire783")
 DATA = ROOT / "data" if CONNECTOME == "flywire783" else ROOT / "data" / CONNECTOME
 SUFFIX = "" if CONNECTOME == "flywire783" else "_" + CONNECTOME
+# Global synaptic gain per connectome (superfly/experiments/calibrate_connectome.py):
+# Shiu's wScale was fitted on FlyWire; the male CNS detects ~1.8x more synapses
+# per connection and broadcasts at gain >= 0.7. 0.65 is the highest gain at
+# which sugar, bitter, wind and loom responses stay specific (calibration.json).
+DEFAULT_GAIN = {"flywire783": 1.0, "male_cns": 0.65}.get(CONNECTOME, 1.0)
 ANN_URL = ("https://raw.githubusercontent.com/flyconnectome/flywire_annotations/"
            "main/supplemental_files/Supplemental_file1_neuron_annotations.tsv")
 

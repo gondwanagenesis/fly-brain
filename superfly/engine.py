@@ -61,7 +61,8 @@ class SuperflyEngine(NativeBrainEngine):
             threads = int(os.environ["SUPERFLY_THREADS"])
         model = os.environ.get("SUPERFLY_MODEL", model)
         if gain is None:
-            gain = float(os.environ.get("SUPERFLY_GAIN", "1.0"))
+            from superfly.anatomy import DEFAULT_GAIN
+            gain = float(os.environ.get("SUPERFLY_GAIN", DEFAULT_GAIN))
         self.rng = np.random.default_rng(seed)
         # rng="torch" reproduces NativeBrainEngine's Poisson stream exactly
         # (same generator, same 4096-step block), for the identity gate.
