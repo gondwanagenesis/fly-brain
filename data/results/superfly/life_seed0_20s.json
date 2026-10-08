@@ -1,0 +1,2987 @@
+{
+ "seconds": 20.0,
+ "seed": 0,
+ "realtime_factor": 0.3290036619490647,
+ "events": [],
+ "aloud": [
+  [
+   0.26,
+   "i smell mold a little. i turn."
+  ],
+  [
+   1.82,
+   "i smell fruit a little. i turn."
+  ],
+  [
+   4.42,
+   "i smell fruit a little. a little it is cold. i turn."
+  ],
+  [
+   10.4,
+   "i smell mold. i turn."
+  ],
+  [
+   12.48,
+   "i smell fruit a little. a little it is cold. i turn."
+  ],
+  [
+   14.3,
+   "i smell co2. i turn."
+  ]
+ ],
+ "moments": [
+  {
+   "t": 0.26,
+   "said": "i smell mold a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "geosmin"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 18.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.6,
+    "water": 0.7,
+    "sleep": 0.1,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.4,
+    "thirst": 0.3,
+    "asleep": false
+   },
+   "valence": -0.042,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": true,
+   "spikes": 105554
+  },
+  {
+   "t": 0.52,
+   "said": "i taste sugar a little. i smell fruit. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ],
+    [
+     "percept",
+     "sugar"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 26.9,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.599,
+    "water": 0.7,
+    "sleep": 0.1,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.401,
+    "thirst": 0.3,
+    "asleep": false
+   },
+   "valence": -0.042,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 118528
+  },
+  {
+   "t": 0.78,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.599,
+    "water": 0.699,
+    "sleep": 0.1,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.401,
+    "thirst": 0.301,
+    "asleep": false
+   },
+   "valence": -0.036,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117705
+  },
+  {
+   "t": 1.04,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.598,
+    "water": 0.699,
+    "sleep": 0.101,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.402,
+    "thirst": 0.301,
+    "asleep": false
+   },
+   "valence": -0.042,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117970
+  },
+  {
+   "t": 1.3,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 24.0,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.598,
+    "water": 0.699,
+    "sleep": 0.101,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.402,
+    "thirst": 0.301,
+    "asleep": false
+   },
+   "valence": -0.04,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117921
+  },
+  {
+   "t": 1.56,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 16.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.597,
+    "water": 0.699,
+    "sleep": 0.101,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.403,
+    "thirst": 0.301,
+    "asleep": false
+   },
+   "valence": -0.042,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117654
+  },
+  {
+   "t": 1.82,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.597,
+    "water": 0.698,
+    "sleep": 0.101,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.403,
+    "thirst": 0.302,
+    "asleep": false
+   },
+   "valence": -0.032,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": true,
+   "spikes": 117492
+  },
+  {
+   "t": 2.08,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.597,
+    "water": 0.698,
+    "sleep": 0.101,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.403,
+    "thirst": 0.302,
+    "asleep": false
+   },
+   "valence": -0.04,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116259
+  },
+  {
+   "t": 2.34,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 19.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.596,
+    "water": 0.698,
+    "sleep": 0.101,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.404,
+    "thirst": 0.302,
+    "asleep": false
+   },
+   "valence": -0.031,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117564
+  },
+  {
+   "t": 2.6,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 16.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.596,
+    "water": 0.698,
+    "sleep": 0.101,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.404,
+    "thirst": 0.302,
+    "asleep": false
+   },
+   "valence": -0.036,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116876
+  },
+  {
+   "t": 2.86,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 19.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.595,
+    "water": 0.698,
+    "sleep": 0.102,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.405,
+    "thirst": 0.302,
+    "asleep": false
+   },
+   "valence": -0.044,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116930
+  },
+  {
+   "t": 3.12,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 17.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.595,
+    "water": 0.697,
+    "sleep": 0.102,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.405,
+    "thirst": 0.303,
+    "asleep": false
+   },
+   "valence": -0.035,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117070
+  },
+  {
+   "t": 3.38,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 18.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.594,
+    "water": 0.697,
+    "sleep": 0.102,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.406,
+    "thirst": 0.303,
+    "asleep": false
+   },
+   "valence": -0.035,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117966
+  },
+  {
+   "t": 3.64,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 23.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.594,
+    "water": 0.697,
+    "sleep": 0.102,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.406,
+    "thirst": 0.303,
+    "asleep": false
+   },
+   "valence": -0.041,
+   "event": "",
+   "place": "near the sugar drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117336
+  },
+  {
+   "t": 3.9,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.594,
+    "water": 0.697,
+    "sleep": 0.102,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.406,
+    "thirst": 0.303,
+    "asleep": false
+   },
+   "valence": -0.033,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117415
+  },
+  {
+   "t": 4.16,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.593,
+    "water": 0.697,
+    "sleep": 0.102,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.407,
+    "thirst": 0.303,
+    "asleep": false
+   },
+   "valence": -0.037,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117419
+  },
+  {
+   "t": 4.42,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 19.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.593,
+    "water": 0.696,
+    "sleep": 0.102,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.407,
+    "thirst": 0.304,
+    "asleep": false
+   },
+   "valence": -0.046,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": true,
+   "spikes": 120176
+  },
+  {
+   "t": 4.68,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.592,
+    "water": 0.696,
+    "sleep": 0.103,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.408,
+    "thirst": 0.304,
+    "asleep": false
+   },
+   "valence": -0.033,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 119001
+  },
+  {
+   "t": 4.94,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.592,
+    "water": 0.696,
+    "sleep": 0.103,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.408,
+    "thirst": 0.304,
+    "asleep": false
+   },
+   "valence": -0.037,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 118609
+  },
+  {
+   "t": 5.2,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 18.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.591,
+    "water": 0.696,
+    "sleep": 0.103,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.409,
+    "thirst": 0.304,
+    "asleep": false
+   },
+   "valence": -0.023,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 118118
+  },
+  {
+   "t": 5.46,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 17.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.8,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.591,
+    "water": 0.695,
+    "sleep": 0.103,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.409,
+    "thirst": 0.305,
+    "asleep": false
+   },
+   "valence": -0.042,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 118554
+  },
+  {
+   "t": 5.72,
+   "said": "i smell co2. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "co2"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 1.5,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.59,
+    "water": 0.695,
+    "sleep": 0.103,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.41,
+    "thirst": 0.305,
+    "asleep": false
+   },
+   "valence": -0.04,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 118593
+  },
+  {
+   "t": 5.98,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.59,
+    "water": 0.695,
+    "sleep": 0.103,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.41,
+    "thirst": 0.305,
+    "asleep": false
+   },
+   "valence": -0.045,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117742
+  },
+  {
+   "t": 6.24,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 18.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.59,
+    "water": 0.695,
+    "sleep": 0.103,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.41,
+    "thirst": 0.305,
+    "asleep": false
+   },
+   "valence": -0.044,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117935
+  },
+  {
+   "t": 6.5,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.589,
+    "water": 0.695,
+    "sleep": 0.104,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.411,
+    "thirst": 0.305,
+    "asleep": false
+   },
+   "valence": -0.039,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117953
+  },
+  {
+   "t": 6.76,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 19.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.589,
+    "water": 0.694,
+    "sleep": 0.104,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.411,
+    "thirst": 0.306,
+    "asleep": false
+   },
+   "valence": -0.037,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117801
+  },
+  {
+   "t": 7.02,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 17.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.588,
+    "water": 0.694,
+    "sleep": 0.104,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.412,
+    "thirst": 0.306,
+    "asleep": false
+   },
+   "valence": -0.038,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117684
+  },
+  {
+   "t": 7.28,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 16.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.588,
+    "water": 0.694,
+    "sleep": 0.104,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.412,
+    "thirst": 0.306,
+    "asleep": false
+   },
+   "valence": -0.036,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117318
+  },
+  {
+   "t": 7.54,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.587,
+    "water": 0.694,
+    "sleep": 0.104,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.413,
+    "thirst": 0.306,
+    "asleep": false
+   },
+   "valence": -0.039,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117226
+  },
+  {
+   "t": 7.8,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.587,
+    "water": 0.694,
+    "sleep": 0.104,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.413,
+    "thirst": 0.306,
+    "asleep": false
+   },
+   "valence": -0.028,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117010
+  },
+  {
+   "t": 8.06,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 19.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.587,
+    "water": 0.693,
+    "sleep": 0.104,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.413,
+    "thirst": 0.307,
+    "asleep": false
+   },
+   "valence": -0.032,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117178
+  },
+  {
+   "t": 8.32,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.4,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.586,
+    "water": 0.693,
+    "sleep": 0.105,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.414,
+    "thirst": 0.307,
+    "asleep": false
+   },
+   "valence": -0.032,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117015
+  },
+  {
+   "t": 8.58,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 21.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.586,
+    "water": 0.693,
+    "sleep": 0.105,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.414,
+    "thirst": 0.307,
+    "asleep": false
+   },
+   "valence": -0.04,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117116
+  },
+  {
+   "t": 8.84,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 19.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.585,
+    "water": 0.693,
+    "sleep": 0.105,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.415,
+    "thirst": 0.307,
+    "asleep": false
+   },
+   "valence": -0.035,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116304
+  },
+  {
+   "t": 9.1,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.585,
+    "water": 0.692,
+    "sleep": 0.105,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.415,
+    "thirst": 0.308,
+    "asleep": false
+   },
+   "valence": -0.038,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117564
+  },
+  {
+   "t": 9.36,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 21.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.584,
+    "water": 0.692,
+    "sleep": 0.105,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.416,
+    "thirst": 0.308,
+    "asleep": false
+   },
+   "valence": -0.029,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116261
+  },
+  {
+   "t": 9.62,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.584,
+    "water": 0.692,
+    "sleep": 0.105,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.416,
+    "thirst": 0.308,
+    "asleep": false
+   },
+   "valence": -0.036,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116959
+  },
+  {
+   "t": 9.88,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 18.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.584,
+    "water": 0.692,
+    "sleep": 0.105,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.416,
+    "thirst": 0.308,
+    "asleep": false
+   },
+   "valence": -0.045,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116942
+  },
+  {
+   "t": 10.14,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 24.0,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.583,
+    "water": 0.692,
+    "sleep": 0.106,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.417,
+    "thirst": 0.308,
+    "asleep": false
+   },
+   "valence": -0.039,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116932
+  },
+  {
+   "t": 10.4,
+   "said": "i smell mold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "geosmin"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 14.4,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.583,
+    "water": 0.691,
+    "sleep": 0.106,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.417,
+    "thirst": 0.309,
+    "asleep": false
+   },
+   "valence": -0.041,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": true,
+   "spikes": 117039
+  },
+  {
+   "t": 10.66,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 18.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.582,
+    "water": 0.691,
+    "sleep": 0.106,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.418,
+    "thirst": 0.309,
+    "asleep": false
+   },
+   "valence": -0.034,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116823
+  },
+  {
+   "t": 10.92,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 24.0,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.582,
+    "water": 0.691,
+    "sleep": 0.106,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.418,
+    "thirst": 0.309,
+    "asleep": false
+   },
+   "valence": -0.033,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116976
+  },
+  {
+   "t": 11.18,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 19.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 1.9
+   },
+   "needs": {
+    "energy": 0.581,
+    "water": 0.691,
+    "sleep": 0.106,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.419,
+    "thirst": 0.309,
+    "asleep": false
+   },
+   "valence": -0.034,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116750
+  },
+  {
+   "t": 11.44,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 19.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.581,
+    "water": 0.69,
+    "sleep": 0.106,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.419,
+    "thirst": 0.31,
+    "asleep": false
+   },
+   "valence": -0.033,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116281
+  },
+  {
+   "t": 11.7,
+   "said": "i smell fruit. a little cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.581,
+    "water": 0.69,
+    "sleep": 0.107,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.419,
+    "thirst": 0.31,
+    "asleep": false
+   },
+   "valence": -0.036,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116674
+  },
+  {
+   "t": 11.96,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.58,
+    "water": 0.69,
+    "sleep": 0.107,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.42,
+    "thirst": 0.31,
+    "asleep": false
+   },
+   "valence": -0.037,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116295
+  },
+  {
+   "t": 12.22,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 16.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.58,
+    "water": 0.69,
+    "sleep": 0.107,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.42,
+    "thirst": 0.31,
+    "asleep": false
+   },
+   "valence": -0.044,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116633
+  },
+  {
+   "t": 12.48,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 24.0,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.579,
+    "water": 0.69,
+    "sleep": 0.107,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.421,
+    "thirst": 0.31,
+    "asleep": false
+   },
+   "valence": -0.035,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": true,
+   "spikes": 116073
+  },
+  {
+   "t": 12.74,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 24.0,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.579,
+    "water": 0.689,
+    "sleep": 0.107,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.421,
+    "thirst": 0.311,
+    "asleep": false
+   },
+   "valence": -0.033,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116652
+  },
+  {
+   "t": 13.0,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 19.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.578,
+    "water": 0.689,
+    "sleep": 0.107,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.422,
+    "thirst": 0.311,
+    "asleep": false
+   },
+   "valence": -0.037,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116693
+  },
+  {
+   "t": 13.26,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 26.0,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.578,
+    "water": 0.689,
+    "sleep": 0.107,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.422,
+    "thirst": 0.311,
+    "asleep": false
+   },
+   "valence": -0.041,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116461
+  },
+  {
+   "t": 13.52,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.577,
+    "water": 0.689,
+    "sleep": 0.108,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.423,
+    "thirst": 0.311,
+    "asleep": false
+   },
+   "valence": -0.036,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116511
+  },
+  {
+   "t": 13.78,
+   "said": "i smell co2. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "co2"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 21.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.577,
+    "water": 0.689,
+    "sleep": 0.108,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.423,
+    "thirst": 0.311,
+    "asleep": false
+   },
+   "valence": -0.036,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 115986
+  },
+  {
+   "t": 14.04,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.577,
+    "water": 0.688,
+    "sleep": 0.108,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.423,
+    "thirst": 0.312,
+    "asleep": false
+   },
+   "valence": -0.032,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117068
+  },
+  {
+   "t": 14.3,
+   "said": "i smell co2. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "co2"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 25.0,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.576,
+    "water": 0.688,
+    "sleep": 0.108,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.424,
+    "thirst": 0.312,
+    "asleep": false
+   },
+   "valence": -0.04,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": true,
+   "spikes": 116217
+  },
+  {
+   "t": 14.56,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 17.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.576,
+    "water": 0.688,
+    "sleep": 0.108,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.424,
+    "thirst": 0.312,
+    "asleep": false
+   },
+   "valence": -0.035,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116129
+  },
+  {
+   "t": 14.82,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.575,
+    "water": 0.688,
+    "sleep": 0.108,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.425,
+    "thirst": 0.312,
+    "asleep": false
+   },
+   "valence": -0.04,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117169
+  },
+  {
+   "t": 15.08,
+   "said": "i smell co2. a little cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "co2"
+    ],
+    [
+     "percept",
+     "cold"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 15.4,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.575,
+    "water": 0.687,
+    "sleep": 0.108,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.425,
+    "thirst": 0.313,
+    "asleep": false
+   },
+   "valence": -0.039,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 115376
+  },
+  {
+   "t": 15.34,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.574,
+    "water": 0.687,
+    "sleep": 0.109,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.426,
+    "thirst": 0.313,
+    "asleep": false
+   },
+   "valence": -0.041,
+   "event": "",
+   "place": "near the water drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117245
+  },
+  {
+   "t": 15.6,
+   "said": "i smell co2. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "co2"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 13.5,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.574,
+    "water": 0.687,
+    "sleep": 0.109,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.426,
+    "thirst": 0.313,
+    "asleep": false
+   },
+   "valence": -0.035,
+   "event": "",
+   "place": "near the water drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116861
+  },
+  {
+   "t": 15.86,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 24.0,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.574,
+    "water": 0.687,
+    "sleep": 0.109,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.426,
+    "thirst": 0.313,
+    "asleep": false
+   },
+   "valence": -0.039,
+   "event": "",
+   "place": "near the water drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116640
+  },
+  {
+   "t": 16.12,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 17.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 1.9
+   },
+   "needs": {
+    "energy": 0.573,
+    "water": 0.687,
+    "sleep": 0.109,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.427,
+    "thirst": 0.313,
+    "asleep": false
+   },
+   "valence": -0.038,
+   "event": "",
+   "place": "near the water drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116928
+  },
+  {
+   "t": 16.38,
+   "said": "i smell co2 a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "co2"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.573,
+    "water": 0.686,
+    "sleep": 0.109,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.427,
+    "thirst": 0.314,
+    "asleep": false
+   },
+   "valence": -0.042,
+   "event": "",
+   "place": "near the water drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116689
+  },
+  {
+   "t": 16.64,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 19.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.572,
+    "water": 0.686,
+    "sleep": 0.109,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.428,
+    "thirst": 0.314,
+    "asleep": false
+   },
+   "valence": -0.036,
+   "event": "",
+   "place": "near the water drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116197
+  },
+  {
+   "t": 16.9,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 25.0,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 1.9
+   },
+   "needs": {
+    "energy": 0.572,
+    "water": 0.686,
+    "sleep": 0.109,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.428,
+    "thirst": 0.314,
+    "asleep": false
+   },
+   "valence": -0.034,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116121
+  },
+  {
+   "t": 17.16,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 21.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.571,
+    "water": 0.686,
+    "sleep": 0.11,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.429,
+    "thirst": 0.314,
+    "asleep": false
+   },
+   "valence": -0.038,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116163
+  },
+  {
+   "t": 17.42,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 21.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.571,
+    "water": 0.685,
+    "sleep": 0.11,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.429,
+    "thirst": 0.315,
+    "asleep": false
+   },
+   "valence": -0.032,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116670
+  },
+  {
+   "t": 17.68,
+   "said": "i smell fruit a little. a little it is cold. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "cold"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 21.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.571,
+    "water": 0.685,
+    "sleep": 0.11,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.429,
+    "thirst": 0.315,
+    "asleep": false
+   },
+   "valence": -0.033,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116431
+  },
+  {
+   "t": 17.94,
+   "said": "i smell co2. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "co2"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 23.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.57,
+    "water": 0.685,
+    "sleep": 0.11,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.43,
+    "thirst": 0.315,
+    "asleep": false
+   },
+   "valence": -0.036,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116366
+  },
+  {
+   "t": 18.2,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 18.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.57,
+    "water": 0.685,
+    "sleep": 0.11,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.43,
+    "thirst": 0.315,
+    "asleep": false
+   },
+   "valence": -0.036,
+   "event": "",
+   "place": "near the water drop",
+   "heard": [],
+   "aloud": false,
+   "spikes": 117017
+  },
+  {
+   "t": 18.46,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 19.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.569,
+    "water": 0.685,
+    "sleep": 0.11,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.431,
+    "thirst": 0.315,
+    "asleep": false
+   },
+   "valence": -0.039,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116644
+  },
+  {
+   "t": 18.72,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 20.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.569,
+    "water": 0.684,
+    "sleep": 0.11,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.431,
+    "thirst": 0.316,
+    "asleep": false
+   },
+   "valence": -0.041,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116584
+  },
+  {
+   "t": 18.98,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 16.3,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.568,
+    "water": 0.684,
+    "sleep": 0.111,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.432,
+    "thirst": 0.316,
+    "asleep": false
+   },
+   "valence": -0.035,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116892
+  },
+  {
+   "t": 19.24,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 1.9
+   },
+   "needs": {
+    "energy": 0.568,
+    "water": 0.684,
+    "sleep": 0.111,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.432,
+    "thirst": 0.316,
+    "asleep": false
+   },
+   "valence": -0.037,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116223
+  },
+  {
+   "t": 19.5,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 21.2,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.568,
+    "water": 0.684,
+    "sleep": 0.111,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.432,
+    "thirst": 0.316,
+    "asleep": false
+   },
+   "valence": -0.04,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116358
+  },
+  {
+   "t": 19.76,
+   "said": "i smell fruit a little. i turn.",
+   "labels": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
+    ]
+   ],
+   "actions": {
+    "walk_forward": 0.0,
+    "turn": 22.1,
+    "walk_backward": 0.0,
+    "escape": 0.0,
+    "groom": 0.0,
+    "feed": 0.0
+   },
+   "needs": {
+    "energy": 0.567,
+    "water": 0.684,
+    "sleep": 0.111,
+    "arousal": 0.0,
+    "content": 0.0,
+    "hunger": 0.433,
+    "thirst": 0.316,
+    "asleep": false
+   },
+   "valence": -0.037,
+   "event": "",
+   "place": "in the open",
+   "heard": [],
+   "aloud": false,
+   "spikes": 116389
+  }
+ ],
+ "memory_episodes": 6
+}

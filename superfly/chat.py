@@ -43,7 +43,11 @@ GROUPS = [("senses", ["taste", "smell", "vision", "hearing_wind", "touch",
 
 
 class TinyVoice:
-    def __init__(self, path=CACHE / "flylm_tiny.pt"):
+    def __init__(self, path=None):
+        if path is None:          # the voice trained in the world, if recorded
+            path = CACHE / "flylm_tiny_world.pt"
+            if not path.exists():
+                path = CACHE / "flylm_tiny.pt"
         ck = torch.load(path, weights_only=False)
         self.cfg = FlyLMConfig(**ck["cfg"])
         self.m = FlyLM(self.cfg)
@@ -51,7 +55,7 @@ class TinyVoice:
         self.m.eval()
         self.vocab = Vocab.from_state(ck["vocab"])
         self.mu, self.sd, self.keep = ck["mu"], ck["sd"], ck["keep"]
-        self.keys = [c.key for c in CONCEPTS]
+        self.keys = list(ck.get("ck", [c.key for c in CONCEPTS]))
 
     def norm(self, x):
         return (((np.log1p(x) - self.mu) / self.sd)[self.keep]).astype(np.float32)
@@ -65,7 +69,9 @@ class TinyVoice:
         c, _, r = self.m.hear(ids)
         from superfly.language import _intensity
         inten = _intensity(" " + text.lower() + " ")
-        concepts = {k: inten for k, v in zip(self.keys, c[0]) if v > 0.5}
+        from superfly.language import CONCEPT
+        concepts = {k: inten for k, v in zip(self.keys, c[0])
+                    if v > 0.5 and k in CONCEPT}
         words = re.findall(r"'([a-z]+)'", text.lower())
         return concepts, words, float(r[0])
 

@@ -1,0 +1,388 @@
+"""SUPERFLY's conversational mind: a small LLM that may only speak from the fly.
+
+Two tiers (research/review/08_grounded_self_architectures.md):
+
+  GROUNDED      FlyLM reads the central brain every 250 ms (superfly/life.py).
+                Its content is the fly's: it is tested against silent and
+                shuffled brains (SPECS D1-D3).
+  CONVERSATION  a local instruct LM (Qwen2.5-1.5B-Instruct) turns the grounded
+                records into conversation. It is the fly's phrasing and general
+                knowledge, never its source of experience:
+                every first-person experiential claim it makes is checked
+                against the records, and a reply that fails is regenerated,
+                then replaced by a templated reply built from the records.
+
+One turn:
+  1 HEAR    the sentence drives the fly's own senses / word lobe (life.hear)
+  2 LIVE    the fly lives 1 s with that input; its brain is recorded
+  3 RECALL  re-evocation: the brain state the sentence evoked (KC code +
+            central-brain features) is matched against stored episodes
+  4 FACTS   a fact sheet: now (inner speech, motor neurons, needs, place,
+            MB valence), what the words evoked, recalled episodes, recent remarks
+  5 SPEAK   the LM, with a persona and the fact sheet
+  6 CHECK   claim checker (check_reply); regenerate / fall back
+Every turn is logged with its facts and verdict (data/results/superfly/conversations).
+"""
+from __future__ import annotations
+
+import json
+import re
+import threading
+import time
+from collections import deque
+from pathlib import Path
+
+import numpy as np
+
+from superfly.bridge import parse_utterance, OUT
+
+QWEN = Path("/home/user/models/Qwen2.5-1.5B-Instruct")
+LOG_DIR = OUT / "conversations"
+
+# ------------------------------------------------------------------ claim checking
+# experiential terms -> the grounded label that supports them
+TERMS = {
+    ("percept", "sugar"): ["sweet", "sugar", "sugary"],
+    ("percept", "bitter"): ["bitter", "yuck"],
+    ("percept", "water"): ["water", "drink", "drank", "drinking", "wet"],
+    ("percept", "salt"): ["salt", "salty"],
+    ("percept", "umami"): ["savory", "savoury"],
+    ("percept", "co2"): ["co2", "carbon dioxide"],
+    ("percept", "geosmin"): ["mold", "mould", "musty", "earthy"],
+    ("percept", "male_pheromone"): ["another fly", "other flies"],
+    ("percept", "fruit_odor"): ["fruit", "fruity", "ripe"],
+    ("percept", "sound"): ["buzz", "sound", "noise", "hum"],
+    ("percept", "wind"): ["wind", "breeze", "gust", "draft", "draught"],
+    ("percept", "heat"): ["hot", "warm", "warmth", "heat"],
+    ("percept", "cold"): ["cold", "cool", "chilly"],
+    ("percept", "dry"): ["dry"],
+    ("percept", "humid"): ["damp", "humid", "moist"],
+    ("percept", "shadow"): ["shadow", "dark shape", "something above", "looming"],
+    ("percept", "hungry"): ["hungry", "hunger", "starving"],
+    ("percept", "thirsty"): ["thirsty", "thirst"],
+    ("action", "feed"): ["eat", "ate", "eating", "feed", "fed", "feeding",
+                         "proboscis", "sip", "sipped", "sipping"],
+    ("action", "groom"): ["groom", "groomed", "grooming", "clean", "cleaned", "cleaning"],
+    ("action", "escape"): ["fly away", "flew", "flying away", "took off", "take off",
+                           "escape", "escaped", "jumped"],
+    ("action", "turn"): ["turn", "turned", "turning"],
+    ("action", "walk_forward"): ["walk", "walked", "walking"],
+    ("action", "walk_backward"): ["back away", "backed away"],
+    ("event", "sleep"): ["sleep", "slept", "asleep", "sleeping"],
+}
+_TERM_RE = sorted(((t, lab) for lab, ts in TERMS.items() for t in ts), key=lambda x: -len(x[0]))
+EXPERIENCE_VERBS = r"\b(saw|see|seen|seeing|smell|smelled|smelt|taste|tasted|felt|feel|feeling|" \
+                   r"heard|hear|ate|visited|went|met|remember|remembered|touched|chased|" \
+                   r"caught|played|watched|found|was|were|had)\b"
+FIRST_PERSON = re.compile(r"\b(i|i'm|i've|i'd|me|my|myself)\b")
+NEGATION = re.compile(r"\b(not|no|never|nothing|don't|didn't|haven't|can't|cannot|isn't|wasn't)\b|n't\b")
+
+
+def claims_of(sentence):
+    """Labels a first-person sentence asserts (negated clauses excluded)."""
+    s = " " + sentence.lower() + " "
+    found = set()
+    for clause in re.split(r"[,;:]| but | and | or ", s):
+        if NEGATION.search(clause):
+            continue
+        c = " " + clause + " "
+        for t, lab in _TERM_RE:
+            if re.search(r"(?<![a-z])" + re.escape(t) + r"(?![a-z])", c):
+                found.add(lab)
+                c = c.replace(t, " ")
+        for w in re.findall(r"'([a-z]+)'", clause):
+            found.add(("word", w))
+    return found
+
+
+def check_reply(reply, supported):
+    """Unsupported first-person experiential claims in `reply`.
+    supported: set of labels the records contain. Returns a list of problems."""
+    probs = []
+    for sent in re.split(r"(?<=[.!?])\s+|\n", reply):
+        low = sent.lower()
+        if not FIRST_PERSON.search(low):
+            continue
+        cl = claims_of(sent)
+        bad = sorted(l for l in cl if l not in supported and
+                     not (l[0] == "action" and ("event", l[1]) in supported))
+        if bad:
+            probs.append({"sentence": sent.strip(), "unsupported": [list(b) for b in bad]})
+        elif not cl and re.search(EXPERIENCE_VERBS, low) and not NEGATION.search(low) \
+                and re.search(r"\b(remember|saw|smelled|tasted|visited|met|ate|went|heard|felt)\b", low):
+            probs.append({"sentence": sent.strip(), "unsupported": [["experience", "unrecorded"]]})
+    return probs
+
+
+def ago(dt):
+    if dt < 3:
+        return "just now"
+    if dt < 20:
+        return "a few seconds ago"
+    if dt < 90:
+        return "about a minute ago"
+    if dt < 600:
+        return f"about {int(round(dt / 60))} minutes ago"
+    return "a long while ago"
+
+
+def feeling(v):
+    if v > 0.3:
+        return "drawn toward it"
+    if v < -0.3:
+        return "inclined to keep away from it"
+    return ""
+
+
+# ------------------------------------------------------------------ LM activity taps
+class LayerTap:
+    """Records a fixed sample of hidden units per layer, per forward call,
+    so the Lab can show the language model 'firing'."""
+
+    def __init__(self, layers, d, n_units=48, seed=0, keep=64):
+        self.idx = np.random.default_rng(seed).choice(d, min(n_units, d), replace=False)
+        self.cur = [None] * len(layers)
+        self.frames = deque(maxlen=keep)
+        self.hooks = [l.register_forward_hook(self._hook(i)) for i, l in enumerate(layers)]
+
+    def _hook(self, i):
+        def f(mod, inp, out):
+            h = out[0] if isinstance(out, tuple) else out
+            v = h[0, -1].detach().float().abs().cpu().numpy()[self.idx]
+            self.cur[i] = v / (np.median(np.abs(v)) + 1e-6)
+            if i == len(self.cur) - 1:
+                self.frames.append(np.stack(self.cur).astype(np.float16))
+        return f
+
+
+# ------------------------------------------------------------------ the conversational LM
+class Talker:
+    def __init__(self, path=QWEN, threads=None):
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        if threads:
+            torch.set_num_threads(threads)
+        self.torch = torch
+        self.tok = AutoTokenizer.from_pretrained(path)
+        self.lm = AutoModelForCausalLM.from_pretrained(path, dtype=torch.bfloat16)
+        self.lm.eval()
+        layers = self.lm.model.layers
+        self.tap = LayerTap(layers, self.lm.config.hidden_size)
+        self.n_layers = len(layers)
+        self.name = path.name
+
+    def generate(self, messages, max_new_tokens=90, temperature=0.4, seed=0):
+        torch = self.torch
+        ids = self.tok.apply_chat_template(messages, add_generation_prompt=True,
+                                           return_tensors="pt", return_dict=True)
+        torch.manual_seed(seed)
+        with torch.no_grad():
+            out = self.lm.generate(**ids, max_new_tokens=max_new_tokens,
+                                   do_sample=temperature > 0, temperature=max(temperature, 1e-3),
+                                   top_p=0.9, repetition_penalty=1.05,
+                                   pad_token_id=self.tok.eos_token_id)
+        return self.tok.decode(out[0, ids["input_ids"].shape[1]:], skip_special_tokens=True).strip()
+
+
+PERSONA = """You are the voice of a small fruit fly, Drosophila melanogaster, living in a little arena with a sugar drop, a water drop, a bitter patch and a warm lamp. Your body and brain are simulated; the FACTS below are read from your own brain and body right now. They are your only memories and experiences.
+
+How you speak:
+- First person, short and simple: one to three sentences. You are calm, curious and at peace.
+- Talk about what you sense, do, need and remember ONLY as the FACTS state it. If the FACTS do not contain it, say you did not sense it or do not remember it. Never invent sensations, places or events.
+- Your senses: taste (sweet, bitter, water, salt), smell (fruit, mold, CO2), wind and sound through your antennae, warmth and cold, damp or dry air, and shadows passing over you. You cannot see colours, faces or objects, and you do not know human places.
+- You may share general knowledge from language, but say it is something you know from words, not something you lived.
+- Quoted words like 'zap' are sounds you heard through your word sense."""
+
+
+class Mind:
+    def __init__(self, life, talker=None, log=True):
+        self.life = life
+        self.talker = talker
+        self.history = deque(maxlen=6)          # (user, fly) turns
+        self.lock = threading.Lock()
+        self.log_path = None
+        if log:
+            LOG_DIR.mkdir(parents=True, exist_ok=True)
+            self.log_path = LOG_DIR / f"conv_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
+        self.last = None
+        self.phase = "living"
+
+    # ---------------------------------------------------------- facts
+    def facts(self, t_heard, heard_concepts, heard_words, moments, recalled):
+        L = self.life
+        w = L.world
+        n = w.needs
+        now = moments[-1] if moments else None
+        sup = set()
+        lines = ["FACTS (from your brain and body):"]
+        said_now = [m.said for m in moments if m.said and m.said != "..."]
+        if said_now:
+            lines.append(f"- Right now your brain reports: {' '.join(dict.fromkeys(said_now))}")
+            for m in moments:
+                sup |= {tuple(l) for l in m.labels}
+        else:
+            lines.append("- Right now your brain reports nothing in particular.")
+        acts = {}
+        for m in moments:
+            for k, v in m.actions.items():
+                acts[k] = max(acts.get(k, 0.0), v)
+        doing = [k for k, v in acts.items() if v >= 5.0]
+        for k in doing:
+            sup.add(("action", k))
+        if doing:
+            lines.append(f"- Your motor neurons: {', '.join(k.replace('_', ' ') for k in doing)}.")
+        if heard_concepts or heard_words:
+            ev = ", ".join(list(heard_concepts) + [f"'{x}'" for x in heard_words])
+            lines.append(f"- What the visitor said reached your senses as: {ev}.")
+            for x in heard_words:
+                sup.add(("word", x))
+        lines.append(f"- You are {L.place()}; your body is {w.body.mode}.")
+        sup |= {("action", {"walk": "walk_forward"}.get(w.body.mode, w.body.mode)),
+                ("event", w.body.mode)}
+        for k in ("sugar", "water", "bitter"):
+            if k in L.place():
+                sup.add(("percept", k))
+        if "lamp" in L.place():
+            sup.add(("percept", "heat"))
+        needs = []
+        if n.hunger >= 0.5:
+            needs.append("hungry"); sup.add(("percept", "hungry"))
+        if n.thirst >= 0.5:
+            needs.append("thirsty"); sup.add(("percept", "thirsty"))
+        if n.content > 0.3:
+            needs.append("content after eating")
+        if n.asleep:
+            needs.append("drowsy"); sup.add(("event", "sleep"))
+        lines.append(f"- Body: {', '.join(needs) if needs else 'not hungry, not thirsty'}.")
+        if now is not None and feeling(now.valence):
+            lines.append(f"- Your mushroom body leaves you {feeling(now.valence)}.")
+        # recent life
+        recent = [(t, txt) for t, txt in L.aloud if t >= w.t - 60 and t < t_heard]
+        evs = [(t, e) for t, e in L.events if t >= w.t - 60]
+        if recent:
+            lines.append("- In the last minute you said: " + " | ".join(f"{txt} ({ago(w.t - t)})" for t, txt in recent[-4:]))
+            for _, txt in recent:
+                sup |= parse_utterance(txt)
+        if evs:
+            lines.append("- Things that happened to you: " + ", ".join(f"{e} ({ago(w.t - t)})" for t, e in evs[-5:]))
+            for _, e in evs:
+                sup.add(("event", e))
+                sup.add(("action", {"feed": "feed", "escape": "escape", "groom": "groom"}.get(e, e)))
+                if e == "shadow":
+                    sup.add(("percept", "shadow"))
+        if recalled:
+            lines.append("- The visitor's words brought back these memories (re-evoked brain states):")
+            for ep, score, rel in recalled:
+                bits = [f"{ago(w.t - ep.t)}", ep.place]
+                if ep.event:
+                    bits.append(f"you {ep.event}")
+                lines.append(f"  * {ep.speech if ep.speech != '...' else '(nothing said)'} "
+                             f"[{'; '.join(bits)}; match {rel:.2f}]")
+                sup |= parse_utterance(ep.speech)
+                if ep.event:
+                    sup.add(("event", ep.event)); sup.add(("action", ep.event))
+                for x in ep.heard:
+                    sup.add(("word", x))
+                for k in ("sugar", "water", "bitter"):
+                    if k in ep.place:
+                        sup.add(("percept", k))
+        else:
+            lines.append("- No stored memory matched the visitor's words.")
+        return "\n".join(lines), sup
+
+    # ---------------------------------------------------------- a turn
+    def respond(self, text, live_s=1.0):
+        with self.lock:
+            L = self.life
+            t_heard = L.world.t
+            self.phase = "listening"
+            concepts, words, reward = L.hear(text)
+            n0 = len(L.moments)
+            L.live(live_s)
+            moments = list(L.moments)[n0:]
+            # re-evocation cue: the window after the words reached the brain
+            ep_cue = L.memory.eps[-1] if L.memory.eps and L.memory.eps[-1].t >= t_heard else None
+            recalled = []
+            if ep_cue is not None:
+                recalled = L.memory.retrieve(L.world.t, kc=ep_cue.kc, feat=ep_cue.feat,
+                                             k=3, before_t=t_heard - 2.0)
+            facts, sup = self.facts(t_heard, concepts, words, moments, recalled)
+            grounded = " ".join(dict.fromkeys(m.said for m in moments if m.said != "...")) or "..."
+            reply, verdict, attempts = grounded, "grounded-only", []
+            self.phase = "thinking"
+            if self.talker is not None:
+                msgs = [{"role": "system", "content": PERSONA + "\n\n" + facts}]
+                for u, f_ in self.history:
+                    msgs += [{"role": "user", "content": u}, {"role": "assistant", "content": f_}]
+                msgs.append({"role": "user", "content": text})
+                for k in range(3):
+                    r = self.talker.generate(msgs, seed=k)
+                    probs = check_reply(r, sup)
+                    attempts.append({"reply": r, "problems": probs})
+                    if not probs:
+                        reply, verdict = r, "verified" if k == 0 else f"verified after {k} retries"
+                        break
+                    msgs = msgs + [{"role": "assistant", "content": r},
+                                   {"role": "user", "content": "(That reply described things your FACTS do not contain: "
+                                    + "; ".join(p["sentence"] for p in probs)
+                                    + ". Answer again using only the FACTS.)"}]
+                else:
+                    reply, verdict = self.fallback(moments, recalled), "fallback"
+            self.history.append((text, reply))
+            rec = {"t": round(t_heard, 2), "you": text, "fly": reply, "verdict": verdict,
+                   "grounded": grounded, "heard": {"concepts": concepts, "words": words, "reward": reward},
+                   "facts": facts, "supported": sorted(map(list, sup)), "attempts": attempts,
+                   "recalled": [{"i": e.i, "t": e.t, "speech": e.speech, "rel": round(r_, 3),
+                                 "hash": e.hash} for e, _, r_ in recalled]}
+            self.last = rec
+            if self.log_path:
+                with open(self.log_path, "a") as fh:
+                    fh.write(json.dumps(rec, default=str) + "\n")
+            L._emit("reply", {"t": rec["t"], "you": text, "text": reply, "verdict": verdict})
+            return rec
+
+    def fallback(self, moments, recalled):
+        said = [m.said for m in moments if m.said and m.said != "..."]
+        out = said[-1] if said else "..."
+        if recalled:
+            ep = recalled[0][0]
+            out += f" i remember: {ep.speech} ({ago(self.life.world.t - ep.t)}, {ep.place})."
+        return out
+
+
+def main():
+    import argparse
+    from superfly.life import Life
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--warm", type=float, default=30.0, help="seconds of life before talking")
+    ap.add_argument("--no-lm", action="store_true")
+    ap.add_argument("--script", default=None)
+    a = ap.parse_args()
+    life = Life()
+    life.listeners.append(lambda k, p: print(f"   [{p['t']:6.1f}s] FLY (aloud): {p['text']}", flush=True)
+                          if k == "say" else None)
+    print(f"living {a.warm:.0f} s first ...", flush=True)
+    life.live(a.warm)
+    mind = Mind(life, None if a.no_lm else Talker(threads=4))
+    lines = open(a.script).read().splitlines() if a.script else None
+    while True:
+        if lines is not None:
+            if not lines:
+                break
+            text = lines.pop(0).strip()
+            if not text:
+                continue
+            print(f"YOU: {text}")
+        else:
+            try:
+                text = input("YOU: ").strip()
+            except EOFError:
+                break
+            if not text:
+                break
+        r = mind.respond(text)
+        print(f"FLY: {r['fly']}   [{r['verdict']}; brain said: {r['grounded']}]", flush=True)
+
+
+if __name__ == "__main__":
+    main()

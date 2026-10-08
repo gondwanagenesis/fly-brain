@@ -45,7 +45,7 @@ class SuperFly:
     def __init__(self, atlas: Atlas | None = None, *, word_pns=150, xmb=0,
                  xmb_share=0.5, plasticity=True, seed=0, threads=None,
                  model=None, gain=None, terminals=False, plasticity_kw=None,
-                 da_modulatory=None, verbose=True):
+                 da_modulatory=None, drives=(), verbose=True):
         t0 = time.perf_counter()
         self.atlas = at = atlas or Atlas()
         conn = load_connectome(at) if (word_pns or xmb or plasticity) else None
@@ -70,6 +70,8 @@ class SuperFly:
                 sensory.update(int(x) for x in at[p].ids)
         if self.g_words is not None:
             sensory.update(int(x) for x in self.g_words.ids)
+        for p in drives:                     # extra driven populations (interoception)
+            sensory.update(int(x) for x in at[p].ids)
         kw = {} if model is None else {"model": model}
         self.e = e = SuperflyEngine(sensory_ids=sorted(sensory), seed=seed,
                                     threads=threads, gain=gain,
@@ -80,6 +82,7 @@ class SuperFly:
         for c in CONCEPTS:
             slots = np.concatenate([at[p].idx(e) for p in c.pops])
             self.concept_pos[c.key] = e.stim_positions(slots)
+        self.drive_pos = {p: e.stim_positions(at[p].idx(e)) for p in drives}
         self.word_pos = None
         if self.g_words is not None:
             self.word_pos = e.stim_positions(e.indices_of(self.g_words.ids))

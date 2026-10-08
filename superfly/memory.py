@@ -87,7 +87,7 @@ class EpisodicStore:
         return bad
 
     def retrieve(self, now_t, kc=None, feat=None, k=3, w_kc=1.0, w_feat=1.0,
-                 w_rec=0.3, w_imp=0.5, tau_rec=600.0, min_rel=0.15):
+                 w_rec=0.3, w_imp=0.5, tau_rec=600.0, min_rel=0.15, before_t=None):
         """Score = relevance (KC Jaccard and/or central-brain cosine) +
         recency + importance; returns [(episode, score, relevance)].
         Episodes below `min_rel` relevance are never returned -- an
@@ -112,7 +112,7 @@ class EpisodicStore:
         score = rel + w_rec * rec + w_imp * imp
         order = np.argsort(-score)
         out = [(self.eps[j], float(score[j]), float(rel[j])) for j in order
-               if rel[j] >= min_rel][:k]
+               if rel[j] >= min_rel and (before_t is None or self.eps[j].t < before_t)][:k]
         return out
 
     def recent(self, n=5):

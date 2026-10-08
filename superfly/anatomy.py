@@ -268,6 +268,14 @@ class Atlas:
                   "feeding: Shiu et al. 2024 readout")
         self._add("motor.all", self.select(super_class=["motor", "endocrine"]),
                   "action", "super_class in motor|endocrine")
+        # ---- interoception: where body state enters the brain (review 06 s3)
+        for name, t, role in [
+                ("intero.hunger", "MBON11", "hunger raises MBON11 ('hangry' neuron; Wang et al. 2026)"),
+                ("intero.satiety", "PPL101", "satiety drives PPL101 (Tsao et al. 2018; Wang et al. 2026)"),
+                ("intero.ISN", "ISN", "interoceptive SEZ neurons: AKH (hunger) up, osmolality (thirst) down (Jourjine et al. 2016)"),
+                ("intero.thirst", "ITP", "ITP neurons, thirst / drinking (Galikova et al. 2018)")]:
+            self._add(name, self.select(cell_type=t), "interoception",
+                      f"cell_type=={t!r}", role)
 
     def _build_regions(self):
         a, N = self.ann, self.N

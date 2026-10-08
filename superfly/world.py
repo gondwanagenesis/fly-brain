@@ -175,8 +175,8 @@ class World:
             for side in ("left", "right"):
                 out[(b.on, side)] = 100.0 * g
         if self.loom > 0:
-            out[("loom", "left" if self.loom_side > 0 else "right")] = 120.0
-            out[("loom", "right" if self.loom_side > 0 else "left")] = 60.0
+            out[("shadow", "left" if self.loom_side > 0 else "right")] = 120.0
+            out[("shadow", "right" if self.loom_side > 0 else "left")] = 60.0
         if n.asleep:                                     # sleep gates sensation
             out = {k: v * 0.25 for k, v in out.items()}
         return out

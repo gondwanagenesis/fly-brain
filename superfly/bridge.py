@@ -60,6 +60,10 @@ PERCEPT = {
     "cold": ["cold", "it is cold"],
     "dry": ["dry air"],
     "humid": ["damp air"],
+    "shadow": ["a shadow", "something above me", "a dark shape"],
+    # interoceptive states (body -> MBON11/PPL101/ISN/ITP; superfly/life.py)
+    "hungry": ["i am hungry"],
+    "thirsty": ["i am thirsty"],
 }
 ACT = {
     "feed": ["i want to eat", "i extend my proboscis"],
@@ -137,7 +141,8 @@ def human_sentence(rng, concept_keys, words_pool):
     from superfly.language import CONCEPT
     target = np.zeros(len(concept_keys), np.float32)
     parts, reward, word = [], 0.0, ""
-    for k in rng.choice(concept_keys, rng.choice([0, 1, 1, 1, 2]), replace=False):
+    hearable = [k for k in concept_keys if k in CONCEPT]   # you can't talk a fly hungry
+    for k in rng.choice(hearable, rng.choice([0, 1, 1, 1, 2]), replace=False):
         syn = str(rng.choice(CONCEPT[str(k)].words))
         t = str(rng.choice(HEAR_TEMPLATES))
         parts.append(str(rng.choice(FILLER)) + t.format(s=syn))
@@ -374,8 +379,8 @@ def train_pretrained(D, model_dir="/home/user/models/SmolLM2-360M-Instruct",
     return proj, (lm, tok), speak
 
 
-def main(which="tiny"):
-    D = load()
+def main(which="tiny", corpus=None, tag=""):
+    D = load(corpus)
     print(f"corpus: {len(D['X'])} episodes, {D['X'].shape[1]} varying features, "
           f"fly model {D['model']} gain {D['gain']}", flush=True)
     probe = linear_probe(D)
@@ -384,8 +389,8 @@ def main(which="tiny"):
         m, vocab, speak = train_tiny(D)
         info = {"voice": "FlyLM from scratch", "params": n_params(m)}
         torch.save({"state": m.state_dict(), "cfg": m.c.__dict__, "vocab": vocab.state_dict(),
-                    "mu": D["mu"], "sd": D["sd"], "keep": D["keep"]},
-                   CACHE / "flylm_tiny.pt")
+                    "mu": D["mu"], "sd": D["sd"], "keep": D["keep"], "ck": D["ck"]},
+                   CACHE / f"flylm_tiny{tag}.pt")
     else:
         proj, _, speak = train_pretrained(D)
         info = {"voice": "SmolLM2-360M frozen + neural prefix",
@@ -395,7 +400,7 @@ def main(which="tiny"):
     rep = fly_mind_tests(speak, D)
     rep.update(info, linear_probe=probe, fly_model=D["model"], fly_gain=D["gain"])
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / f"bridge_{which}.json").write_text(json.dumps(rep, indent=1, default=str))
+    (OUT / f"bridge_{which}{tag}.json").write_text(json.dumps(rep, indent=1, default=str))
     print(json.dumps({k: v for k, v in rep.items() if k != "examples"}, indent=1, default=str))
     for ex in rep["examples"][:8]:
         print("   truth:", ex["truth"], "\n   said :", ex["said"])
@@ -403,4 +408,5 @@ def main(which="tiny"):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "tiny")
+    a = sys.argv[1:]
+    main(a[0] if a else "tiny", a[1] if len(a) > 1 else None, a[2] if len(a) > 2 else "")
