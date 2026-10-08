@@ -112,11 +112,11 @@ def main():
     ap.add_argument("--once", default=None)
     ap.add_argument("--script", default=None, help="file with one line per turn")
     ap.add_argument("--learn", action="store_true",
-                    help="dopamine-gated learning on (a slightly different "
-                         "network from the one the bundled voice was trained on)")
+                    help="dopamine-gated KC->MBON learning on (praise/scolding teach)")
     a = ap.parse_args()
     voice = TinyVoice()
-    fly = SuperFly(plasticity=a.learn)
+    fly = SuperFly(plasticity=True)          # the network the voice was trained on
+    fly.mb.enabled = bool(a.learn)           # learning only when asked
     if a.once:
         turn(fly, voice, a.once)
         return

@@ -54,7 +54,11 @@ def episode_plan(rng):
 
 def main(n_ep=600, out=None, seed=0, ms=250.0, settle=50.0):
     rng = np.random.default_rng(seed)
-    fly = SuperFly(plasticity=False, seed=seed)
+    # The final SUPERFLY network: dopamine acts through plasticity (no fast
+    # DAN->KC/MBON excitation), with learning switched OFF while recording, so
+    # the voice is trained on exactly the brain `chat --learn` runs.
+    fly = SuperFly(plasticity=True, seed=seed)
+    fly.mb.enabled = False
     e = fly.e
     kc = fly.atlas["mb.KC"].idx(e)
     sens = (fly.atlas.ann.super_class == "sensory").to_numpy(bool)

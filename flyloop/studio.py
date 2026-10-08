@@ -90,7 +90,8 @@ class Sim:
             sys.path.insert(0, str(ROOT))
             from superfly.fly import SuperFly
             from superfly.chat import TinyVoice
-            self.superfly = SuperFly(threads=threads, plasticity=False)
+            self.superfly = SuperFly(threads=threads, plasticity=True)
+            self.superfly.mb.enabled = False     # learning off unless asked
             self.voice = TinyVoice()
             self.engine = self.superfly.e
         else:
