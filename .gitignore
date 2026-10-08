@@ -49,8 +49,11 @@ data/model_cache/
 !data/results/verify_all.txt
 !data/results/fanout_profile.txt
 !data/results/fanout_bench.txt
+# SUPERFLY evidence (small CSV/JSON); logs stay local
+!data/results/superfly/
+data/results/superfly/**/*.log
 
 # Event-driven fan-out table (182 MB), rebuilt by code/build_fanout_csc.py
 data/fanout_csc.pt
-# uplift run artefacts
-data/uplift_cache/
+# SUPERFLY run artefacts
+data/superfly_cache/

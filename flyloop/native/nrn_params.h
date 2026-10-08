@@ -25,7 +25,8 @@ enum {
     M_RAF       = 6,   /* Izhikevich 2001 resonate-and-fire (exactly rotated)  */
     M_HH        = 7,   /* Hodgkin & Huxley 1952, Rush-Larsen gates             */
     M_GLIF      = 8,   /* adaptive-threshold LIF (Allen Institute GLIF-3 form) */
-    M_COUNT     = 9
+    M_LIFA      = 9,   /* LIF + spike-frequency adaptation current (flybench) */
+    M_COUNT     = 10
 };
 
 /* Number of auxiliary per-neuron state arrays each model needs, beyond the
@@ -40,6 +41,7 @@ static const int NRN_NAUX[M_COUNT] = {
     1,  /* raf: y (imaginary part)  */
     4,  /* hh: m, h, n, armed       */
     1,  /* glif: theta              */
+    1,  /* lif_adapt: a (mV)        */
 };
 
 /* HH's fourth slot is not a gating variable. It is the spike DETECTOR's
@@ -119,6 +121,14 @@ typedef struct {
     float gl_thdecay;   /* exp(-dt/tau_theta)                             */
     float gl_th_inf;    /* asymptotic threshold                           */
     float gl_th_jump;   /* per-spike threshold increment                  */
+
+    /* --- 9: LIF + spike-frequency adaptation ----------------------------
+     * tau_m dv/dt = (v_rest - v) + g - a;  a <- a exp(-dt/tau_a); spike: a += b.
+     * The adaptive LIF of flybench (models/adaptive_lif.py), the best-scoring
+     * FlyWire model on that benchmark as of 2026-09. Membrane is forward Euler
+     * with c_mem, synapse decays by g_decay, exactly as flybench integrates it. */
+    float la_adecay;    /* exp(-dt/tau_a)                                 */
+    float la_b;         /* adaptation added per spike (mV)                */
 } nrn_params;
 
 #endif /* FLY_NRN_PARAMS_H */

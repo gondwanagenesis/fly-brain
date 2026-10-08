@@ -6,9 +6,9 @@ dopamine neurons (does the fly have its own teaching signal?), MBONs, the
 descending neurons by behaviour, and MN9. The model has no spontaneous
 activity, so the response IS the signal -- there is no baseline to subtract.
 
-    python -m uplift.experiments.probe_senses [ms] [hz]
+    python -m superfly.experiments.probe_senses [ms] [hz]
 
-Writes data/results/uplift/probe_senses.csv and prints the table.
+Writes data/results/superfly/probe_senses.csv and prints the table.
 """
 from __future__ import annotations
 
@@ -18,10 +18,10 @@ import time
 import numpy as np
 import pandas as pd
 
-from uplift.anatomy import Atlas, REGIONS
-from uplift.engine import UpliftEngine, Readout, ROOT
+from superfly.anatomy import Atlas, REGIONS
+from superfly.engine import SuperflyEngine, Readout, ROOT
 
-OUT = ROOT / "data" / "results" / "uplift"
+OUT = ROOT / "data" / "results" / "superfly"
 
 CHANNELS = {
     "sugar (annotated LB3c)":  ["taste.sugar"],
@@ -55,7 +55,7 @@ def sensory_union(at):
 
 def main(ms=500.0, hz=150.0):
     at = Atlas()
-    eng = UpliftEngine(sensory_ids=sensory_union(at), seed=3)
+    eng = SuperflyEngine(sensory_ids=sensory_union(at), seed=3)
     reg_slots = at.region_slots(eng)
     groups = {p: at[p].idx(eng) for p in READ}
     for i, (k, _, _) in enumerate(REGIONS):

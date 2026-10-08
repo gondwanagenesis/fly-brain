@@ -1,10 +1,10 @@
-"""UpliftedFly: the whole stack around one fly brain.
+"""SuperFly: the whole stack around one fly brain.
 
-    L0  the fly        UpliftEngine (native 138,639-neuron kernel, untouched)
+    L0  the fly        SuperflyEngine (native 138,639-neuron kernel, untouched)
     L1  its learning   MBPlasticity (dopamine-gated KC->MBON)
     L2  its interface  senses in (sensory port), readouts out
     L3  its grafts     word-sense PNs (+ optional expanded mushroom body)
-    L4  its voice      uplift/flylm.py / uplift/language.py, outside this file
+    L4  its voice      superfly/flylm.py / superfly/language.py, outside this file
 
 Everything the layers above may know about the fly comes from ``observe()``,
 which reads spike counts and nothing else.
@@ -16,11 +16,11 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from uplift.anatomy import Atlas, REGIONS
-from uplift.engine import UpliftEngine, Readout
-from uplift.graft import GraftBuilder, load_connectome
-from uplift.language import CONCEPTS, CONCEPT, ACTIONS
-from uplift.plasticity import MBPlasticity
+from superfly.anatomy import Atlas, REGIONS
+from superfly.engine import SuperflyEngine, Readout
+from superfly.graft import GraftBuilder, load_connectome
+from superfly.language import CONCEPTS, CONCEPT, ACTIONS
+from superfly.plasticity import MBPlasticity
 
 # Feature space for the voice: mean rate per CELL TYPE, over the cell classes
 # below. Sensory neurons are excluded on purpose -- a percept has to reach the
@@ -41,7 +41,7 @@ class Observation:
     spikes: int
 
 
-class UpliftedFly:
+class SuperFly:
     def __init__(self, atlas: Atlas | None = None, *, words=32, xmb=0,
                  xmb_share=0.5, plasticity=True, seed=0, threads=None,
                  verbose=True):
@@ -59,7 +59,7 @@ class UpliftedFly:
                 sensory.update(int(x) for x in at[p].ids)
         if self.g_words is not None:
             sensory.update(int(x) for x in self.g_words.ids)
-        self.e = e = UpliftEngine(sensory_ids=sorted(sensory), seed=seed,
+        self.e = e = SuperflyEngine(sensory_ids=sorted(sensory), seed=seed,
                                   threads=threads,
                                   extend=gb.extender() if gb.grafts else None)
         # ---- concept -> positions in the stimulated set
@@ -106,7 +106,7 @@ class UpliftedFly:
         self._last = e.counts.copy()
         self._t_last = e.t_ms
         if verbose:
-            print(f"UpliftedFly: {e.n_native} native + {e.N - e.n_native} grafted "
+            print(f"SuperFly: {e.n_native} native + {e.N - e.n_native} grafted "
                   f"neurons, {len(self.feat_names)} cell-type features, "
                   f"plastic edges {self.mb.n_edges if self.mb else 0}, "
                   f"built in {time.perf_counter() - t0:.1f}s", flush=True)

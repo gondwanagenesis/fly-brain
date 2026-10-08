@@ -27,11 +27,11 @@ Three rules make the fly, not the LLM, the author:
      every concept the utterance mentions back to a frame slot. An unsupported
      claim fails the turn and falls back to the template realiser.
   3. Silence is a valid answer. An empty frame must produce no content -- the
-     "silenced fly" test in uplift/metrics.py checks the LLM does not fill it.
+     "silenced fly" test in superfly/metrics.py checks the LLM does not fill it.
 
 Backends: ``TemplateBackend`` (no LLM; deterministic; the baseline every
 metric is compared against), ``ClaudeBackend`` (Anthropic API) and, in
-uplift/llm_local.py, a local model through Ollama.
+superfly/llm_local.py, a local model through Ollama.
 """
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ from dataclasses import dataclass, field, asdict
 
 # --------------------------------------------------------------------------
 # What a fly can perceive, in words. Each concept names the sensory
-# populations (uplift/anatomy.py) that carry it. Nothing outside this table
+# populations (superfly/anatomy.py) that carry it. Nothing outside this table
 # can be delivered to the fly except through the grafted word-sense.
 # --------------------------------------------------------------------------
 @dataclass(frozen=True)
@@ -306,7 +306,7 @@ class ClaudeBackend:
         import anthropic          # optional dependency
         self.anthropic = anthropic
         self.client = anthropic.Anthropic()
-        self.model = model or os.environ.get("UPLIFT_LLM_MODEL", "claude-opus-5-5")
+        self.model = model or os.environ.get("SUPERFLY_LLM_MODEL", "claude-opus-5-5")
         self.effort = effort
 
     def _create(self, **kw):
@@ -343,13 +343,13 @@ class ClaudeBackend:
 
 
 def make_backend(name=None):
-    name = (name or os.environ.get("UPLIFT_LLM", "template")).lower()
+    name = (name or os.environ.get("SUPERFLY_LLM", "template")).lower()
     if name == "template":
         return TemplateBackend()
     if name == "claude":
         return ClaudeBackend()
     if name in ("ollama", "local"):
-        from uplift.llm_local import OllamaBackend
+        from superfly.llm_local import OllamaBackend
         return OllamaBackend()
     raise ValueError(f"unknown backend {name!r}")
 

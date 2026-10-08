@@ -56,7 +56,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 # ---------------------------------------------------------------- model ids
-M_LIF_EULER, M_LIF_EXACT, M_IZH, M_ADEX, M_EIF, M_QIF, M_RAF, M_HH, M_GLIF = range(9)
+M_LIF_EULER, M_LIF_EXACT, M_IZH, M_ADEX, M_EIF, M_QIF, M_RAF, M_HH, M_GLIF, M_LIFA = range(10)
 
 MODEL_IDS = {
     "lif_euler": M_LIF_EULER,
@@ -68,13 +68,14 @@ MODEL_IDS = {
     "raf": M_RAF,
     "hh": M_HH,
     "glif": M_GLIF,
+    "lif_adapt": M_LIFA,
 }
 MODEL_NAMES = {v: k for k, v in MODEL_IDS.items()}
 
 # Auxiliary state arrays beyond (v, g). Must match NRN_NAUX in nrn_params.h.
 N_AUX = {
     M_LIF_EULER: 0, M_LIF_EXACT: 0, M_IZH: 1, M_ADEX: 1,
-    M_EIF: 0, M_QIF: 0, M_RAF: 1, M_HH: 4, M_GLIF: 1,
+    M_EIF: 0, M_QIF: 0, M_RAF: 1, M_HH: 4, M_GLIF: 1, M_LIFA: 1,
 }
 
 
@@ -114,6 +115,7 @@ class NrnParams(ctypes.Structure):
         ("hh_shift", ctypes.c_float),
         ("gl_thdecay", ctypes.c_float), ("gl_th_inf", ctypes.c_float),
         ("gl_th_jump", ctypes.c_float),
+        ("la_adecay", ctypes.c_float), ("la_b", ctypes.c_float),
     ]
 
 
@@ -522,7 +524,7 @@ def build(key, dt=0.1, calibrated=True, n_sub=None):
     # and skipping it would silently freeze that drift.
     spec.extra["can_skip_tiles"] = bool(ok)
 
-    if calibrated and spec.mid not in (M_LIF_EULER, M_LIF_EXACT, M_GLIF):
+    if calibrated and spec.mid not in (M_LIF_EULER, M_LIF_EXACT, M_GLIF, M_LIFA):
         k = hit["k_in"] if hit else calibrate(spec, dt)
         spec.params.k_in = _f32(k)
     spec.extra["k_in"] = float(spec.params.k_in)
@@ -843,6 +845,27 @@ def _b_glif(dt):
         flops="~7", exact="yes (both states)")
 
 
+def _b_lif_adapt(dt, b_mv=2.0, tau_a_ms=200.0):
+    P = _base(dt)
+    P.reset_g = 1
+    P.la_adecay = _f32(math.exp(-dt / tau_a_ms))
+    P.la_b = _f32(b_mv)
+    return ModelSpec(
+        key="lif_adapt", mid=M_LIFA, label="LIF + adaptation",
+        citation=("flybench adaptive LIF (b 2 mV, tau_a 200 ms; Benda & Herz 2003 "
+                  "for the mechanism) -- best FlyWire model on flybench, 2026-09"),
+        equation="τₘ v' = (v_rest − v) + g − a      a ← a·e^(−dt/τₐ)      spike → a += b",
+        note=("Spike-frequency adaptation: every spike adds b mV of slow "
+              "hyperpolarising current that fades over tau_a. A neuron that "
+              "tires leaves the refractory ceiling, which is the failure mode "
+              "behind most of the reference LIF's ignition and saturation "
+              "(flybench FINDINGS 2026-09-16). A hypothesis, not a correction."),
+        n_aux=1, params=P, aux_names=("a",),
+        rest=np.array([V_REST, 0.0], np.float32),
+        init=np.array([V_REST, 0.0], np.float32),
+        flops="~6", exact="Euler membrane, exact synapse and adaptation decay")
+
+
 _BUILDERS = {
     "lif_euler": _b_lif_euler,
     "lif_exact": _b_lif_exact,
@@ -853,6 +876,7 @@ _BUILDERS = {
     "raf": _b_raf,
     "hh": _b_hh,
     "glif": _b_glif,
+    "lif_adapt": _b_lif_adapt,
 }
 
 ALL_MODELS = tuple(_BUILDERS)

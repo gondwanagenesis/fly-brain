@@ -188,11 +188,33 @@ class GraftBuilder:
             self._add(np.full(nk, g.slot0 + i), tgt, rng.choice(syn, nk))
         return g
 
+    # ------------------------------------------------------------- corrections
+    def peripheral_terminals(self, conn=None):
+        """Central synapses cannot fire a sensory neuron.
+
+        Every FlyWire sensory neuron (super_class 'sensory') has its cell body
+        and spike-initiation zone in a peripheral organ -- antenna, labellum,
+        eye, leg. What the connectome contains of it is its AXON TERMINAL
+        arbor in the brain, so every synapse it receives there is axo-axonic:
+        in the fly it modulates transmitter release (e.g. GABAergic
+        presynaptic inhibition of ORNs; Olsen & Wilson 2008) and cannot
+        initiate a spike. A point-neuron LIF cannot tell a terminal input from
+        a dendritic one (flybench FINDINGS, 2026-09-20), so it lets local
+        neurons fire every receptor neuron in the antennal lobe -- the
+        broadcast that destroys odour identity. This removes that input. It
+        needs no synapse positions: for these cells, ALL central input is
+        terminal input. Release modulation itself is not modelled here.
+        """
+        self._block_post = np.flatnonzero(
+            (self.atlas.ann.super_class == "sensory").to_numpy(bool))
+        return self._block_post.size
+
     # ------------------------------------------------------------- build
     def extender(self):
         """The ``extend`` callable for NativeBrainEngine (pre-permutation)."""
         edges = self._edges
         n_total = self.n_total
+        block = getattr(self, "_block_post", None)
 
         def extend(engine):
             N0 = engine.N
@@ -209,6 +231,10 @@ class GraftBuilder:
                 val = np.concatenate([val0, av])
             else:
                 pre, post, val = pre0, post0, val0
+            if block is not None and block.size:
+                cut = np.isin(post, block)
+                engine.n_blocked_edges = int(cut.sum())
+                pre, post, val = pre[~cut], post[~cut], val[~cut]
             key = pre * n_total + post
             o = np.argsort(key, kind="stable")
             key, val = key[o], val[o]
@@ -232,7 +258,7 @@ class GraftBuilder:
 def load_connectome(atlas, data_dir=None):
     """Native (pre, post, signed weight) in CSV index space."""
     import pandas as pd
-    from uplift.anatomy import DATA
+    from superfly.anatomy import DATA
     d = data_dir or DATA
     c = pd.read_parquet(d / "2025_Connectivity_783.parquet",
                         columns=["Presynaptic_Index", "Postsynaptic_Index",

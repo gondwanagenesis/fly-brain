@@ -310,6 +310,24 @@ static inline VF FN(vtrap)(VF x, VF inv_k, VF k)
     VF gn = VMUL(gi, c_alphas);                                               \
     if (reset_g) gn = VSEL(spm, c_zero, gn);
 
+/* --- 9: LIF + spike-frequency adaptation (flybench adaptive LIF) -----
+ * One extra state, a (mV), subtracted from the drive. Forward-Euler membrane,
+ * exponential synapse, the adaptation current decaying after the membrane has
+ * used it and stepping up by b on each spike -- the same order of operations
+ * as flybench.models.adaptive_lif, so the two describe one model. At rest a is
+ * exactly 0 and stays 0, so (v_rest, 0, 0) is a bit-level fixed point and
+ * inert tiles are still skippable. */
+#define BODY_LIFA                                                             \
+    VF av = VLOADM(a0 + i, lanem);                                            \
+    VF vn = VFMA(VSUB(VSUB(gi, VSUB(vv, c_vrest)), av), c_cmem, vv);          \
+    av = VMUL(av, c_ladec);                                                   \
+    VF gn = VMUL(gi, c_gdecay);                                               \
+    VM spm = VGT(vn, c_vth);                                                  \
+    vn = VSEL(spm, c_vreset, vn);                                             \
+    av = VSEL(spm, VADD(av, c_lab), av);                                      \
+    VSTOREM(a0 + i, lanem, av);                                               \
+    if (reset_g) gn = VSEL(spm, c_zero, gn);
+
 /* --- 7: Hodgkin & Huxley 1952 ---------------------------------------
  *
  * The only model here with no reset: a spike is a threshold crossing of a real
@@ -430,6 +448,8 @@ static void FN(sweep_tiles)(int model, int t0, int t1,
     const VF c_hhshift = VSET1(P->hh_shift);
     const VF c_glthdec = VSET1(P->gl_thdecay), c_glthinf = VSET1(P->gl_th_inf);
     const VF c_glthjmp = VSET1(P->gl_th_jump);
+    const VF c_cmem = VSET1(P->c_mem);
+    const VF c_ladec = VSET1(P->la_adecay), c_lab = VSET1(P->la_b);
 
     const int nsub = P->n_sub < 1 ? 1 : P->n_sub;
     const int reset_g = P->reset_g;
@@ -448,6 +468,7 @@ static void FN(sweep_tiles)(int model, int t0, int t1,
     case M_RAF:       { RUN_TILES(BODY_RAF)       break; }
     case M_HH:        { RUN_TILES(BODY_HH)        break; }
     case M_GLIF:      { RUN_TILES(BODY_GLIF)      break; }
+    case M_LIFA:      { RUN_TILES(BODY_LIFA)      break; }
     default: break;   /* M_LIF_EULER has its own ATen-seam-faithful path */
     }
 }
@@ -460,4 +481,5 @@ static void FN(sweep_tiles)(int model, int t0, int t1,
 #undef BODY_QIF
 #undef BODY_RAF
 #undef BODY_GLIF
+#undef BODY_LIFA
 #undef BODY_HH

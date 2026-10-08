@@ -6,7 +6,7 @@ rate: (1) when does the AL leave the stimulated glomerulus, (2) how specific
 are uniglomerular PN responses -- the fraction of PN spikes coming from the
 PNs of the stimulated glomerulus -- and (3) how much of the AL is recruited.
 
-    python -m uplift.experiments.probe_olfaction
+    python -m superfly.experiments.probe_olfaction
 """
 from __future__ import annotations
 
@@ -15,10 +15,10 @@ import sys
 import numpy as np
 import pandas as pd
 
-from uplift.anatomy import Atlas
-from uplift.engine import UpliftEngine, ROOT
+from superfly.anatomy import Atlas
+from superfly.engine import SuperflyEngine, ROOT
 
-OUT = ROOT / "data" / "results" / "uplift"
+OUT = ROOT / "data" / "results" / "superfly"
 GLOMS = ["DA1", "DA2", "V", "DM1", "VA1v", "DL3"]
 
 
@@ -31,10 +31,17 @@ def pn_glom(at):
     return ids, gl
 
 
-def main(rates=(10, 25, 50, 100, 150), ms=300.0):
+def main(rates=(25, 50, 100), ms=300.0):
     at = Atlas()
     orn_ids = sorted({int(x) for g in GLOMS for x in at[f"smell.{g}"].ids})
-    e = UpliftEngine(sensory_ids=orn_ids, seed=5)
+    import os
+    extend = None
+    if os.environ.get("SUPERFLY_TERMINALS") == "1":
+        from superfly.graft import GraftBuilder
+        gb = GraftBuilder(at)
+        print("peripheral-terminal correction on", gb.peripheral_terminals(), "sensory neurons")
+        extend = gb.extender()
+    e = SuperflyEngine(sensory_ids=orn_ids, seed=5, extend=extend)
     pid, pgl = pn_glom(at)
     pslot = e.indices_of(pid)
     al = at.select(cell_class=["ALPN", "ALLN", "ALIN", "ALON"])
@@ -71,7 +78,10 @@ def main(rates=(10, 25, 50, 100, 150), ms=300.0):
             print(rows[-1], flush=True)
     df = pd.DataFrame(rows)
     OUT.mkdir(parents=True, exist_ok=True)
-    df.to_csv(OUT / "probe_olfaction.csv", index=False)
+    import os
+    tag = (f"{os.environ.get('SUPERFLY_MODEL','lif_euler')}_g{os.environ.get('SUPERFLY_GAIN','1.0')}"
+           f"{'_term' if os.environ.get('SUPERFLY_TERMINALS') == '1' else ''}")
+    df.to_csv(OUT / f"probe_olfaction_{tag}.csv", index=False)
     print(df.round(3).to_string(index=False))
 
 

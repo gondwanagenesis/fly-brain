@@ -1,4 +1,4 @@
-"""UpliftEngine: the native whole-brain kernel with ports for an uplift.
+"""SuperflyEngine: the native whole-brain kernel with ports for an uplift.
 
 The fly is not reimplemented here. ``NativeBrainEngine`` still steps every
 native neuron with the Shiu et al. LIF equations, the 1.8 ms axonal delay, the
@@ -16,8 +16,8 @@ three ways anything outside the fly is allowed to touch it:
   READOUT        a per-neuron spike counter, from which every population rate,
                  every "thought frame" and every behaviour is decoded.
 
-Invariant, checked by ``uplift/tests/test_identity.py``: with no emitters
-attached and nothing queued, ``UpliftEngine.step`` is ``NativeBrainEngine.step``
+Invariant, checked by ``superfly/tests/test_identity.py``: with no emitters
+attached and nothing queued, ``SuperflyEngine.step`` is ``NativeBrainEngine.step``
 plus a counter increment, so the fly's state stays bit-identical to the plain
 engine under the same drive.
 """
@@ -37,14 +37,14 @@ from native_engine import NativeBrainEngine  # noqa: E402
 DT_MS = 0.1
 
 
-class UpliftEngine(NativeBrainEngine):
+class SuperflyEngine(NativeBrainEngine):
     """Native kernel + sensory port + synaptic port + readout counters.
 
     Parameters beyond NativeBrainEngine's:
       sensory_ids   every neuron the sensory port may ever drive. Fixed at
                     construction (it defines the stimulated set); rates are
                     changed freely afterwards with ``set_rates``.
-      extend        graft hook, see uplift/graft.py.
+      extend        graft hook, see superfly/graft.py.
       poisson_block steps of Poisson drive drawn at once. Small, because a
                     closed loop changes rates every few milliseconds and each
                     change discards the rest of the block.
@@ -52,10 +52,13 @@ class UpliftEngine(NativeBrainEngine):
 
     def __init__(self, data_dir=str(ROOT / "data"), sensory_ids=(), seed=0,
                  threads=None, reorder="cell_type", model="lif_euler",
-                 extend=None, poisson_block=128, rng="numpy"):
+                 extend=None, poisson_block=128, rng="numpy", gain=None):
         import os
-        if threads is None and os.environ.get("UPLIFT_THREADS"):
-            threads = int(os.environ["UPLIFT_THREADS"])
+        if threads is None and os.environ.get("SUPERFLY_THREADS"):
+            threads = int(os.environ["SUPERFLY_THREADS"])
+        model = os.environ.get("SUPERFLY_MODEL", model)
+        if gain is None:
+            gain = float(os.environ.get("SUPERFLY_GAIN", "1.0"))
         self.rng = np.random.default_rng(seed)
         # rng="torch" reproduces NativeBrainEngine's Poisson stream exactly
         # (same generator, same 4096-step block), for the identity gate.
@@ -70,11 +73,21 @@ class UpliftEngine(NativeBrainEngine):
         self._rate_np = np.zeros(0, dtype=np.float32)
         if len(sensory_ids):
             self.set_stim_neurons(list(sensory_ids))
+        self.set_gain(gain)
         self.counts = np.zeros(self.N, dtype=np.int64)   # spikes since t=0
         self.steps = 0
         self._emitters = []      # objects with .emit(engine, prev_spikes)
         self._tickers = []       # (every_steps, obj with .tick(engine))
         self._queue_i, self._queue_v = [], []
+
+    def set_gain(self, gain):
+        """Global multiplier on every recurrent synapse (flybench's `gain`;
+        Shiu et al. = 1.0). Sensory Poisson drive is unaffected: a sensory
+        event is a forced spike, as in flybench."""
+        import ctypes
+        self.gain = float(gain)
+        self.w_scale = np.float32(self.p["wScale"] * self.gain)
+        self._cf["w_scale"] = ctypes.c_float(float(self.w_scale))
 
     # ------------------------------------------------------------ sensory
     def set_stim_neurons(self, flywire_ids):

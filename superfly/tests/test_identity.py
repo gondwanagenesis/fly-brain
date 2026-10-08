@@ -2,16 +2,16 @@
 
 Three comparisons, full state (v, g as raw uint32) and spike trains every step:
 
-  A  NativeBrainEngine                     vs  UpliftEngine(rng="torch")
+  A  NativeBrainEngine                     vs  SuperflyEngine(rng="torch")
      -- the ports and counters alone change nothing
-  B  UpliftEngine                           vs  UpliftEngine + MBPlasticity
+  B  SuperflyEngine                           vs  SuperflyEngine + MBPlasticity
      with learning disabled (no DAN activity reaches it)
      -- a fly that has not learned is the original fly
-  C  UpliftEngine + graft of synthetic neurons that are never driven, on the
+  C  SuperflyEngine + graft of synthetic neurons that are never driven, on the
      native slots only -- appended neurons do not perturb native dynamics
      until they fire.
 
-    python -m uplift.tests.test_identity [steps]
+    python -m superfly.tests.test_identity [steps]
 """
 from __future__ import annotations
 
@@ -20,9 +20,9 @@ import time
 
 import numpy as np
 
-from uplift.anatomy import Atlas, SHIU_SUGAR
-from uplift.engine import UpliftEngine, NativeBrainEngine, ROOT
-from uplift.plasticity import MBPlasticity
+from superfly.anatomy import Atlas, SHIU_SUGAR
+from superfly.engine import SuperflyEngine, NativeBrainEngine, ROOT
+from superfly.plasticity import MBPlasticity
 
 DATA = str(ROOT / "data")
 
@@ -61,15 +61,15 @@ def main(steps=600):
     # A ------------------------------------------------------------------
     nat = NativeBrainEngine(data_dir=DATA, stim_ids=SHIU_SUGAR, seed=7,
                             reorder="cell_type")
-    up = UpliftEngine(DATA, sensory_ids=SHIU_SUGAR, seed=7, rng="torch")
+    up = SuperflyEngine(DATA, sensory_ids=SHIU_SUGAR, seed=7, rng="torch")
     nat.inject(200.0)
     up.inject(200.0)
-    ok &= run_pair(nat, up, steps, nat.N, "A native vs uplift-engine")
+    ok &= run_pair(nat, up, steps, nat.N, "A native vs SuperflyEngine")
     del nat
     # B ------------------------------------------------------------------
     u1 = up
     u1.full_reset()
-    u2 = UpliftEngine(DATA, sensory_ids=SHIU_SUGAR, seed=7, rng="torch")
+    u2 = SuperflyEngine(DATA, sensory_ids=SHIU_SUGAR, seed=7, rng="torch")
     pl = MBPlasticity(u2, at)
     u2.add_emitter(pl)
     u2.add_ticker(pl, pl.every)

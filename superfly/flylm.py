@@ -15,13 +15,13 @@ own sensory neurons.
         the same transformer reads the human's sentence
           -> pooled hidden state -> SensoryProjector (MLP)
           -> drive for each fly-perceivable concept, plus a word-sense code
-          -> UpliftEngine sensory / word-sense ports
+          -> SuperflyEngine sensory / word-sense ports
 
 Why a SMALL model trained from scratch: everything a model this size knows
 about the world, it learned from sentences grounded in this fly's own
 simulated experience. It has no prior about honey, cats or Paris to
 confabulate from, so content can only come through the neural tokens. The
-ablations in uplift/metrics.py measure exactly that (zeroed, shuffled and
+ablations in superfly/metrics.py measure exactly that (zeroed, shuffled and
 silenced-fly prefixes). The same NeuralProjector can be attached to a
 pretrained small model later; the ablations then say how much of its fluency
 is the fly and how much is its prior.
