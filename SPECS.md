@@ -66,9 +66,9 @@ they were written and is reported as a failure of D1.
 
 | id | spec | threshold | status |
 |---|---|---|---|
-| W1 | held-out F1, world corpus (same bar as D1) | ≥ 0.90 and ≥ linear probe + 0.10 | FAIL so far (FlyWire 0.857; male CNS 0.842, linear 0.615) |
-| W2 | silent brain → no content | content rate 0 | **PASS** male CNS ("..."); FlyWire failed before the fix, rerun pending |
-| W3 | shuffled brain: follow ≥ 0.8 × W1; leak ≤ base-rate null + 0.05 | both | **PASS** male CNS (follow 0.842; leak 0.332 vs null 0.331) |
+| W1 | held-out F1, world corpus (same bar as D1) | ≥ 0.90 and ≥ linear probe + 0.10 | FAIL so far (FlyWire 0.858, linear 0.689; male CNS 0.842, linear 0.615) |
+| W2 | silent brain → no content | content rate 0 | **PASS** male CNS and FlyWire ("..."; FlyWire failed before the silent-window fix) |
+| W3 | shuffled brain: follow ≥ 0.8 × W1; leak ≤ base-rate null + 0.05 | both | **PASS** male CNS (follow 0.842; leak 0.332 vs null 0.331); FlyWire (0.858; 0.341 vs 0.332) |
 
 What passing means: passing shows the fly's reports are **caused by** its
 stored and current neural states. It does **not** show that the fly

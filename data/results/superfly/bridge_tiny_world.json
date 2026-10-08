@@ -1,21 +1,26 @@
 {
  "held_out": {
-  "precision": 0.8729281767955801,
-  "recall": 0.8419182948490231,
-  "f1": 0.8571428571428572
+  "precision": 0.8573983012963791,
+  "recall": 0.8589341692789969,
+  "f1": 0.858165548098434
  },
  "zero_brain_outputs": [
-  "i smell mold."
+  "..."
  ],
- "zero_brain_content_rate": 1.0,
- "shuffled_follow_f1": 0.8571428571428572,
- "shuffled_leak_f1": 0.3589511754068716,
+ "zero_brain_content_rate": 0.0,
+ "shuffled_follow_f1": 0.858165548098434,
+ "shuffled_leak_f1": 0.34093959731543627,
+ "leak_null_f1": 0.3318405732198836,
  "examples": [
   {
    "truth": [
     [
-     "percept",
-     "bitter"
+     "action",
+     "escape"
+    ],
+    [
+     "action",
+     "turn"
     ],
     [
      "percept",
@@ -23,10 +28,89 @@
     ],
     [
      "percept",
+     "hungry"
+    ],
+    [
+     "percept",
+     "shadow"
+    ],
+    [
+     "percept",
+     "umami"
+    ]
+   ],
+   "said": "i taste something savory. i smell mold. a shadow. i turn. i back away. i fly away."
+  },
+  {
+   "truth": [],
+   "said": "..."
+  },
+  {
+   "truth": [
+    [
+     "percept",
+     "humid"
+    ],
+    [
+     "percept",
+     "hungry"
+    ],
+    [
+     "percept",
+     "thirsty"
+    ],
+    [
+     "percept",
      "wind"
     ]
    ],
-   "said": "i taste something bitter. i smell mold. a breeze."
+   "said": "i smell mold. a breeze. i am hungry. i am thirsty."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "geosmin"
+    ],
+    [
+     "percept",
+     "hungry"
+    ],
+    [
+     "percept",
+     "wind"
+    ],
+    [
+     "word",
+     "moo"
+    ]
+   ],
+   "said": "i smell mold. a breeze. i am hungry. i hear 'moo'. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "thirsty"
+    ],
+    [
+     "percept",
+     "wind"
+    ],
+    [
+     "word",
+     "zap"
+    ]
+   ],
+   "said": "i smell fruit. a breeze. i am thirsty. i hear 'zap'. i turn."
   },
   {
    "truth": [
@@ -39,23 +123,65 @@
      "turn"
     ],
     [
-     "action",
-     "walk_backward"
+     "percept",
+     "fruit_odor"
     ],
     [
      "percept",
-     "geosmin"
+     "thirsty"
+    ]
+   ],
+   "said": "i smell fruit. a breeze. i turn. i fly away."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "humid"
+    ],
+    [
+     "percept",
+     "hungry"
+    ]
+   ],
+   "said": "damp air. i turn."
+  },
+  {
+   "truth": [
+    [
+     "action",
+     "escape"
+    ],
+    [
+     "action",
+     "turn"
+    ],
+    [
+     "percept",
+     "fruit_odor"
     ],
     [
      "percept",
      "shadow"
+    ],
+    [
+     "percept",
+     "sugar"
+    ],
+    [
+     "percept",
+     "thirsty"
+    ],
+    [
+     "percept",
+     "wind"
     ]
    ],
-   "said": "i smell mold. a shadow. i am hungry. i am thirsty. i turn. i back away. i fly"
-  },
-  {
-   "truth": [],
-   "said": "i smell mold."
+   "said": "i taste something savory. a shadow. i turn. i fly away."
   },
   {
    "truth": [
@@ -69,28 +195,7 @@
     ],
     [
      "percept",
-     "hungry"
-    ],
-    [
-     "percept",
      "wind"
-    ],
-    [
-     "word",
-     "nef"
-    ]
-   ],
-   "said": "i smell fruit. a breeze. i hear 'nef'. i turn."
-  },
-  {
-   "truth": [
-    [
-     "action",
-     "turn"
-    ],
-    [
-     "percept",
-     "humid"
     ]
    ],
    "said": "i smell fruit. i turn."
@@ -107,67 +212,16 @@
     ],
     [
      "word",
-     "toma"
+     "nef"
     ]
    ],
-   "said": "it is hot. i am thirsty. i hear 'toma'. i turn."
+   "said": "i smell fruit. i hear 'nef'. i turn."
   },
   {
    "truth": [
     [
-     "action",
-     "turn"
-    ]
-   ],
-   "said": "a little damp air. i turn."
-  },
-  {
-   "truth": [
-    [
-     "action",
-     "escape"
-    ],
-    [
-     "action",
-     "turn"
-    ],
-    [
      "percept",
-     "shadow"
-    ],
-    [
-     "percept",
-     "thirsty"
-    ]
-   ],
-   "said": "a little a shadow. i am thirsty. i turn. i fly away."
-  },
-  {
-   "truth": [
-    [
-     "action",
-     "turn"
-    ],
-    [
-     "percept",
-     "fruit_odor"
-    ],
-    [
-     "percept",
-     "thirsty"
-    ]
-   ],
-   "said": "i smell fruit. i am thirsty. i turn."
-  },
-  {
-   "truth": [
-    [
-     "action",
-     "escape"
-    ],
-    [
-     "action",
-     "turn"
+     "bitter"
     ],
     [
      "percept",
@@ -176,21 +230,9 @@
     [
      "percept",
      "hungry"
-    ],
-    [
-     "percept",
-     "shadow"
-    ],
-    [
-     "percept",
-     "thirsty"
-    ],
-    [
-     "percept",
-     "wind"
     ]
    ],
-   "said": "i smell mold. a breeze. a shadow. i am thirsty. i turn. i fly away."
+   "said": "i taste something bitter. i smell mold. i am hungry."
   },
   {
    "truth": [
@@ -204,51 +246,26 @@
     ],
     [
      "percept",
-     "shadow"
-    ],
-    [
-     "percept",
-     "wind"
-    ]
-   ],
-   "said": "a breeze. a shadow. i turn. i fly away."
-  },
-  {
-   "truth": [
-    [
-     "action",
-     "feed"
-    ],
-    [
-     "action",
-     "turn"
-    ],
-    [
-     "percept",
-     "fruit_odor"
-    ],
-    [
-     "percept",
      "hungry"
     ],
     [
      "percept",
-     "salt"
+     "shadow"
     ],
     [
      "percept",
      "thirsty"
     ]
    ],
-   "said": "salty. i smell fruit. i am hungry. i am thirsty. i extend my proboscis. i turn."
+   "said": "i smell fruit. a shadow. i turn. i fly away."
   }
  ],
  "voice": "FlyLM from scratch",
- "params": 3005957,
+ "params": 3008279,
  "linear_probe": {
-  "precision": 0.5783484096877736,
-  "recall": 0.8801065719360568,
-  "f1": 0.6980102130656805
+  "precision": 0.5718085106382979,
+  "recall": 0.8665472458575907,
+  "f1": 0.6889798824995549
  },
  "fly_model": "lif_euler",
  "fly_gain": 1.0
