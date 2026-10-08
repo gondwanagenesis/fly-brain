@@ -68,6 +68,9 @@ Survey of everyone else's work: [research/review/05_existing_software.md](resear
 | Word lobe coding | 5–9 % of Kenyon cells per word, pairwise overlap ~0.08: sparse, like odours in a real fly |
 | Dopamine teacher | PAM activation → PAM 17.8 Hz, PPL1 3.9 Hz; PPL1 activation → PPL1 20.5 Hz, PAM 0 |
 | Word learning | memory traces form in the **correct compartment with the correct valence sign** and no seizures, but are **< 1 Hz and do not yet exceed untrained controls**. Not yet a demonstrated memory (see below) |
+| **Untaught SUPERFLY vs original fly** | **bit-identical** (identity gate PASS, 600 steps) |
+| **Voice A: from-scratch FlyLM, 2.9M params** | held-out F1 **0.935**; silent brain → "..." **100 %**; shuffled brain: follows the given brain **0.935**, leaks the true stimulus 0.198 |
+| Voice B: frozen SmolLM2-360M + neural prefix | F1 0.38 after 400 CPU steps; silent brain → "..." 100 % (no confabulation, undertrained) |
 
 ## Problems found in the model itself, and what was done
 
@@ -81,6 +84,26 @@ Survey of everyone else's work: [research/review/05_existing_software.md](resear
 | Weak MBON readout | words evoke ~1 Hz MBON changes under uniform weights | next: the expanded mushroom body, more Kenyon cells → a larger evoked signal |
 
 ---
+
+## Talking to it
+
+```
+YOU: here is some sugar for you      [MN9 feeding neuron 56 Hz]   FLY: i taste sugar. i want to eat.
+YOU: a strong breeze is blowing      [grooming DNs 11 Hz]         FLY: wind on my antennae. i clean my antennae.
+YOU: listen to this buzz             [giant fibre 24 Hz]          FLY: a sound. i fly away.
+YOU: say 'zap'                       [word lobe]                  FLY: i hear 'zap'.
+YOU: hello fly                       [nothing reaches its senses] FLY: ...
+```
+
+(`data/results/superfly/chat_demo_tiny.txt`.) It **reports**; it does not converse.
+The content is the fly's: what it sensed, what its motor neurons did, which word
+it heard. The phrasing is ours. It has nothing more to say because the
+simulated brain has no drives, moods or working memory yet. That is the next
+stage (research/review/06–08).
+
+Live, in 3D: `python flyloop/studio.py --superfly`, then open
+http://127.0.0.1:8765. Every message runs one real episode of the brain, and the
+render shows which neurons fired.
 
 ## Running it
 
@@ -112,6 +135,9 @@ Environment variables: `SUPERFLY_MODEL` (`lif_euler` = published, `lif_adapt`
 ## Status
 
 Built and measured: L0–L3 machinery, the flybench integration, the word lobe,
-the fly's plasticity and the voice pipeline. **Not yet achieved:** a word memory
-that beats its controls, and the voice's fly-mind test results (in progress;
-written to `data/results/superfly/bridge_*.json`).
+the fly's plasticity, the two voices with their fly-mind tests, the chat and
+the Studio mode. **Not yet achieved:** a word memory that beats its controls;
+internal states (feelings) and autobiographical memory, which are under review.
+Known inconsistency: the bundled voice was trained on the fly without the
+dopamine-as-plasticity correction, so `chat --learn` runs a slightly different
+brain from the one the voice learned on.
