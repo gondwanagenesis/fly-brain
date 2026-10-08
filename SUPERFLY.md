@@ -69,7 +69,7 @@ Survey of everyone else's work: [research/review/05_existing_software.md](resear
 | Dopamine teacher | PAM activation → PAM 17.8 Hz, PPL1 3.9 Hz; PPL1 activation → PPL1 20.5 Hz, PAM 0 |
 | Word learning | memory traces form in the **correct compartment with the correct valence sign** and no seizures, but are **< 1 Hz and do not yet exceed untrained controls**. Not yet a demonstrated memory (see below) |
 | **Untaught SUPERFLY vs original fly** | **bit-identical** (identity gate PASS, 600 steps) |
-| **Voice A: from-scratch FlyLM, 2.9M params** | held-out F1 **0.935**; silent brain → "..." **100 %**; shuffled brain: follows the given brain **0.935**, leaks the true stimulus 0.198 |
+| **Voice A: from-scratch FlyLM, 2.9M params** | held-out F1 **0.927** (final network; 0.935 on the pre-correction network); silent brain → "..." **100 %**; shuffled brain: follows the given brain **0.927**, leaks the true stimulus 0.197 |
 | Voice B: frozen SmolLM2-360M + neural prefix | F1 0.38 after 400 CPU steps; silent brain → "..." 100 % (no confabulation, undertrained) |
 
 ## Problems found in the model itself, and what was done
@@ -88,12 +88,19 @@ Survey of everyone else's work: [research/review/05_existing_software.md](resear
 ## Talking to it
 
 ```
-YOU: here is some sugar for you      [MN9 feeding neuron 56 Hz]   FLY: i taste sugar. i want to eat.
-YOU: a strong breeze is blowing      [grooming DNs 11 Hz]         FLY: wind on my antennae. i clean my antennae.
-YOU: listen to this buzz             [giant fibre 24 Hz]          FLY: a sound. i fly away.
-YOU: say 'zap'                       [word lobe]                  FLY: i hear 'zap'.
-YOU: hello fly                       [nothing reaches its senses] FLY: ...
+YOU: here is some sugar for you      [MN9 feeding neuron 56 Hz]    FLY: something sweet. i want to eat.
+YOU: careful, bitter poison          [no motor output]             FLY: yuck, bitter.
+YOU: a strong breeze is blowing      [grooming DNs 11 Hz]          FLY: a breeze. i clean my antennae.
+YOU: say 'zap'                       [word lobe; turning DNs 3 Hz] FLY: i hear 'zap'. i turn.
+YOU: lots of honey and a bit of salt [MN9 70 Hz]                   FLY: something sweet. i want to eat.
+YOU: listen to this buzz             [hearing missed 'buzz']       FLY: ...
+YOU: hello fly                       [nothing reaches its senses]  FLY: ...
 ```
+
+Errors visible here: hearing missed "buzz" (an earlier training run caught it,
+and the giant fibre then fired at 24 Hz: "a sound. i fly away."); "salt" was
+dropped from a two-sense sentence; and "i turn" was said with the turning
+neurons at 3 Hz, below the 5 Hz the training labels used.
 
 (`data/results/superfly/chat_demo_tiny.txt`.) It **reports**; it does not converse.
 The content is the fly's: what it sensed, what its motor neurons did, which word
