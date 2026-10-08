@@ -43,7 +43,7 @@ class NativeBrainEngine:
 
     def __init__(self, data_dir="data", params=None, dt=DT, stim_ids=None,
                  seed=0, force_build=False, threads=None, silence_ids=None,
-                 reorder=None, model="lif_euler"):
+                 reorder=None, model="lif_euler", extend=None):
         self.lib = _lib(force_build)
         self.p = dict(params or MODEL_PARAMS)
         self.dt = dt
@@ -78,12 +78,34 @@ class NativeBrainEngine:
         assert np.abs(_w).max() <= 32767, "weight exceeds int16 range"
         self.val = np.ascontiguousarray(_w.astype(np.int16))
 
+        # ---- optional grafted neurons (uplift/graft.py) ----
+        # `extend(engine)` returns a new (crow, post, val, new_flywire_ids):
+        # the connectome with synthetic neurons appended after the native ones
+        # and their edges merged in. They are then first-class neurons -- the
+        # same membrane equation, delay ring, refractory gate and tiling as
+        # every native cell. None (the default) leaves the engine untouched,
+        # so every bit-identity gate still tests exactly the same code path.
+        self.n_native = N
+        if extend is not None:
+            crow, post, val, new_ids = extend(self)
+            self.crow = np.ascontiguousarray(crow, dtype=np.int64)
+            self.post = np.ascontiguousarray(post, dtype=np.int32)
+            self.val = np.ascontiguousarray(val, dtype=np.int16)
+            self.i2flyid = np.concatenate(
+                [self.i2flyid, np.asarray(new_ids, dtype=np.int64)])
+            self.flyid2i = {int(j): i for i, j in enumerate(self.i2flyid)}
+            self.N = N = len(self.i2flyid)
+            assert self.crow.shape == (N + 1,), "extend() returned a bad crow"
+
         # ---- optional neuron reordering, for tile-skip locality ----
         # Must happen before any state or index is derived below.
         self.perm = self.inv = None
         if reorder and reorder != "none":
             from reorder import build_permutation
-            self._apply_perm(build_permutation(str(d), key=reorder))
+            perm = build_permutation(str(d), key=reorder)
+            if N > perm.size:                 # grafted neurons keep their slots
+                perm = np.concatenate([perm, np.arange(perm.size, N)])
+            self._apply_perm(perm)
 
         # Optical silencing, the repo's second manipulation type (`neu_slnc` in
         # code/benchmark.py). Upstream defines it as setting every synaptic

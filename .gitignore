@@ -49,3 +49,8 @@ data/model_cache/
 !data/results/verify_all.txt
 !data/results/fanout_profile.txt
 !data/results/fanout_bench.txt
+
+# Event-driven fan-out table (182 MB), rebuilt by code/build_fanout_csc.py
+data/fanout_csc.pt
+# uplift run artefacts
+data/uplift_cache/

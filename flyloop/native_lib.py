@@ -12,6 +12,7 @@ from __future__ import annotations
 import ctypes
 import hashlib
 import subprocess
+import sys
 from pathlib import Path
 
 import torch
@@ -40,6 +41,11 @@ _CLANG = Path(
 # runtime via CPUID, so one binary runs on any x86-64.
 _CFLAGS = ["-shared", "-O3", "-ffp-contract=off",
            "-fno-fast-math", "-std=c11", "-Wall"]
+if sys.platform != "win32":
+    # position-independent code is mandatory for a .so on x86-64 Linux; the
+    # pool uses pthreads and the model bodies call libm.
+    _CFLAGS += ["-fPIC", "-pthread"]
+_LDLIBS = [] if sys.platform == "win32" else ["-lm"]
 
 ISA_NAME = {0: "scalar", 1: "AVX2", 2: "AVX-512"}
 
@@ -82,7 +88,7 @@ def _build(force=False, salt=""):
     dll = _dll_for(salt)
     if force or not dll.exists():
         cc = str(_CLANG) if _CLANG.exists() else "clang"
-        r = subprocess.run([cc, *_CFLAGS, "-o", str(dll), str(_SRC)],
+        r = subprocess.run([cc, *_CFLAGS, "-o", str(dll), str(_SRC), *_LDLIBS],
                            capture_output=True, text=True)
         if r.returncode != 0:
             raise RuntimeError(f"kernel build failed:\n{r.stderr}")

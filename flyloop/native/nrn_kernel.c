@@ -90,7 +90,28 @@
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
 #define LIF_X86 1
 #include <immintrin.h>
+#if defined(_WIN32)
 #include <intrin.h>
+#else
+/* Linux / macOS: <intrin.h> is MSVC's. Provide the three MSVC intrinsics
+ * detect_isa() uses with the same semantics. */
+#include <cpuid.h>
+static inline void lif_cpuidex(int r[4], int leaf, int sub)
+{
+    unsigned a, b, c, d;
+    __cpuid_count(leaf, sub, a, b, c, d);
+    r[0] = (int)a; r[1] = (int)b; r[2] = (int)c; r[3] = (int)d;
+}
+#define __cpuid(r, leaf)          lif_cpuidex((r), (leaf), 0)
+#define __cpuidex(r, leaf, sub)   lif_cpuidex((r), (leaf), (sub))
+static inline unsigned long long lif_xgetbv(unsigned i)
+{
+    unsigned lo, hi;
+    __asm__ volatile("xgetbv" : "=a"(lo), "=d"(hi) : "c"(i));
+    return ((unsigned long long)hi << 32) | lo;
+}
+#define _xgetbv(i) lif_xgetbv(i)
+#endif
 #endif
 
 #if defined(_MSC_VER)
