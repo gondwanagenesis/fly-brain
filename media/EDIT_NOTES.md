@@ -62,3 +62,7 @@ The whole timeline is authored in virtual seconds (the 60 s cut) and `timeline2.
 
 ## Re-rendering the terminal
 The four exchanges live in `reel2/interview_reel.json` in the work folder (`q`, `a`, `hold`). Rebuild with `timeline2.py`, then `engine2.py render timeline.json out/full/r_39 39 52`, then `mux.sh`. Everything before 0:39 and after 0:52 is untouched by a text change.
+
+## Covers (added later)
+- `superfly_reel_cover.png` (1080x1920): the macro fly (`s1_flux.png`, flux-pro ultra from the first session) with datamosh slices, dissolving down into his real firing nervous system (`rates_seq` frame 22, rendered by `render_brain.py`). All key text and the subject sit inside the central 1080x1350 grid crop (y 285-1635) and above the bottom UI zone (nothing below y 1535). Headline "HIS BODY IS GONE." (white) and "HIS MIND IS STILL RUNNING." (acid green), explainer "Z0720-07m · a real fruit fly / 165,122 neurons, mapped and switched on", SUPERFLY wordmark (Shrikhand, set by hand) and the Swarm Collective eye. Checked at a 270 px wide downscale: both headlines read.
+- `superfly_post_0.png` (1080x1080): the carousel cover. Hero is the photoreal SUPERFLY art with a gold "UPLOADED" arrow to his real brain render. Slides `superfly_post_1..4.png` were re-rendered with counters 02/05 to 05/05; every slide carries `tinyurl.com/superfly-z0720`. No new fal spend (existing images only).
