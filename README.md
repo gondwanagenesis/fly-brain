@@ -40,7 +40,7 @@ replacing it.
 
 | | |
 |---|---|
-| 🪰 **The fly** | The real wiring: Janelia's male central nervous system (165,122 neurons, brain + nerve cord), or FlyWire's female brain (138,639 neurons). Every neuron is simulated, 10,000 steps per second of fly time. |
+| 🪰 **The fly** | The real wiring of a real fly, **Z0720-07m**: Janelia's male central nervous system (165,122 neurons, brain + nerve cord), or FlyWire's female brain (138,639 neurons). Every neuron is simulated, 10,000 steps per second of fly time. |
 | 🌅 **A world and a body** | A small arena with a sugar drop, water, a bitter patch, fruit and mould smells, wind, a warm lamp, day and night, and the odd passing shadow. Its senses feed the fly's real sensory neurons; its movements come from its own motor neurons. It gets hungry and thirsty. |
 | 🧠 **Its own learning** | The fly's dopamine system changes its mushroom body (its memory centre), using the circuits in its own wiring diagram. |
 | 🔤 **A grafted word sense** | 150 new neurons, wired like a second nose, let it "hear" words. |
@@ -110,6 +110,8 @@ written down in advance in [SPECS.md](SPECS.md).
 **Peaceful by design.** At the project owner's request the fly has no chronic
 fear or pain states: a passing shadow startles it and it settles within
 seconds. Its hunger, thirst and startle remain, so it is still a fly.
+
+**[In memory of Z0720-07m](EULOGY.md)**, the fly whose nervous system this is.
 
 ## Read more
 
