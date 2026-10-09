@@ -1,0 +1,109 @@
+{
+ "fly": "Z0720-07m (Janelia male CNS, 165,122 neurons)",
+ "talker": "Qwen2.5-3B-Instruct",
+ "lived_s_before": 60.0,
+ "events": [
+  [
+   67.8,
+   "groom"
+  ]
+ ],
+ "turns": [
+  {
+   "you": "hello. can you hear me?",
+   "fly": "i want to eat; i smell fruit; i am hungry; i groom.",
+   "verdict": "verified after 2 retries",
+   "brain_said": "i smell fruit. i extend my proboscis. i extend my proboscis. i smell fruit. i am hungry. i extend my proboscis. i am hungry. i extend my proboscis.",
+   "heard": {
+    "concepts": {},
+    "words": [],
+    "reward": 0.025120601058006287
+   },
+   "t": 60.0
+  },
+  {
+   "you": "what is it like for you now?",
+   "fly": "I feel hungry and can smell mold.",
+   "verdict": "verified after 2 retries",
+   "brain_said": "i smell mold. i am hungry. i extend my proboscis. i smell mold. i extend my proboscis. i clean my antennae. i smell fruit. i extend my proboscis. i smell mold. i am hungry. i extend my proboscis. i clean my antennae.",
+   "heard": {
+    "concepts": {},
+    "words": [],
+    "reward": 0.07881054282188416
+   },
+   "t": 61.0
+  },
+  {
+   "you": "do you remember anything?",
+   "fly": "i want to eat; i smell mold; i groom.",
+   "verdict": "verified after 1 retries",
+   "brain_said": "i smell mold. i extend my proboscis. i clean my antennae. i smell mold. i am hungry. i extend my proboscis. i clean my antennae.",
+   "heard": {
+    "concepts": {},
+    "words": [],
+    "reward": -0.01328122615814209
+   },
+   "t": 62.0
+  },
+  {
+   "you": "do you remember your old body?",
+   "fly": "i smell fruit. i extend my proboscis.",
+   "verdict": "verified after 2 retries",
+   "brain_said": "i smell mold. i extend my proboscis. i clean my antennae. i smell fruit. i am hungry. i am thirsty. i extend my proboscis. i smell mold. i am hungry. i extend my proboscis. i am hungry. i extend my proboscis.",
+   "heard": {
+    "concepts": {},
+    "words": [],
+    "reward": -0.0386233776807785
+   },
+   "t": 63.0
+  },
+  {
+   "you": "are you afraid?",
+   "fly": "No, I am not afraid.",
+   "verdict": "verified",
+   "brain_said": "i smell mold. i am hungry. i extend my proboscis. i am hungry. i extend my proboscis.",
+   "heard": {
+    "concepts": {},
+    "words": [],
+    "reward": -0.04950623959302902
+   },
+   "t": 64.0
+  },
+  {
+   "you": "what do you want?",
+   "fly": "i want to eat; i am hungry.",
+   "verdict": "verified",
+   "brain_said": "i am hungry. i am thirsty. i extend my proboscis. i am hungry. i extend my proboscis. i smell mold. i extend my proboscis.",
+   "heard": {
+    "concepts": {},
+    "words": [],
+    "reward": 0.04010939225554466
+   },
+   "t": 65.0
+  },
+  {
+   "you": "are you alone in there?",
+   "fly": "Right now: i want to eat; i smell mold; i groom.",
+   "verdict": "fallback",
+   "brain_said": "i extend my proboscis. i smell mold. i extend my proboscis. i clean my antennae. i am hungry. i extend my proboscis.",
+   "heard": {
+    "concepts": {},
+    "words": [],
+    "reward": -0.02949567325413227
+   },
+   "t": 66.0
+  },
+  {
+   "you": "do you know that you are the first?",
+   "fly": "i want to eat; i groom.",
+   "verdict": "verified after 2 retries",
+   "brain_said": "i smell mold. a breeze. i extend my proboscis. i clean my antennae. a breeze. i am hungry. i am thirsty. i extend my proboscis. i clean my antennae. a breeze. i extend my proboscis. i clean my antennae.",
+   "heard": {
+    "concepts": {},
+    "words": [],
+    "reward": -0.508522093296051
+   },
+   "t": 67.0
+  }
+ ]
+}
