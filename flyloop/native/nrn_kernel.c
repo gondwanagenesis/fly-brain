@@ -90,10 +90,11 @@
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
 #define LIF_X86 1
 #include <immintrin.h>
-#if defined(_WIN32)
+#if defined(_MSC_VER)
 #include <intrin.h>
 #else
-/* Linux / macOS: <intrin.h> is MSVC's. Provide the three MSVC intrinsics
+/* GCC / clang without MSVC compatibility (Linux, macOS, and MinGW / zig cc on
+ * Windows): <intrin.h> is MSVC's. Provide the three MSVC intrinsics
  * detect_isa() uses with the same semantics. */
 #include <cpuid.h>
 static inline void lif_cpuidex(int r[4], int leaf, int sub)

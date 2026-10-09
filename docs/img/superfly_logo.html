@@ -1,0 +1,162 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Righteous&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:transparent}svg{display:block}</style></head>
+<body>
+<!-- SUPERFLY logo: a 1970s-style fruit fly. Source for docs/img/superfly_logo.png
+     (rendered with superfly-logo fonts Shrikhand + Righteous, Google Fonts, OFL). -->
+<svg id="logo" xmlns="http://www.w3.org/2000/svg" width="600" height="752" viewBox="0 0 600 752">
+  <defs>
+    <clipPath id="disc"><circle cx="300" cy="300" r="282"/></clipPath>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe066"/><stop offset="1" stop-color="#ff9f1c"/>
+    </linearGradient>
+    <linearGradient id="lens" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a0f4d" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#12051c" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff3b0"/><stop offset="0.45" stop-color="#ffd23f"/>
+      <stop offset="1" stop-color="#ff7b00"/>
+    </linearGradient>
+    <linearGradient id="wing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8f6ff" stop-opacity="0.85"/>
+      <stop offset="0.5" stop-color="#b9d8ff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#f5c6ff" stop-opacity="0.6"/>
+    </linearGradient>
+    <pattern id="facets" width="7" height="7" patternUnits="userSpaceOnUse">
+      <circle cx="3.5" cy="3.5" r="2.6" fill="#ff4d5e"/>
+    </pattern>
+    <pattern id="plaid" width="14" height="14" patternUnits="userSpaceOnUse">
+      <rect width="14" height="14" fill="#e8762b"/>
+      <rect width="14" height="4" y="5" fill="#c9561a" opacity="0.7"/>
+      <rect width="4" height="14" x="5" fill="#f2a65a" opacity="0.6"/>
+    </pattern>
+  </defs>
+
+  <!-- the sunset disc -->
+  <g clip-path="url(#disc)">
+    <rect width="600" height="600" fill="#2b1708"/>
+    <circle cx="300" cy="300" r="282" fill="url(#sun)"/>
+    <g>
+      <rect x="0" y="330" width="600" height="30" fill="#f25c05"/>
+      <rect x="0" y="372" width="600" height="34" fill="#d7263d"/>
+      <rect x="0" y="418" width="600" height="38" fill="#a4133c"/>
+      <rect x="0" y="468" width="600" height="42" fill="#6d2e46"/>
+      <rect x="0" y="522" width="600" height="80" fill="#3d1a2e"/>
+    </g>
+    <!-- rays -->
+    <g stroke="#fff6d5" stroke-width="10" opacity="0.25" stroke-linecap="round">
+      <line x1="300" y1="300" x2="40" y2="120"/><line x1="300" y1="300" x2="560" y2="120"/>
+      <line x1="300" y1="300" x2="110" y2="30"/><line x1="300" y1="300" x2="490" y2="30"/>
+      <line x1="300" y1="300" x2="300" y2="10"/>
+    </g>
+  </g>
+  <circle cx="300" cy="300" r="282" fill="none" stroke="#2b1708" stroke-width="10"/>
+
+  <!-- wings, like a cape behind -->
+  <g stroke="#4f6f99" stroke-width="2.5">
+    <path d="M285,350 C200,300 95,330 70,420 C110,470 210,450 285,380 Z" fill="url(#wing)"/>
+    <path d="M315,350 C400,300 505,330 530,420 C490,470 390,450 315,380 Z" fill="url(#wing)"/>
+    <path d="M280,365 C210,360 140,385 95,420 M275,372 C215,395 170,420 140,445" fill="none" opacity="0.6"/>
+    <path d="M320,365 C390,360 460,385 505,420 M325,372 C385,395 430,420 460,445" fill="none" opacity="0.6"/>
+  </g>
+
+  <!-- back legs splayed, with little platforms -->
+  <g stroke="#3a2614" stroke-width="7" stroke-linecap="round" fill="none">
+    <path d="M232,470 L180,505 L160,548"/>
+    <path d="M368,470 L420,505 L440,548"/>
+  </g>
+  <g stroke="#2b1708" stroke-width="3">
+    <rect x="136" y="544" width="44" height="18" rx="6" fill="#f6c90e"/>
+    <rect x="136" y="558" width="44" height="10" rx="3" fill="#b8860b"/>
+    <rect x="420" y="544" width="44" height="18" rx="6" fill="#f6c90e"/>
+    <rect x="420" y="558" width="44" height="10" rx="3" fill="#b8860b"/>
+  </g>
+
+  <!-- bell-bottoms and big platform boots -->
+  <g stroke="#2b1708" stroke-width="3.5" stroke-linejoin="round">
+    <path d="M255,488 L285,488 L292,556 L240,556 Z" fill="url(#plaid)"/>
+    <path d="M315,488 L345,488 L360,556 L308,556 Z" fill="url(#plaid)"/>
+    <path d="M236,556 L296,556 L298,578 L232,578 Z" fill="#f2f2f2"/>
+    <path d="M230,578 L300,578 L300,596 L230,596 Z" fill="#c62f6d"/>
+    <path d="M304,556 L364,556 L368,578 L302,578 Z" fill="#f2f2f2"/>
+    <path d="M300,578 L370,578 L370,596 L300,596 Z" fill="#c62f6d"/>
+    <g fill="#ffd23f" stroke="none"><circle cx="246" cy="567" r="2.5"/><circle cx="262" cy="569" r="2.5"/><circle cx="280" cy="566" r="2.5"/><circle cx="318" cy="567" r="2.5"/><circle cx="336" cy="569" r="2.5"/><circle cx="354" cy="566" r="2.5"/></g>
+  </g>
+
+  <!-- the long coat -->
+  <path d="M236,330 L364,330 L404,500 C340,512 260,512 196,500 Z" fill="#7b2d26" stroke="#2b1708" stroke-width="4" stroke-linejoin="round"/>
+  <!-- shirt V with fly stripes -->
+  <path d="M276,334 L324,334 L300,470 Z" fill="#f2c14e" stroke="#2b1708" stroke-width="3"/>
+  <g stroke="#3a2614" stroke-width="7"><line x1="284" y1="372" x2="316" y2="372"/><line x1="289" y1="404" x2="311" y2="404"/><line x1="294" y1="436" x2="306" y2="436"/></g>
+  <!-- lapels -->
+  <path d="M276,334 L258,334 L292,452 L300,470 Z" fill="#a83f34" stroke="#2b1708" stroke-width="3"/>
+  <path d="M324,334 L342,334 L308,452 L300,470 Z" fill="#a83f34" stroke="#2b1708" stroke-width="3"/>
+  <!-- fur collar -->
+  <g fill="#fbf1e3" stroke="#cdb48f" stroke-width="2">
+    <circle cx="232" cy="334" r="15"/><circle cx="250" cy="324" r="15"/><circle cx="268" cy="318" r="14"/>
+    <circle cx="368" cy="334" r="15"/><circle cx="350" cy="324" r="15"/><circle cx="332" cy="318" r="14"/>
+    <circle cx="222" cy="352" r="13"/><circle cx="378" cy="352" r="13"/>
+  </g>
+  <!-- medallion: a tiny connectome -->
+  <path d="M272,330 C276,375 324,375 328,330" fill="none" stroke="#f6c90e" stroke-width="4"/>
+  <circle cx="300" cy="386" r="20" fill="#f6c90e" stroke="#9a6b00" stroke-width="3"/>
+  <g stroke="#9a6b00" stroke-width="2" fill="#9a6b00">
+    <line x1="290" y1="380" x2="300" y2="392"/><line x1="300" y1="392" x2="311" y2="378"/>
+    <line x1="300" y1="392" x2="296" y2="400"/><line x1="290" y1="380" x2="309" y2="396"/>
+    <circle cx="290" cy="380" r="3"/><circle cx="311" cy="378" r="3"/><circle cx="300" cy="392" r="3"/>
+    <circle cx="296" cy="400" r="2.5"/><circle cx="309" cy="396" r="2.5"/>
+  </g>
+
+  <!-- right front leg on the hip -->
+  <path d="M362,350 L404,408 L372,446" fill="none" stroke="#3a2614" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- left front leg: peace sign -->
+  <path d="M238,350 L198,330 L192,280" fill="none" stroke="#3a2614" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <g stroke="#3a2614" stroke-width="6" stroke-linecap="round">
+    <line x1="192" y1="282" x2="178" y2="240"/><line x1="192" y1="282" x2="204" y2="240"/>
+  </g>
+
+  <!-- head -->
+  <ellipse cx="300" cy="258" rx="62" ry="56" fill="#c9a46b" stroke="#2b1708" stroke-width="4"/>
+  <!-- antennae with feathery aristae -->
+  <g stroke="#2b1708" stroke-width="3.5" stroke-linecap="round" fill="none">
+    <path d="M288,232 C276,214 262,206 244,204"/><path d="M312,232 C324,214 338,206 356,204"/>
+    <path d="M256,205 l-4,-9 M266,208 l-3,-10 M248,205 l-6,-6 M344,205 l4,-9 M334,208 l3,-10 M352,205 l6,-6" stroke-width="2"/>
+  </g>
+  <!-- big red compound eyes -->
+  <g stroke="#7a0f1c" stroke-width="3">
+    <ellipse cx="265" cy="262" rx="31" ry="35" fill="#d7263d"/>
+    <ellipse cx="335" cy="262" rx="31" ry="35" fill="#d7263d"/>
+    <ellipse cx="265" cy="262" rx="31" ry="35" fill="url(#facets)" stroke="none" opacity="0.7"/>
+    <ellipse cx="335" cy="262" rx="31" ry="35" fill="url(#facets)" stroke="none" opacity="0.7"/>
+  </g>
+  <!-- gold-rim shades over them -->
+  <g>
+    <path d="M232,248 C232,226 296,226 296,248 C296,282 232,286 232,248 Z" fill="url(#lens)" stroke="#f6c90e" stroke-width="5"/>
+    <path d="M304,248 C304,226 368,226 368,248 C368,286 304,282 304,248 Z" fill="url(#lens)" stroke="#f6c90e" stroke-width="5"/>
+    <path d="M296,244 C299,238 301,238 304,244" fill="none" stroke="#f6c90e" stroke-width="5"/>
+    <path d="M244,240 C250,234 260,233 268,236" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+    <path d="M316,240 C322,234 332,233 340,236" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  </g>
+  <!-- easy smile and a little proboscis -->
+  <path d="M284,292 C292,300 308,300 316,292" fill="none" stroke="#2b1708" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M300,298 L300,309" stroke="#2b1708" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- the hat -->
+  <ellipse cx="300" cy="212" rx="118" ry="22" fill="#8e44ad" stroke="#2b1708" stroke-width="4"/>
+  <path d="M238,212 C236,170 250,140 300,138 C350,140 364,170 362,212 Z" fill="#9b59b6" stroke="#2b1708" stroke-width="4"/>
+  <path d="M240,196 C280,204 320,204 360,196 L361,212 C320,220 280,220 239,212 Z" fill="#f6c90e" stroke="#2b1708" stroke-width="3"/>
+  <!-- feather -->
+  <path d="M350,200 C392,170 410,120 386,82 C372,118 360,150 350,200 Z" fill="#fff8f0" stroke="#2b1708" stroke-width="3"/>
+  <path d="M352,196 C370,160 380,124 386,84" fill="none" stroke="#c62f6d" stroke-width="3"/>
+  <g stroke="#e9d8c4" stroke-width="2"><line x1="362" y1="170" x2="376" y2="160"/><line x1="366" y1="150" x2="383" y2="138"/><line x1="371" y1="128" x2="388" y2="112"/></g>
+
+  <!-- title -->
+  <g font-family="Shrikhand, 'Cooper Black', Georgia, serif" font-size="96" text-anchor="middle">
+    <text x="306" y="702" fill="#2b1708">SUPERFLY</text>
+    <text x="300" y="696" fill="url(#title)" stroke="#2b1708" stroke-width="5" paint-order="stroke">SUPERFLY</text>
+  </g>
+  <text x="300" y="732" font-family="Righteous, 'Trebuchet MS', sans-serif" font-size="21" text-anchor="middle" fill="#3d1a2e" letter-spacing="2">AN UPLIFTED FRUIT FLY · STILL A FLY</text>
+</svg>
+</body></html>

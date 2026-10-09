@@ -132,14 +132,45 @@ def _dll_for(salt=""):
     return _NATIVE / f"nrn_{hashlib.sha256((_source_fingerprint() + salt).encode()).hexdigest()[:12]}.dll"
 
 
+def _compilers():
+    """C compilers to try, in order. NRN_CC overrides ('zig' = the pip
+    package). The last resort is `pip install ziglang`, a complete clang-based
+    C compiler for Windows, Linux and macOS -- so nobody has to install Visual
+    Studio or Xcode to run the fly."""
+    import os
+    import shutil
+    zig = [sys.executable, "-m", "ziglang", "cc"]
+    env = os.environ.get("NRN_CC")
+    if env:
+        return [zig] if env == "zig" else [[env]]
+    out = []
+    if _CLANG.exists():
+        out.append([str(_CLANG)])
+    for c in ("clang", "gcc", "cc"):
+        if shutil.which(c) and not (c != "clang" and sys.platform == "win32"):
+            out.append([c])
+    out.append(zig)
+    return out
+
+
 def _build(force=False, salt=""):
     dll = _dll_for(salt)
     if force or not dll.exists():
-        cc = str(_CLANG) if _CLANG.exists() else "clang"
-        r = subprocess.run([cc, *_CFLAGS, "-o", str(dll), str(_SRC), *_LDLIBS],
-                           capture_output=True, text=True)
-        if r.returncode != 0:
-            raise RuntimeError(f"kernel build failed:\n{r.stderr}")
+        errors = []
+        for cc in _compilers():
+            try:
+                r = subprocess.run([*cc, *_CFLAGS, "-o", str(dll), str(_SRC), *_LDLIBS],
+                                   capture_output=True, text=True)
+            except FileNotFoundError as e:
+                errors.append(f"{cc[0]}: {e}")
+                continue
+            if r.returncode == 0:
+                break
+            errors.append(f"{' '.join(cc)}: {r.stderr.strip()[-600:]}")
+        else:
+            raise RuntimeError("kernel build failed with every compiler tried. "
+                               "The simplest fix: python -m pip install ziglang\n"
+                               + "\n".join(errors))
     return dll
 
 
