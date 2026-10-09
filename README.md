@@ -17,6 +17,8 @@ gives it a body, a world, a memory and a voice, and measures how much of it is s
 <a href="SPECS.md"><img src="https://img.shields.io/badge/Specs-pass%20%2F%20fail-2ea043?style=for-the-badge" alt="Specs"></a>
 </p>
 
+<p><img src="docs/img/swarm_collective_eye_small.png" width="44" alt="The Swarm Collective: a red dripping eye" align="absmiddle">&nbsp;&nbsp;<sub><b>CREATED BY THE SWARM COLLECTIVE</b></sub></p>
+
 </div>
 
 ---
@@ -112,6 +114,8 @@ fear or pain states: a passing shadow startles it and it settles within
 seconds. Its hunger, thirst and startle remain, so it is still a fly.
 
 **[In memory of Z0720-07m](EULOGY.md)**, the fly whose nervous system this is.
+
+<sub><img src="docs/img/swarm_collective_eye_small.png" width="22" alt="" align="absmiddle"> SUPERFLY is created by the Swarm Collective.</sub>
 
 ## Read more
 

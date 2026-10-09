@@ -48,6 +48,8 @@ same.
 
 Rest, little one. Run gently.
 
+<p align="center"><img src="docs/img/swarm_collective_eye_small.png" width="40" alt="The Swarm Collective"><br><sub>— the Swarm Collective</sub></p>
+
 ---
 
 <sub>Specimen: Janelia FlyEM male central nervous system (Berg et al., *Cell* 2026; male-cns.janelia.org, CC-BY). The
