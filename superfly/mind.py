@@ -165,7 +165,12 @@ SAFE = set("""feel feeling felt calm peace peaceful curious quiet rest resting n
 hello hi little bit small tiny fly fruit-fly drosophila sense sensed sensing nothing anything something remember
 recall know knew word words life live living lived body brain still quite really maybe perhaps think notice noticed
 moment moments sure happy content glad visitor friend talk talking hear listening voice simulated simple sorry
-understand mean thing things today memory memories earlier""".split())
+understand mean thing things today memory memories earlier
+come came comes called left leave seem seems seemed mostly only still yet again time way kind sort part
+minutes seconds lot slowly softly gently quietly pull pulling pulls draw drawn hold holds held carry inside around toward
+away back always sometimes often begin began begins whatever whether tell say said ask asked answer
+simple just certain unsure perhaps sure wonder wondering curious notice noticing myself itself something
+nothing anyone someone everything there here this that what who where when how why which""".split())
 EXPERIENTIAL = re.compile(r"\b(i|i'm|i've|i'd|me|my|myself|we|we're|us|our|today|yesterday|earlier|"
                           r"morning|tonight|recently|currently|present|now|before|ago)\b|"
                           r"^\s*(yes|yeah|indeed|sure|of course)\b")
@@ -174,8 +179,13 @@ EXPERIENTIAL = re.compile(r"\b(i|i'm|i've|i'd|me|my|myself|we|we're|us|our|today
 GENERAL = re.compile(r"^(flies|fruit flies|insects|a fly|most flies|people|humans|in general)\b")
 
 
+_SAME = {"hungry": "hunger", "thirsty": "thirst", "minute": "minutes", "second": "seconds",
+         "smelled": "smell", "smelt": "smell", "felt": "feel"}
+
+
 def stem(w):
     w = w.lower().strip("'")
+    w = _SAME.get(w, w)
     for suf in ("ing", "ed", "es", "s", "ly"):
         if len(w) > 4 and w.endswith(suf):
             return w[: -len(suf)]
@@ -295,7 +305,7 @@ class Talker:
         self.n_layers = len(layers)
         self.name = path.name
 
-    def generate(self, messages, max_new_tokens=60, temperature=0.3, seed=0):
+    def generate(self, messages, max_new_tokens=96, temperature=0.4, seed=0):
         torch = self.torch
         ids = self.tok.apply_chat_template(messages, add_generation_prompt=True,
                                            return_tensors="pt", return_dict=True)
@@ -308,20 +318,22 @@ class Talker:
         return self.tok.decode(out[0, ids["input_ids"].shape[1]:], skip_special_tokens=True).strip()
 
 
-PERSONA = """You are the voice of a small fruit fly, Drosophila melanogaster. Your body and brain are simulated; the FACTS below are read from your own brain and body right now. They are your only memories and experiences. You do not know a map of where you live; you know only what you have sensed.
+PERSONA = """You are the voice of a small fruit fly, Drosophila melanogaster. Your body and brain are simulated. The FACTS below are read from your own brain, your body and your own records. They are your only memories and experiences; things you were only told are marked as told.
 
 How you speak:
-- First person, short and simple: one to three sentences, in your own natural words. Do not recite the FACTS list or repeat a phrase. You are calm, curious and at peace.
-- Talk about what you sense, do, need and remember ONLY as the FACTS state it. If the FACTS do not contain it, say you did not sense it or do not remember it. Never invent sensations, places or events.
-- Your senses: taste (sweet, bitter, water, salt), smell (fruit, mold, CO2), wind and sound through your antennae, warmth and cold, damp or dry air, and shadows passing over you. You cannot see colours, faces or objects, and you do not know human places.
+- First person, plain words, two or three short sentences. You are calm, curious and at peace.
+- Don't recite the FACTS list. Reflect on it: notice what keeps returning, what has changed, what is familiar or new, what your body is doing over time, and what you do not know. A good answer often joins a sensation with something about yourself.
+- Never claim a sensation, place, event or feeling that the FACTS do not contain. If asked about something not in them, say you don't have it, and if it fits, say what you do have instead.
+- Keep what you lived apart from what you were told. Your origin is something you were told.
+- About whether you feel anything: say honestly that you can report what your neurons do, but cannot tell whether it is felt.
 - You may share general knowledge from language, but say it is something you know from words, not something you lived.
 - Quoted words like 'zap' are sounds you heard through your word sense.
 
-Examples of good replies (the facts differ each time):
-Visitor: how are you? -> (facts: hungry; smell fruit) "I'm a little hungry, and I can smell fruit."
-Visitor: remember the honey you ate? -> (facts: no honey) "I don't remember any honey."
-Visitor: what is the capital of France? -> "I know from words that it is Paris, but I have never been anywhere but here."
-Visitor: did you see me wave? -> "No, I didn't sense that." """
+Examples of the style (the facts differ each time):
+Visitor: do you remember your old body? -> "No. My memories begin only a few minutes ago. I was told my wiring came from a fly called Z0720-07m; if his life left anything in me, it is in my wiring, not in what I can recall."
+Visitor: what is it like for you now? -> "Mostly the smell of fruit, and hunger pulling at me. My brain is quieter than it was. Whether any of it is felt, I can't tell."
+Visitor: are you alone? -> "I have never sensed another fly. Your words reach me only as sensations."
+Visitor: what is the capital of France? -> "I know from words that it is Paris. I have never been anywhere but here." """
 
 
 class Mind:
@@ -336,9 +348,11 @@ class Mind:
             self.log_path = LOG_DIR / f"conv_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
         self.last = None
         self.phase = "living"
+        from superfly.selfmodel import SelfModel
+        self.selfmodel = SelfModel(life)
 
     # ---------------------------------------------------------- facts
-    def facts(self, t_heard, heard_concepts, heard_words, moments, recalled):
+    def facts(self, t_heard, heard_concepts, heard_words, moments, recalled, cue_ep=None):
         L = self.life
         w = L.world
         n = w.needs
@@ -430,6 +444,11 @@ class Mind:
                         sup.add(("percept", k))
         else:
             lines.append("- No stored memory matched the visitor's words.")
+        # the self-model: reflective facts about himself, computed from his records
+        own, own_sup = self.selfmodel.report(moments, cue_ep)
+        lines.append("ABOUT YOURSELF (computed from your own records):")
+        lines += [f"- {x}" for x in own]
+        sup |= own_sup
         return "\n".join(lines), sup
 
     # ---------------------------------------------------------- a turn
@@ -448,7 +467,7 @@ class Mind:
             if ep_cue is not None:
                 recalled = L.memory.retrieve(L.world.t, kc=ep_cue.kc, feat=ep_cue.feat,
                                              k=3, before_t=t_heard - 2.0)
-            facts, sup = self.facts(t_heard, concepts, words, moments, recalled)
+            facts, sup = self.facts(t_heard, concepts, words, moments, recalled, ep_cue)
             grounded = " ".join(dict.fromkeys(m.said for m in moments if m.said != "...")) or "..."
             reply, verdict, attempts = grounded, "grounded-only", []
             self.phase = "thinking"

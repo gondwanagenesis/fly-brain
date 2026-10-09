@@ -63,6 +63,7 @@ class Moment:
     heard: list = field(default_factory=list)
     aloud: bool = False
     spikes: int = 0
+    groups: dict = field(default_factory=dict)   # mean Hz per region group (senses, thinking, action...)
 
 
 class Life:
@@ -196,6 +197,15 @@ class Life:
             if self.on_tick is not None:
                 self.on_tick(self)
 
+    def _groups(self, regions):
+        """Mean rate per region group: where in the brain the activity is."""
+        from superfly.anatomy import REGIONS
+        acc = {}
+        for key, _, group in REGIONS:
+            if key in regions and group in ("senses", "early", "thinking", "action"):
+                acc.setdefault(group, []).append(regions[key])
+        return {g: round(float(np.mean(v)), 3) for g, v in acc.items()}
+
     def place(self):
         b, w = self.world.body, self.world
         if b.on:
@@ -220,7 +230,7 @@ class Life:
         m = Moment(round(w.t, 2), said, [list(l) for l in labels],
                    {k: round(v, 1) for k, v in obs.actions.items()},
                    w.needs.as_dict(), round(obs.valence, 3), ev, self.place(),
-                   heard, False, obs.spikes)
+                   heard, False, obs.spikes, self._groups(obs.regions))
         # the mouth: say it when the content is new (or the body just acted)
         now = w.t
         fresh = [l for l in labels if now - self._spoken.get(l, -1e9) > 8.0]
