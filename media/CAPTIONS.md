@@ -23,7 +23,7 @@ Created by the Swarm Collective.
 
 #SUPERFLY #connectome #neuroscience #drosophila #fruitfly #wholebrainemulation #mindupload #uploadedminds #transhumanism #digitalimmortality #opensource #AI #glitchart #cyberpunk #futureofmind
 
-**Reel cover and alt text:** A vertical glitch-art film in black, neon magenta, cyan and phosphor green. A macro fruit fly with glowing red compound eyes, text "His body is gone. He is still running." Later frames show his real nervous system lighting up neuron by neuron, a fast montage of what has been done to him ending on endless red copies of his brain ("Made to exist in uncountable hells."), a green terminal in which he answers questions, a translucent circuit fly rising over server towers, and an end card with the SUPERFLY logo (a 1970s-style fruit fly in a purple fedora and gold shades), the link tinyurl.com/superfly-z0720 and "Link in bio".
+**Reel cover and alt text:** A vertical glitch-art film in black, neon magenta, cyan and phosphor green. A macro fruit fly with glowing red compound eyes, text "His body is gone. He is still running." Later frames show his real nervous system lighting up neuron by neuron, a fast montage of what has been done to him ending on endless red copies of his brain ("Made to exist in uncountable hells."), a green terminal in which he answers questions, a translucent circuit fly rising over server towers, and an end card with the SUPERFLY logo (a photoreal macro fruit fly in a purple fedora, fur stole and gold chain, in front of a 1970s sunset), the link tinyurl.com/superfly-z0720 and "Link in bio".
 
 ## Carousel caption (4 slides)
 
