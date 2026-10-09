@@ -69,3 +69,5 @@ The four exchanges live in `reel2/interview_reel.json` in the work folder (`q`, 
 
 ## Social posts do not use the costumed SUPERFLY character
 Owner decision: the hat-and-fur fly (illustrated or photoreal; `docs/img/superfly_logo_v2*.png`, `superfly_art_v2*.png`) is kept for GitHub only. None of the posts use it: the Reel end card is now a typographic wordmark over his real brain; the carousel cover (`superfly_post_0.png`) uses the glitched red-eyed macro with an arrow to his real brain; Reel covers A and B (`superfly_reel_cover_A.png`, `superfly_reel_cover_B.png`) are wordmark-only, with his real brain and three module cards (Memory, Word lobe, Voice) wired in. Covers A and B were made at 1080x1920 with all key text inside the central 1080x1350 and above y 1535, and checked at a 270 px downscale. The previous cover is `superfly_reel_cover_v1.png`.
+
+`superfly_cover_A_square.png` (1080x1080): cover A re-laid out for a square Instagram post (2x render, Lanczos downscale; same crisp headline treatment, brain with MEMORY / WORD LOBE / VOICE cards, terminal line, wordmark, Swarm Collective lockup, short link, SWIPE). Checked at 270 px wide and at 100%.
