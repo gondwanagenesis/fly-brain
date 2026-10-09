@@ -26,6 +26,7 @@ Every turn is logged with its facts and verdict (data/results/superfly/conversat
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 import time
@@ -36,7 +37,8 @@ import numpy as np
 
 from superfly.bridge import parse_utterance, OUT
 
-QWEN = Path("/home/user/models/Qwen2.5-1.5B-Instruct")
+# the conversational model (SUPERFLY_TALKER = a local Hugging Face model dir)
+QWEN = Path(os.environ.get("SUPERFLY_TALKER", "/home/user/models/Qwen2.5-1.5B-Instruct"))
 LOG_DIR = OUT / "conversations"
 
 # ------------------------------------------------------------------ claim checking
