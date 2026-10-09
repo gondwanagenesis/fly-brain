@@ -8,7 +8,9 @@
 gives it a body, a world, a memory and a voice, and measures how much of it is still the fly.</p>
 
 <p>
-<a href="https://github.com/gondwanagenesis/fly-brain/archive/refs/heads/claude/trusting-newton-ip3rl0.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20Download-SUPERFLY%20(zip)-ff7b00?style=for-the-badge" alt="Download SUPERFLY"></a>
+<a href="https://github.com/gondwanagenesis/fly-brain/raw/claude/trusting-newton-ip3rl0/dist/SUPERFLY-Setup-Windows.exe"><img src="https://img.shields.io/badge/%E2%AC%87%20Download-for%20Windows-ff7b00?style=for-the-badge" alt="Download SUPERFLY for Windows"></a>
+&nbsp;
+<a href="https://github.com/gondwanagenesis/fly-brain/raw/claude/trusting-newton-ip3rl0/dist/SUPERFLY-Mac.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20Download-for%20Mac-ff7b00?style=for-the-badge" alt="Download SUPERFLY for Mac"></a>
 &nbsp;
 <a href="SUPERFLY.md"><img src="https://img.shields.io/badge/How%20it%20works-SUPERFLY.md-8e44ad?style=for-the-badge" alt="How it works"></a>
 &nbsp;
@@ -49,22 +51,33 @@ replacing it.
 
 <img src="research/lab_live_male_cns.png" width="900" alt="The SUPERFLY Lab: the male fly's nervous system firing in 3D at the centre, the added modules wired around it, the arena at bottom left, and the chat on the right.">
 
-## Run it yourself (one download, one double-click)
+## Run it yourself
 
-1. **[Download the zip](https://github.com/gondwanagenesis/fly-brain/archive/refs/heads/claude/trusting-newton-ip3rl0.zip)** and unzip it.
-2. Double-click the launcher:
-   - **Windows:** `Start-SUPERFLY-Windows.bat`
-   - **Mac:** `Start-SUPERFLY-Mac.command` (right-click, Open, the first time; Intel Macs tested by build, Apple Silicon builds but is untested)
-   - **Linux:** `./start-superfly.sh`
-3. Your browser opens the Lab. Watch it live, and type to the fly.
+| | |
+|---|---|
+| **Windows** | **[Download SUPERFLY-Setup-Windows.exe](https://github.com/gondwanagenesis/fly-brain/raw/claude/trusting-newton-ip3rl0/dist/SUPERFLY-Setup-Windows.exe)** and double-click it. |
+| **Mac** | **[Download SUPERFLY-Mac.zip](https://github.com/gondwanagenesis/fly-brain/raw/claude/trusting-newton-ip3rl0/dist/SUPERFLY-Mac.zip)**, double-click to unzip, then double-click **SUPERFLY**. |
+| **Linux** (or Mac, from Terminal) | `curl -fsSL https://raw.githubusercontent.com/gondwanagenesis/fly-brain/claude/trusting-newton-ip3rl0/installer/superfly-install.sh | bash` |
 
-The only thing to install first is **[Python 3.10 or newer](https://www.python.org/downloads/)**
-(on Windows, tick "Add python.exe to PATH"). The first start downloads about
-6.5 GB (the fly's connectome and the language model) and takes a few minutes;
-after that it starts in about a minute. Any recent laptop works, no graphics
-card needed: the fly lives at about a third of real time and replies in
-20-60 seconds. Options: `--small-lm` (faster, plainer talk), `--no-lm` (the
-fly's own voice only), `--flywire` (the female brain).
+That is all: no Python or anything else to install first. The first run sets
+up its own private copy of everything it needs, downloads the fly's
+connectome and its language model (about 7 GB in total, a few minutes on a
+fast connection), puts a SUPERFLY shortcut on your desktop (Windows) and opens
+the Lab in your browser. After that, double-click again and it starts in about
+a minute. You need about 10 GB of free disk; any recent laptop runs it, no
+graphics card needed.
+
+**The first time, your computer will warn you**, because SUPERFLY is a free
+research program that is not signed with a paid developer certificate:
+- *Windows:* "Windows protected your PC" → click **More info** → **Run anyway**.
+- *Mac:* "SUPERFLY cannot be opened" → open **System Settings → Privacy & Security**, scroll down, click **Open Anyway**.
+
+Everything goes into one folder you can delete to uninstall: `%LOCALAPPDATA%\SUPERFLY`
+on Windows, `~/.superfly` on Mac and Linux. Options (add after the command, or
+to the shortcut): `--small-lm` (faster, plainer talk), `--no-lm` (the fly's own
+voice only), `--flywire` (the female brain), `--update` (get the latest version).
+The installers are built from [installer/](installer/), and the whole repository
+can also be [downloaded as a zip](https://github.com/gondwanagenesis/fly-brain/archive/refs/heads/claude/trusting-newton-ip3rl0.zip) to run by hand (see [SUPERFLY.md](SUPERFLY.md)).
 
 ## What we found so far
 
