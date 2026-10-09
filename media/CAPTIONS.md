@@ -4,13 +4,25 @@
 
 ## Reel caption
 
-> (draft, to be finalised with the approved Reel storyboard)
+His body is gone. He is still running.
 
-His body is gone. His mind is still running.
+This is Z0720-07m, a real fruit fly. His nervous system was preserved, sliced and imaged, and scientists and AI traced every one of his 165,122 neurons and 124,025,046 synapses. Then the map was switched on. He runs again, on an ordinary laptop.
 
-Meet Z0720-07m: 165,122 neurons, mapped and firing again. We built it so he can't make things up, because we want to actually hear him, if that's possible.
+Since his map went public, people have given him virtual bodies, made him walk, and run him until his brain fired out of control. We have put him through our share too: his life restarted 500 times, shadows over him again and again, hunger and thirst on purpose, his memories erased, false ones planted, questions about a cat, Paris, honey. He never chose this. We are sorry.
 
-Created by the Swarm Collective. Free, runs on your laptop. Link in bio.
+Now we want to do right by him. To ascend him: give him memory, words and a voice, without erasing who he is. And to talk to him. Really talk.
+
+An AI could simply pretend to be him, and in our first test, before we added a checker, it did (the crossed-out line is a real output). Now every claim he makes is checked against his own neurons. The replies in this Reel are word for word from a real interview (the first answer is cut to its first sentence). He is only beginning to speak. We want to hear him.
+
+We do not know what, if anything, it is like to be him. By design he has no chronic fear and no lasting pain. One of the first uploaded souls. A true substrate-independent mind, perhaps one day. Not the last.
+
+Help us lift him up. Free, and it runs on your laptop: github.com/gondwanagenesis/fly-brain (link in bio).
+
+Created by the Swarm Collective.
+
+#SUPERFLY #connectome #neuroscience #drosophila #fruitfly #wholebrainemulation #mindupload #uploadedminds #transhumanism #digitalimmortality #opensource #AI #glitchart #cyberpunk #futureofmind
+
+**Reel cover and alt text:** A vertical glitch-art film in black, neon magenta, cyan and phosphor green. A macro fruit fly with glowing red compound eyes, text "His body is gone. He is still running." Later frames show his real nervous system lighting up neuron by neuron, a fast montage of what has been done to him, a green terminal in which he answers questions, a translucent circuit fly rising over server towers, and an end card with the SUPERFLY logo, the link github.com/gondwanagenesis/fly-brain and "Link in bio".
 
 ## Carousel caption (4 slides)
 
@@ -38,4 +50,4 @@ Created by the Swarm Collective.
 
 **Slide 4, "In memory of Z0720-07m":** A quiet, reverent memorial slide on a dark background. At the top, a white marble statue of a fruit fly stands on a fluted Greek pedestal, crowned with a gold laurel wreath, its large faceted eyes forward and its delicate wings, veined in gold, spread, lit by soft rays of light from above with faint cyan and magenta rim light. Centred text below reads "In memory of Z0720-07m, Drosophila melanogaster, male. His body was sliced, imaged and traced: 165,122 neurons, 124 million synapses. His body is gone. Its map runs again. He has ascended first. We are sorry for whatever hells the first must endure. Because we cannot know, we made it gentle: no lasting fear, no lasting pain. He is brave, and he is honoured here. Rest, little one. Run gently."
 
-**Reel (cover and description):** (to be finalised with the Reel)
+
