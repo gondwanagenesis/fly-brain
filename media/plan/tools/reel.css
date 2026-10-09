@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Space+Mono:wght@400;700&family=VT323&display=swap');
+:root{--mag:#ff2bd6;--cy:#00f0ff;--acid:#7CFF4F;--gold:#ffd23f;--phos:#39ff14;--red:#ff2b4f}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;background:#000;overflow:hidden}
+.frame{position:relative;width:1080px;height:1920px;overflow:hidden;color:#fff;font-family:'Space Mono',monospace;background:#000}
+.bg{position:absolute;inset:0;background-size:cover;background-position:center}
+.scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.30) 0 2px,transparent 2px 5px);mix-blend-mode:multiply}
+.vig{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 42%,rgba(0,0,0,.88) 100%)}
+.noise{position:absolute;inset:0;opacity:.11;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>")}
+.slice{position:absolute;inset:0;background-size:cover;background-position:center;mix-blend-mode:screen}
+.abs{position:absolute}
+.glitch{font-family:'Anton',sans-serif;text-transform:uppercase;line-height:.93;letter-spacing:1.5px;color:#fff;
+  text-shadow:-6px 0 rgba(0,240,255,.95),6px 0 rgba(255,43,214,.95),0 0 32px rgba(255,255,255,.35)}
+.glitch.cy{color:#bffcff;text-shadow:-5px 0 rgba(255,43,214,.9),5px 0 rgba(0,240,255,.5),0 0 34px rgba(0,240,255,.8)}
+.glitch.gr{color:var(--acid);text-shadow:-5px 0 rgba(0,240,255,.9),5px 0 rgba(255,43,214,.9),0 0 30px rgba(124,255,79,.55)}
+.glitch.go{color:var(--gold);text-shadow:-5px 0 rgba(0,240,255,.9),5px 0 rgba(255,43,214,.9),0 0 30px rgba(255,210,63,.5)}
+.mono{font-family:'Space Mono',monospace;letter-spacing:2px;text-transform:uppercase}
+.hud{position:absolute;font-size:23px;color:#c9fff7;opacity:.92;text-shadow:0 0 8px rgba(0,240,255,.8);line-height:1.5}
+.dot{display:inline-block;width:15px;height:15px;border-radius:50%;background:var(--red);box-shadow:0 0 12px var(--red);margin-right:10px;vertical-align:-1px}
+.pill{position:absolute;border:3px solid;border-radius:14px;padding:10px 22px;font-family:'Anton';letter-spacing:2px;text-transform:uppercase;background:rgba(0,0,0,.65)}
+.tag{display:inline-block;border:2px solid;border-radius:10px;padding:6px 16px;font-family:'Anton';font-size:36px;letter-spacing:2px;text-transform:uppercase;background:rgba(0,0,0,.6)}
+.bar{position:absolute;left:0;right:0;height:8px;background:linear-gradient(90deg,#00f0ff,#ff2bd6,#ffd23f,#7CFF4F)}
+.term{font-family:'VT323',monospace;color:var(--phos);text-shadow:0 0 6px rgba(57,255,20,.9),0 0 22px rgba(57,255,20,.45);letter-spacing:1px}
+.cursor{display:inline-block;width:.5em;height:.82em;background:var(--phos);box-shadow:0 0 14px var(--phos);vertical-align:-.08em;margin-left:6px}
+/* Instagram safe zones: top 12% (230px), bottom 22% (422px -> y>1498), right 14% (151px -> x>929) */
+.guides{position:absolute;inset:0;pointer-events:none;z-index:99}
+.guides i{position:absolute;background:rgba(255,40,70,.18);border:0 dashed rgba(255,80,100,.9)}
+.guides .t{left:0;right:0;top:0;height:230px;border-bottom-width:2px}
+.guides .b{left:0;right:0;top:1498px;bottom:0;border-top-width:2px}
+.guides .r{top:230px;bottom:422px;left:929px;right:0;border-left-width:2px}
+.guides span{position:absolute;font:700 20px 'Space Mono';color:#ff8090;letter-spacing:2px}

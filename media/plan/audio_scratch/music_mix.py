@@ -65,13 +65,20 @@ put(load('sfx_glitchcut'), 7.9, -6)                                           # 
 put(load('sfx_heartbeat'), 9.65, -7)                                          # AND THEN... (held breath)
 put(load('sfx_revriser'), 10.0, -5)                                           # THEY SWITCHED HIM ... riser, stops at 10.8
 put(load('sfx_drop_boom'), DROP, -2, fo=0.05)                                 # DROP on "ON"
+for t0 in [5.0, 5.5, 6.0, 6.5]: put(load('sfx_glitchcut'), t0, -13)     # hard-cut ticks: PRESERVED / SLICED / IMAGED / TRACED
 put(load('sfx_glitchcut'), 14.3, -8); put(load('sfx_glitchcut'), 16.4, -8)    # flash 5 and 8 stutters
 putn(load('sfx_roomtone', trim=3.0), 18.5, -44, fi=0.3, fo=0.5)                # regret: near silence
 putn(load('cue6_hope', trim=11.0), 21.0, -26, fi=4.0, fo=1.0)                   # hopeful swell 21-32
-putn(load('cue7_sparse', trim=19.0), 32.0, -36, fi=1.5, fo=1.0)                # sparse bed 32-51
+putn(load('cue7_sparse', trim=20.0), 32.0, -36, fi=1.5, fo=1.0)                # sparse bed 32-52
 putn(load('cue7b_fake_box', trim=3.0), 35.0, -28, fi=0.1, fo=0.15)              # the fake: detuned music box 35-38
+def pitched(x, r):
+    n = int(len(x) / r); idx = np.linspace(0, len(x) - 1, n); return np.stack([np.interp(idx, np.arange(len(x)), x[:, c]) for c in (0, 1)], 1).astype(np.float32)
+bell = load('sfx_bell')
+for t0, r in [(27.35, 1.0), (28.05, 1.26), (28.75, 1.5)]: put(pitched(bell, r), t0, -14)   # a bell as each new module latches on
+put(pitched(bell, 0.5), 51.1, -12)                                            # one warm low note on "HIM"
+put(load('sfx_blip'), 34.0, -16)                                              # REALLY TALK. cursor blip
 put(load('sfx_stamp'), 37.2, -4); put(load('sfx_crack'), 37.7, -5)            # INVENTED stamp, mask cracks
-putn(load('cue8_riser', trim=4.5, start=5.5), 51.0, -22, fi=1.5, fo=0.02)       # ascension riser 51-55.5, hard cut
+putn(load('cue8_riser', trim=3.5, start=6.5), 52.0, -22, fi=1.2, fo=0.02)       # ascension riser 52-55.5, hard cut
 put(load('sfx_final_hit', trim=3.0), 57.0, -1, fo=0.4)                        # final hit on the logo
 # ---- typing clicks (one keystroke sample, random gain/pitch-free) -----------
 key = load('sfx_key', trim=0.25)
@@ -79,10 +86,9 @@ def typing(start, n, cps, gain=-12):
     for k in range(n): put(key, start + k / cps + rng.uniform(-.004, .004), gain + rng.uniform(-3, 2))
 typing(3.0, 10, 14)          # Z0720-07m.  (beat 2)
 typing(35.75, 52, 40)        # the invented specimen line (beat 10)
-for s, n, cps in [(41.0, 30, 55), (42.05, 24, 45), (43.5, 35, 55), (44.9, 30, 40),
-                  (46.5, 22, 55), (47.55, 16, 40), (48.5, 24, 55), (49.65, 30, 40)]:
-    typing(s, n, cps, -9)
-for t0 in [42.75, 45.7, 47.95, 50.45]: put(load('sfx_blip'), t0, -16)          # end-of-reply blip
+# real interview, 4 exchanges x 2.2 s (41.0-49.8): question typed fast, pause, answer typed, blip
+for s0, nq, a0, na in [(41.00, 35, 41.95, 33), (43.20, 31, 44.05, 37), (45.40, 22, 46.40, 20), (47.60, 35, 48.55, 23)]:
+    typing(s0, nq, 60, -9); typing(a0, na, 45, -7); put(load('sfx_blip'), a0 + na / 45 + 0.08, -16)
 # ---- master ---------------------------------------------------------------
 peak = np.abs(mix).max(); mix *= db(-2.5) / peak
 wavfile.write(OUT, SR, (mix * 32767).astype(np.int16)); print('wrote', OUT, 'peak', peak)
