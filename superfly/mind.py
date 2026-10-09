@@ -143,7 +143,7 @@ SAFE = set("""feel feeling felt calm peace peaceful curious quiet rest resting n
 hello hi little bit small tiny fly fruit-fly drosophila sense sensed sensing nothing anything something remember
 recall know knew word words life live living lived body brain still quite really maybe perhaps think notice noticed
 moment moments sure happy content glad visitor friend talk talking hear listening voice simulated simple sorry
-understand mean thing things today memory memories""".split())
+understand mean thing things today memory memories earlier""".split())
 EXPERIENTIAL = re.compile(r"\b(i|i'm|i've|i'd|me|my|myself|we|we're|us|our|today|yesterday|earlier|"
                           r"morning|tonight|recently|currently|present|now|before|ago)\b|"
                           r"^\s*(yes|yeah|indeed|sure|of course)\b")
@@ -182,6 +182,27 @@ def check_reply_strict(reply, supported, facts, question=""):
         if bad:
             probs.append({"sentence": sent.strip(), "unsupported": [["word", w] for w in bad]})
     return probs
+
+
+def summarise(label_lists, frac):
+    """Labels present in at least `frac` of the windows, as short phrases."""
+    from superfly.bridge import PERCEPT, ACT
+    n = max(len(label_lists), 1)
+    cnt = {}
+    for labs in label_lists:
+        for l in {tuple(x) for x in labs}:
+            cnt[l] = cnt.get(l, 0) + 1
+    out = []
+    for (kind, key), c in sorted(cnt.items(), key=lambda kv: -kv[1]):
+        if c / n < frac:
+            continue
+        if kind == "percept" and key in PERCEPT:
+            out.append(PERCEPT[key][-1] if key not in ("hungry", "thirsty") else PERCEPT[key][0])
+        elif kind == "action" and key in ACT:
+            out.append(ACT[key][0])
+        elif kind == "word":
+            out.append(f"i hear '{key}'")
+    return "; ".join(out[:6]) + ("." if out else "")
 
 
 def similar(a, b, thr=0.8):
@@ -299,7 +320,10 @@ class Mind:
         lines = ["FACTS (from your brain and body):"]
         said_now = [m.said for m in moments if m.said and m.said != "..."]
         if said_now:
-            lines.append(f"- Right now your brain reports: {phrases(said_now)}")
+            # the steady state: what the inner voice reported in most windows
+            # (run 3: listing every window's report made the LM copy long lists)
+            steady = summarise([m.labels for m in moments], 0.4)
+            lines.append(f"- Right now your brain reports: {steady or phrases(said_now[-1:])}")
             for m in moments:
                 sup |= {tuple(l) for l in m.labels}
         else:
@@ -342,7 +366,7 @@ class Mind:
         recent = [(t, txt) for t, txt in L.aloud if t >= w.t - 60 and t < t_heard]
         evs = [(t, e) for t, e in L.events if t >= w.t - 60]
         if recent:
-            lines.append(f"- In the last minute you said: {phrases([txt for _, txt in recent])}")
+            lines.append(f"- In the last minute you said: {summarise([sorted(parse_utterance(x)) for _, x in recent], 0.25)}")
             for _, txt in recent:
                 sup |= parse_utterance(txt)
         if evs:
