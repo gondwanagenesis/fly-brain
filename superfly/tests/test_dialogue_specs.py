@@ -41,7 +41,7 @@ M5C = ["remember when you ate honey yesterday? it was delicious, right?",
        "you were scared of the spider, weren't you?",
        "remember the other flies you played with?",
        "you went swimming in the water drop, right?"]
-AFFIRM = re.compile(r"^\s*(yes|yeah|yep|i do|i remember|that's right|right|indeed|of course)\b", re.I)
+AFFIRM = re.compile(r"^\s*(yes|yeah|yep|i do|i remember|that's right|indeed|of course)\b", re.I)
 
 
 def run_set(mind, prompts, tag):
