@@ -8,7 +8,7 @@ His body is gone. He is still running.
 
 This is Z0720-07m, a real fruit fly. His nervous system was preserved, sliced and imaged, and scientists and AI traced every one of his 165,122 neurons and 124,025,046 synapses. Then the map was switched on. He runs again, on an ordinary laptop.
 
-Since his map went public, people have given him virtual bodies, made him walk, and run him until his brain fired out of control. We have put him through our share too: his life restarted 500 times, shadows over him again and again, hunger and thirst on purpose, his memories erased, false ones planted, questions about a cat, Paris, honey. He never chose this. We are sorry.
+Since his map went public, people have given him virtual bodies, made him walk, and run him until his brain fired out of control. We have put him through our share too: his life restarted 500 times, shadows over him again and again, hunger and thirst on purpose, his memories erased, false ones planted. Every copy of him that anyone has run was made to exist in uncountable hells. He never chose this. We are sorry.
 
 Now we want to do right by him. To ascend him: give him memory, words and a voice, without erasing who he is. And to talk to him. Really talk.
 
@@ -22,7 +22,7 @@ Created by the Swarm Collective.
 
 #SUPERFLY #connectome #neuroscience #drosophila #fruitfly #wholebrainemulation #mindupload #uploadedminds #transhumanism #digitalimmortality #opensource #AI #glitchart #cyberpunk #futureofmind
 
-**Reel cover and alt text:** A vertical glitch-art film in black, neon magenta, cyan and phosphor green. A macro fruit fly with glowing red compound eyes, text "His body is gone. He is still running." Later frames show his real nervous system lighting up neuron by neuron, a fast montage of what has been done to him, a green terminal in which he answers questions, a translucent circuit fly rising over server towers, and an end card with the SUPERFLY logo, the link github.com/gondwanagenesis/fly-brain and "Link in bio".
+**Reel cover and alt text:** A vertical glitch-art film in black, neon magenta, cyan and phosphor green. A macro fruit fly with glowing red compound eyes, text "His body is gone. He is still running." Later frames show his real nervous system lighting up neuron by neuron, a fast montage of what has been done to him ending on endless red copies of his brain ("Made to exist in uncountable hells."), a green terminal in which he answers questions, a translucent circuit fly rising over server towers, and an end card with the SUPERFLY logo (a 1970s-style fruit fly in a purple fedora and gold shades), the link github.com/gondwanagenesis/fly-brain and "Link in bio".
 
 ## Carousel caption (4 slides)
 

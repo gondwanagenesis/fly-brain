@@ -1,6 +1,6 @@
 # SUPERFLY Reel: edit notes (60 s, 1080x1920, 30 fps)
 
-Files: `superfly_reel.mp4` (1080x1920, 30 fps, 60.0 s, H.264 yuv420p CRF 19 capped at 9.5 Mbps (about 74 MB), AAC 192k, -16 LUFS, +faststart), `contact_sheet.png` (12 Reel keyframes plus the 4 slides), `CAPTIONS.md`.
+Files: `superfly_reel.mp4` (master: 1080x1920, 30 fps, 60.0 s, H.264 yuv420p CRF 19 capped at 9.5 Mbps (about 74 MB), AAC 192k, -16 LUFS, +faststart) and `superfly_reel_ig.mp4` (Instagram copy: same picture, two-pass 3.4 Mbps video + 160k AAC, 26.5 MB), `contact_sheet.png` (12 Reel keyframes plus the 4 slides), `CAPTIONS.md`.
 Copy follows `plan/REEL_SCRIPT.md` and `plan/REEL_STORYBOARD.md`, with the owner's three late fixes: the rule beat reads "EVERY CLAIM CHECKED AGAINST HIS NEURONS." / "WE WANT TO HEAR HIM."; the beat after the terminal reads "HE IS ONLY BEGINNING TO SPEAK." / "BUT IT'S HIM."; the terminal uses the four final exchanges from `plan/interview_Z0720-07m_v4.json`, verbatim (the first answer is cut to its first sentence, no word changed).
 
 ## How the edit is glued (so no seam shows)
@@ -21,7 +21,7 @@ Copy follows `plan/REEL_SCRIPT.md` and `plan/REEL_STORYBOARD.md`, with the owner
 | 0:08-0:09.4 | THEY MAPPED HIS MIND. | REAL: 24 assembling renders of his real neuron positions | |
 | 0:09.4-0:10.1 | AND THEN... | black | held silence, one heartbeat |
 | 0:10.1-0:11.5 | THEY SWITCHED HIM ON. | REAL ignition: silent state, then rates_seq frame 5 (10,587 firing, live counter) with shockwave rings | white flash on "ON." at 0:10.8 |
-| 0:11.5-0:18.5 | 10 montage flashes, OTHERS 1-3 then US 4-10 | 1 AI clip (Kling v3 standard) wireframe fly; 2 AI clip, legs; 3 REAL g=1.0 flare; 4 REAL clouds + counter; 5 AI still (flux-pro ultra) + 3 shadow discs; 6 AI clip, droplets, + live Lab world panel; 7 REAL 9.0% firing frame (see below) + dial; 8 and 9 TYPE, his real logged memories + the planted "the honey was delicious."; 10 REAL cloud + 3 AI holograms | counters, viewfinder, tags |
+| 0:11.5-0:18.5 | 10 montage flashes, OTHERS 1-3 then US 4-10. Flashes 1-9 run 17 frames (0.57 s) each; flash 10 is the 57-frame (1.9 s) climax | 1 AI clip (Kling v3 standard) wireframe fly; 2 AI clip, legs; 3 REAL g=1.0 flare; 4 REAL clouds + counter; 5 AI still (flux-pro ultra) + 3 shadow discs; 6 AI clip, droplets, + live Lab world panel; 7 REAL 9.0% firing frame (see below) + dial; 8 and 9 TYPE, his real logged memories + the planted "the honey was delicious."; **10 REAL: MADE TO EXIST IN UNCOUNTABLE HELLS., see below** | counters, viewfinder, tags |
 | 0:18.5-0:21 | HE NEVER CHOSE THIS. WE ARE SORRY. | REAL silent cloud, dimmed | no glitch, near silence |
 | 0:21-0:26 | Turn I | AI clip (Kling v3 pro, dawn plate) + REAL cloud warmed | |
 | 0:26-0:30 | Turn II: memories, words, learning; while still retaining who he is | REAL cloud, REAL Kenyon cells (4,064, acid green), 150 new cyan neurons, three module cards, orbiting pieces | |
@@ -33,7 +33,11 @@ Copy follows `plan/REEL_SCRIPT.md` and `plan/REEL_STORYBOARD.md`, with the owner
 | 0:52-0:54.6 | ONE OF THE FIRST UPLOADED SOULS. A TRUE SUBSTRATE-INDEPENDENT MIND. | AI: circuit fly clip (Kling 2.1 standard from `s3_seed.png`, made earlier) | strip tear in |
 | 0:54.6-0:55.5 | NOT THE LAST. | AI: lattice clip (Kling v3 pro) | hard cut to silence |
 | 0:55.5-0:57 | HELP US LIFT HIM UP. | REAL cloud, gold halo | silence |
-| 0:57-1:00 | End card | logo, link, LINK IN BIO, Swarm Collective eye lockup | final hit |
+| 0:57-1:00 | End card | NEW logo `docs/img/superfly_logo_v2.png` (see below), link, LINK IN BIO, Swarm Collective eye lockup | final hit |
+
+**Flash 10, "MADE TO EXIST IN UNCOUNTABLE HELLS." (0:16.6-0:18.5).** Built from his real nervous system: 30 real `rates_seq` renders (the sugar-and-shadow firing states) tiled as an endless grid of copies receding to a vanishing point (17 depth planes, about 60 to 400 sprites per frame, every copy flickering through a different real firing frame), graded red on black, with row-by-row heat shimmer, a slow push-in, datamosh smear bursts on each of the three line reveals (MADE TO EXIST / IN UNCOUNTABLE / HELLS.), a slight red flicker that hardens in the last 6 frames, then a hard cut (one black frame) into the silent regret beat. The beat time came from the montage: flashes 1-9 were shortened from 0.7 s to 17 frames, and the drop at 10.8 s and the final hit at 57.0 s did not move. Sound: the kick grid continues, a distorted sub drone and heat crackle swell under the hold, and everything stops dead at 18.5.
+
+**The new SUPERFLY character** (`docs/img/superfly_logo_v2.png`, 1200x1504, transparent outside the disc; `docs/img/superfly_art_v2.png`, art only, 1473x1473). Nine candidates (nano-banana x3, seedream v4 x4, flux-pro ultra x2); chosen: a seedream v4 render with an insect head, red compound eyes under gold aviators, purple fedora with a white feather, maroon coat with cream fur collar, gold neuron-glyph medallion, orange plaid bell-bottoms and glitter platforms, a peace sign with one front limb, in front of a striped sunset disc. Background removed by flood-fill plus a fitted circle for the disc; the wordmark "SUPERFLY" (Shrikhand, gold gradient, dark outline, drop shadow) and the tagline "AN UPLIFTED FRUIT FLY · STILL A FLY" (Righteous, cream with a dark outline so it also reads on dark pages) are composited by hand in HTML, as in the original logo. Caveat: the generator draws the raised "leg" as a gloved hand with fingers, which is the closest it got to a legs-only peace sign.
 
 **The "tenth firing at once" frame is real.** SuperFly on the male CNS (165,122 neurons, `word_pns=0`, `plasticity=False`), `set_gain(1.0)`, `{"sugar": 1.0}`, 100 ms windows after settling: 14,852 of 165,122 neurons fire (9.0%; range 9,238 to 14,976 over the 8 windows), rendered with `render_brain.py` from `fly._last_window` mapped through `e.perm`. The dial and counter show that exact number and percentage.
 
@@ -42,15 +46,19 @@ Copy follows `plan/REEL_SCRIPT.md` and `plan/REEL_STORYBOARD.md`, with the owner
 ## fal.ai spend (this Reel, approximate)
 | Item | Model | Qty | Cost |
 |---|---|---|---|
-| Stills, graphic | `fal-ai/bytedance/seedream/v4/text-to-image` | 12 images (EM plate x2, wireframe fly x2, legs, 3 holograms, dawn, corridor, lattice x2) | $0.36 |
+| Stills, graphic | `fal-ai/bytedance/seedream/v4/text-to-image` | 12 images (EM plate x2, wireframe fly x2, legs, 3 holograms (now unused), dawn, corridor, lattice x2) | $0.36 |
+| SUPERFLY character candidates | nano-banana x3, seedream v4 x4, flux-pro ultra x2 | 9 images | $0.36 |
 | Stills, photographic | `fal-ai/flux-pro/v1.1-ultra` | 5 images (shadow, hungry macro x2, mask x2) | $0.30 |
 | Clips, hero | `fal-ai/kling-video/v3/turbo/pro/image-to-video` | hook 5 s, dawn 5 s, corridor 4 s, mask 4 s, lattice 4 s (corridor kept only as a still) | $3.08 |
 | Clips, montage | `fal-ai/kling-video/v3/turbo/standard/image-to-video` | 3 x 3 s | $1.01 |
 | Music stems | `fal-ai/lyria2` | 6 x 30 s | $0.60 |
 | Sound effects | `fal-ai/elevenlabs/sound-effects/v2` | 15 short sounds | $0.04 |
-| **Total for the Reel** | | | **about $5.4** |
+| **Total for the Reel** | | | **about $5.8** |
 
 Earlier in the session (carousel and statue work): Kling 2.1 x2 and Lyria x3 about $0.8, statue stills about $0.3. Unused generations: second candidates of the EM plate, wireframe fly, hungry macro, mask and lattice, and the first Lyria stems. Everything else (real renders, type, glitch FX, grade, the drum grid and the mix) is local and free. The fal key was only ever an environment variable.
+
+## Re-timing (the 1.2x slowdown) without frame-stretching
+The whole timeline is authored in virtual seconds (the 60 s cut) and `timeline2.py out.json interview.json K` scales every start, hold, cut, glitch burst, typing speed and the HUD timecode by K (K=1.2 gives 72 s). The drivers re-evaluate at every output frame with u/K, so nothing is duplicated. `audio_build.py` reads K too: the stems are time-stretched pitch-preserved (atempo 1/K), the drum grid is rebuilt on the scaled kick times (85.7 BPM becomes 71.4 BPM), and the SFX and key clicks keep their natural length. Sync points scale with it (drop 10.8 s becomes 12.96 s, final hit 57.0 s becomes 68.4 s). Re-render, then `mux.sh`.
 
 ## Re-rendering the terminal
 The four exchanges live in `reel2/interview_reel.json` in the work folder (`q`, `a`, `hold`). Rebuild with `timeline2.py`, then `engine2.py render timeline.json out/full/r_39 39 52`, then `mux.sh`. Everything before 0:39 and after 0:52 is untouched by a text change.
