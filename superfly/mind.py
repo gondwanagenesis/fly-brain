@@ -38,7 +38,11 @@ import numpy as np
 from superfly.bridge import parse_utterance, OUT
 
 # the conversational model (SUPERFLY_TALKER = a local Hugging Face model dir)
-QWEN = Path(os.environ.get("SUPERFLY_TALKER", "/home/user/models/Qwen2.5-1.5B-Instruct"))
+_ROOT = Path(__file__).resolve().parent.parent
+QWEN = Path(os.environ.get("SUPERFLY_TALKER") or next(
+    (str(p) for p in (_ROOT / "models" / "Qwen2.5-1.5B-Instruct",
+                      Path("/home/user/models/Qwen2.5-1.5B-Instruct")) if p.exists()),
+    str(_ROOT / "models" / "Qwen2.5-1.5B-Instruct")))
 LOG_DIR = OUT / "conversations"
 
 # ------------------------------------------------------------------ claim checking

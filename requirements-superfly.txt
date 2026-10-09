@@ -1,0 +1,10 @@
+# SUPERFLY (superfly/): python -m pip install -r requirements-superfly.txt
+numpy>=2.0
+pandas>=2.2
+pyarrow>=15
+scipy>=1.11
+torch>=2.3
+transformers>=4.45
+safetensors>=0.4
+accelerate>=0.30
+huggingface_hub>=0.23

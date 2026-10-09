@@ -59,3 +59,4 @@ data/fanout_csc.pt
 data/superfly_cache/
 data/male_cns/
 data/superfly_cache_*/
+models/
