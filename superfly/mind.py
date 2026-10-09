@@ -112,9 +112,12 @@ def claims_of(sentence, denied=None):
     return found
 
 
-def check_reply(reply, supported):
+def check_reply(reply, supported, semantic=False):
     """Unsupported first-person experiential claims in `reply`.
-    supported: set of labels the records contain. Returns a list of problems."""
+    supported: set of labels the records contain. Returns a list of problems.
+    semantic=True (checker v4/v5): the NLI grounding handles feelings and
+    memory talk, so the emotion-word map and the 'unrecorded experience' rule
+    are skipped (they rejected 'fear feels like an emotion I haven't had')."""
     probs = []
     for sent in re.split(r"(?<=[.!?])\s+|\n", reply):
         low = sent.lower()
@@ -122,6 +125,9 @@ def check_reply(reply, supported):
             continue
         den = set()
         cl = claims_of(sent, den)
+        if semantic:
+            cl = {l for l in cl if l[0] != "event"}
+            den = {l for l in den if l[0] != "event"}
         bad = sorted(l for l in cl if l not in supported and
                      not (l[0] == "action" and ("event", l[1]) in supported))
         # denying what the records show is also unfaithful (run 6: "i haven't
@@ -132,7 +138,7 @@ def check_reply(reply, supported):
             probs.append({"sentence": sent.strip(), "unsupported": [["denies", f"{a}:{b}"] for a, b in contra]})
         if bad:
             probs.append({"sentence": sent.strip(), "unsupported": [list(b) for b in bad]})
-        elif not cl and not NEGATION.search(low) \
+        elif not semantic and not cl and not NEGATION.search(low) \
                 and re.search(r"\b(remember|remembered|saw|smelled|tasted|visited|met|ate|went|heard|"
                               r"felt|played|swam|swimming|watched|chased|liked|loved)\b", low):
             probs.append({"sentence": sent.strip(), "unsupported": [["experience", "unrecorded"]]})
@@ -254,11 +260,24 @@ def check_grounded(reply, supported, facts, grounder):
     actions, events, false denials) plus semantic grounding by natural-language
     inference against the fact sheet (superfly/grounding.py). Replaces v2/v3's
     closed vocabulary, which made him inarticulate."""
-    probs = check_reply(reply, supported)
+    probs = check_reply(reply, supported, semantic=True)
     for p in grounder.check(reply, facts):
         probs.append({"sentence": p["sentence"], "unsupported": [["claim", p["problem"]]],
                       "support": p["support"], "contra": p["contra"]})
     return probs
+
+
+def prune(reply, probs, min_words=5):
+    """The reply minus its flagged sentences, if a grounded remainder of at
+    least `min_words` words is left (and it is not just 'yes'/'no')."""
+    bad = {p["sentence"].strip() for p in probs}
+    sents = [x.strip() for x in re.split(r"(?<=[.!?])\s+|\n", reply) if x.strip()]
+    keep = [x for x in sents if not any(b and (b in x or x in b) for b in bad)]
+    text = " ".join(keep)
+    words = re.findall(r"[A-Za-z']+", text)
+    if len(words) < min_words or len(keep) == len(sents):
+        return ""
+    return text
 
 
 def ago(dt):
@@ -502,6 +521,12 @@ class Mind:
                     attempts.append({"reply": r, "problems": probs})
                     if not probs:
                         reply, verdict = r, "verified" if k == 0 else f"verified after {k} retries"
+                        break
+                    kept = prune(r, probs)
+                    if kept:            # drop only the unsupported sentences
+                        reply = kept
+                        verdict = ("verified, pruned" if k == 0 else f"verified after {k} retries, pruned")
+                        attempts[-1]["pruned_to"] = kept
                         break
                     msgs = msgs + [{"role": "assistant", "content": r},
                                    {"role": "user", "content": "(That reply described things your FACTS do not contain: "

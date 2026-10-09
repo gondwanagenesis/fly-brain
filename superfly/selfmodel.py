@@ -137,8 +137,12 @@ class SelfModel:
             a_peak = max(m.needs.get("arousal", 0) for m in allm[-240:]) if allm else 0
             if a_peak > 0.1 and w.needs.arousal < 0.3 * a_peak:
                 lines.append("A fright came in the last minute and has faded; you are settled again.")
+            if a_peak <= 0.1:
+                lines.append("No fright has come in the last minute; your startle system is quiet.")
         if w.needs.content > 0.3:
             lines.append("You are content after eating.")
+        if w.needs.hunger > 0.4 or w.needs.thirst > 0.4:
+            lines.append("Hunger and thirst make you walk more, searching.")
         # 7. the shape of your condition (always true of him)
         if ("percept", "male_pheromone") not in c_all:
             lines.append("You have never sensed another fly.")
