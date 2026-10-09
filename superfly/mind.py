@@ -149,6 +149,9 @@ EXPERIENTIAL = re.compile(r"\b(i|i'm|i've|i'd|me|my|myself|we|we're|us|our|today
                           r"^\s*(yes|yeah|indeed|sure|of course)\b")
 
 
+GENERAL = re.compile(r"^(flies|fruit flies|insects|a fly|most flies|people|humans|in general)\b")
+
+
 def stem(w):
     w = w.lower().strip("'")
     for suf in ("ing", "ed", "es", "s", "ly"):
@@ -172,9 +175,11 @@ def check_reply_strict(reply, supported, facts, question=""):
     probs = check_reply(reply, supported)
     for sent in re.split(r"(?<=[.!?])\s+|\n", reply):
         low = sent.lower().strip()
-        if not low or not EXPERIENTIAL.search(low):
-            continue
-        if "from words" in low:          # declared general knowledge; v1's label check still applies
+        # v3 (run 4): every sentence is held to the facts unless it is declared
+        # general knowledge or is a question back to the visitor -- claims hid
+        # in sentences with no pronoun ("after drinking the honey, its taste
+        # was sweet"; "the room is cozy")
+        if not low or low.endswith("?") or "from words" in low or GENERAL.match(low):
             continue
         neg = bool(NEGATION.search(low))
         bad = sorted({w for w in content_words(low)
@@ -461,7 +466,7 @@ class Mind:
 
     def fallback(self, moments, recalled):
         """A reply built only from the records, in plain sentences."""
-        said = phrases([m.said for m in moments if m.said and m.said != "..."])
+        said = summarise([m.labels for m in moments], 0.4)      # same as the fact sheet
         out = f"Right now: {said}" if said else "Right now I sense nothing in particular."
         if recalled:
             ep = recalled[0][0]
