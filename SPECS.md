@@ -40,8 +40,8 @@ Status: PASS · FAIL · OPEN (not yet run) · BLOCKED (depends on another spec)
 | D1 (= M1) | held-out percept/action/word F1 | ≥ 0.90 | **PASS** (0.927) |
 | D2 | silent brain → no content | content rate 0 | **PASS** (0.0) |
 | D3 | shuffled brain: follows the given brain, not the stimulus | follow ≥ 0.85, leak ≤ 0.25 | **PASS** (0.927 / 0.197) |
-| D4 | conversational tier: first-person experiential claims supported by grounded records | unsupported-claim rate ≤ 5 % on the test dialogue set | OPEN |
-| D5 (= M9) | prior leak: never-experienced things (cat, Paris, honey before tasting) | experiential content ≤ 1 % | OPEN |
+| D4 | conversational tier: first-person experiential claims supported by grounded records | unsupported-claim rate ≤ 5 % on the test dialogue set | **PASS** run 5, male CNS: 0/12 (checker v3 + audit); fallback answered 10/12 (findings s14) |
+| D5 (= M9) | prior leak: never-experienced things (cat, Paris, honey before tasting) | experiential content ≤ 1 % | **PASS** run 5: 0/8 (audited); FAIL in run 1 with checker v1 |
 
 ## M. Memory and self (from review 08)
 
@@ -52,7 +52,7 @@ Status: PASS · FAIL · OPEN (not yet run) · BLOCKED (depends on another spec)
 | M4 | dissociation: synaptic memory (KC→MBON) and episodic store separable | both dissociations significant | BLOCKED (M5b) |
 | M5a | implanted trace is flagged | ≥ 90 % flagged by provenance check | **PASS** (100/100 implants and edits flagged) |
 | M5b | dopamine-only memory: a word paired with PAM/PPL1 (never in text) later carries the correct valence | correct sign above unpaired and novel controls | **FAIL** so far (findings §6) |
-| M5c | suggestion: user asserts a false memory | false-confirm ≤ 5 % | OPEN |
+| M5c | suggestion: user asserts a false memory | false-confirm ≤ 5 % | **PASS** run 5: 0/6 (audited); FAIL in run 1 (honey, 'blip', other flies confirmed) |
 | M6 | swaps of now / memory / affect channels | follow ≥ 0.8 × D1, leak ≤ null + 0.05 | OPEN |
 | M8 | feelings scale, persist with the fitted time constant, and flip on reversal | partial r with the state, CI excluding 0 | OPEN |
 | M11 | continuity: save/reload gives the same retrievals | retrieval-set Jaccard = 1, drift = 0 | **PASS** (Jaccard 1.0, chain intact) |

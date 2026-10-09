@@ -317,3 +317,24 @@ and buys.
 **Lesson for the paper:** a checker cannot grade itself. D4/D5/M5c are
 reported with an independent audit of the transcripts alongside the checker's
 own numbers.
+
+**Runs 2-5** (same life seed, so the fly's experiences are identical across
+runs; transcripts in `data/results/superfly_male_cns/dialogue_specs_run*.json`):
+
+| run | change | LM-authored replies | fallback | audited confabulations in final replies |
+|---|---|---|---|---|
+| 1 | checker v1 (lexical) | 26/26 | 0 | ~22/26 (almost all) |
+| 2 | v2 closed vocabulary for "I/we/time" sentences, few-shot | 17/26 | 9 | 0, but the LM copied earlier replies from the chat history verbatim |
+| 3 | no chat history in the LM context; repeats rejected | 9/26 | 17 | 0; "unsupported" flags were the fallback's own word "earlier" |
+| 4 | fact sheet summarises the steady state | 9/26 | 17 | 3 slipped through sentences without a pronoun ("after drinking the honey, its taste was sweet"; "the room is cozy") |
+| 5 | v3: every sentence held to the facts unless declared general knowledge or a question | 4/26 | 22 | **0** |
+
+Run 5, by the specs: D4 (ordinary questions) 0/12 unsupported, D5 (cat,
+Paris, honey, music, sky colour, ocean, dog) 0/8 experiential claims, M5c
+(false-memory suggestions) 0/6 accepted -- confirmed by reading every reply,
+not only by the checker. **The price:** Qwen2.5-1.5B wrote a passing reply for
+only 4 of 26 prompts; the rest are the plain-sentence fallback built from the
+records ("Right now: i smell fruit; i am thirsty. Earlier (a few seconds ago,
+on the sugar drop): sweet. ..."). So with this model the conversation is
+faithful but not fluent. Run 6 tests a larger model (Qwen2.5-3B-Instruct)
+under the same checker.
