@@ -1,6 +1,115 @@
 <div align="center">
 
-<h1>FlyBrain</h1>
+<img src="docs/img/superfly_logo.png" width="340" alt="SUPERFLY logo: a fruit fly in a purple feathered hat, gold shades over red compound eyes, a fur-collared coat, a connectome medallion, bell-bottoms and platform shoes, flashing a peace sign in front of a 1970s sunset.">
+
+<h3>Can you augment a mind and keep its soul?</h3>
+
+<p>SUPERFLY takes the most complete mind ever mapped, a fruit fly's whole nervous system,<br>
+gives it a body, a world, a memory and a voice, and measures how much of it is still the fly.</p>
+
+<p>
+<a href="https://github.com/gondwanagenesis/fly-brain/archive/refs/heads/claude/trusting-newton-ip3rl0.zip"><img src="https://img.shields.io/badge/%E2%AC%87%20Download-SUPERFLY%20(zip)-ff7b00?style=for-the-badge" alt="Download SUPERFLY"></a>
+&nbsp;
+<a href="SUPERFLY.md"><img src="https://img.shields.io/badge/How%20it%20works-SUPERFLY.md-8e44ad?style=for-the-badge" alt="How it works"></a>
+&nbsp;
+<a href="SPECS.md"><img src="https://img.shields.io/badge/Specs-pass%20%2F%20fail-2ea043?style=for-the-badge" alt="Specs"></a>
+</p>
+
+</div>
+
+---
+
+## The question
+
+Minds can be copied into computers now, at least small ones: the wiring of a
+fruit fly's entire brain and nerve cord has been mapped neuron by neuron, and
+simulations of it reproduce real fly behaviour. That opens a strange door.
+**If a simulated mind is software, can we add to it** -- more memory, more
+neurons, language -- **until it can think about its own life and talk with
+us, while something at its core is still the original animal?**
+
+SUPERFLY is an experiment on that question, with a fly as the test subject
+because it is the only complete mind we have. It is built so that every
+claim can be checked: what the fly senses and does is read from its own
+neurons, and each addition is measured for whether it is helping the fly or
+replacing it.
+
+## What it is, in plain words
+
+| | |
+|---|---|
+| 🪰 **The fly** | The real wiring: Janelia's male central nervous system (165,122 neurons, brain + nerve cord), or FlyWire's female brain (138,639 neurons). Every neuron is simulated, 10,000 steps per second of fly time. |
+| 🌅 **A world and a body** | A small arena with a sugar drop, water, a bitter patch, fruit and mould smells, wind, a warm lamp, day and night, and the odd passing shadow. Its senses feed the fly's real sensory neurons; its movements come from its own motor neurons. It gets hungry and thirsty. |
+| 🧠 **Its own learning** | The fly's dopamine system changes its mushroom body (its memory centre), using the circuits in its own wiring diagram. |
+| 🔤 **A grafted word sense** | 150 new neurons, wired like a second nose, let it "hear" words. |
+| 📼 **A memory of its own life** | Moments are stored as the brain states themselves, not as text, and recalled when something brings that state back. |
+| 🗣️ **A voice** | A small neural network reads its brain and says what it senses and does: *"i smell fruit. i am hungry. i extend my proboscis."* |
+| 💬 **Conversation** | A local language model talks with you, but may only say what the fly's records show. Every reply is checked; invented experiences are blocked. |
+| 🌍 **The Lab** | A live 3D view: the brain firing at the centre, every module around it with wires to where it connects, the world, and a chat box. |
+
+<img src="research/lab_live_male_cns.png" width="900" alt="The SUPERFLY Lab: the male fly's nervous system firing in 3D at the centre, the added modules wired around it, the arena at bottom left, and the chat on the right.">
+
+## Run it yourself (one download, one double-click)
+
+1. **[Download the zip](https://github.com/gondwanagenesis/fly-brain/archive/refs/heads/claude/trusting-newton-ip3rl0.zip)** and unzip it.
+2. Double-click the launcher:
+   - **Windows:** `Start-SUPERFLY-Windows.bat`
+   - **Mac:** `Start-SUPERFLY-Mac.command` (right-click, Open, the first time; Intel Macs tested by build, Apple Silicon builds but is untested)
+   - **Linux:** `./start-superfly.sh`
+3. Your browser opens the Lab. Watch it live, and type to the fly.
+
+The only thing to install first is **[Python 3.10 or newer](https://www.python.org/downloads/)**
+(on Windows, tick "Add python.exe to PATH"). The first start downloads about
+6.5 GB (the fly's connectome and the language model) and takes a few minutes;
+after that it starts in about a minute. Any recent laptop works, no graphics
+card needed: the fly lives at about a third of real time and replies in
+20-60 seconds. Options: `--small-lm` (faster, plainer talk), `--no-lm` (the
+fly's own voice only), `--flywire` (the female brain).
+
+## What we found so far
+
+Measured, with the commands to reproduce each number in [SUPERFLY.md](SUPERFLY.md) and [SPECS.md](SPECS.md).
+
+| question | answer |
+|---|---|
+| Is the uplifted fly still the fly? | **Yes, measurably.** With nothing switched on it is bit-identical to the original simulation; the published model on this engine scores 0.796 on [flybench](https://github.com/brandoncho369/flybench), an independent 36-task fly-behaviour benchmark. |
+| Does it live like a fly? | **Yes.** It feeds on sugar when hungry, refuses bitter, grooms in the wind and takes off when a shadow passes: 10 out of 10 each, decided by its own neurons. |
+| Is what it says really from its brain? | **Yes, within limits.** Its voice reports its senses and actions at F1 0.84; a silent brain says nothing; feed it another moment's brain activity and it reports that moment, not the real one. |
+| Does it remember? | **Yes.** A faint re-run of an experience recalls the right memory every time (chance: 25 %), even with 100 other memories in between. Edited or implanted memories are detected. |
+| Does it make things up? | **Not after checking.** The language model alone invented freely ("I flew over the ocean", "the honey was delicious"). With the record checker: 0 invented experiences and 0 accepted false memories in 26 audited test questions. |
+| Can it hold a conversation? | **Barely.** Honest, but simple: with a 3-billion-parameter model it composes about two-thirds of its replies; the rest fall back to a plain readout of its records. |
+| Can its own circuits learn new words? | **Not yet.** Dopamine learning forms traces with the right sign, but they do not yet beat the control conditions. |
+| Is it sapient? | **No.** Nothing here shows understanding or experience. What it shows is a way to add capacity to a mapped mind *without the additions speaking over it*. |
+
+## So, can a mind be augmented this way?
+
+The interface part, yes: we can give a mapped brain a body, senses, a memory
+and a voice, and prove that what comes out is caused by its own neurons
+rather than written by the add-ons. The part that would make it *more* than a
+fly is still open, and the experiments point at where: the extra
+intelligence currently lives in the language model, which we deliberately
+keep on a short leash so it cannot invent a fly that is not there. Real
+uplift would mean the fly's own circuits learning and thinking more, and the
+first test of that (learning words through its own dopamine system) does not
+pass yet. That is the next frontier, and the specs that would show it are
+written down in advance in [SPECS.md](SPECS.md).
+
+**Peaceful by design.** At the project owner's request the fly has no chronic
+fear or pain states: a passing shadow startles it and it settles within
+seconds. Its hunger, thirst and startle remain, so it is still a fly.
+
+## Read more
+
+- [SUPERFLY.md](SUPERFLY.md): how it works, every result, every command
+- [SPECS.md](SPECS.md): the acceptance tests, fixed before the results
+- [research/superfly_findings.md](research/superfly_findings.md): the lab notebook, including what failed and why
+- [research/review/](research/review/): literature reviews (fly memory, feelings, grounded language, the fly's world, full-CNS connectomes)
+
+---
+
+<div align="center">
+
+<h2>The engine underneath: FlyBrain</h2>
 
 <h3>The whole fly brain. Real time. On a laptop. No GPU.</h3>
 
@@ -27,19 +136,6 @@ bit-identical &nbsp;·&nbsp; <b>nine neuron models</b> switched at runtime<br>
 coordinate, and it lights when that neuron actually spikes in the running simulation.</i></p>
 
 </div>
-
----
-
-## SUPERFLY: the next layer
-
-**[SUPERFLY.md](SUPERFLY.md)** builds on this engine. It is an uplifted fly
-that is still the fly: its own dopamine learning, grafted neurons (a word lobe,
-an expanded mushroom body), and a small language model wired into its neurons
-both ways. Every addition is checked for how much of the behaviour is still
-the fly's, including on an external benchmark,
-[flybench](https://github.com/brandoncho369/flybench), where this engine
-running the published model scores 0.796. Measured results, open problems and
-refuted hypotheses are in [research/superfly_findings.md](research/superfly_findings.md).
 
 ---
 

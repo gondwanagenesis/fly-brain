@@ -14,9 +14,12 @@ Then it starts the Lab (http://127.0.0.1:8770) and opens it. The trained
 voices ship in the repo (data/superfly_cache*/flylm_tiny_world.pt), so nothing
 needs training.
 
-Needs: Python 3.10+, an x86-64 CPU (the native kernel uses AVX2/AVX-512 when
-present), a C compiler (gcc/clang on Linux and Intel macOS, MSVC Build Tools
-on Windows), ~10 GB free disk, and the packages in requirements-superfly.txt.
+Needs: Python 3.10+, ~10 GB free disk, and the packages in
+requirements-superfly.txt (the launchers install them). The simulation core
+is C; it is compiled on first start with clang or gcc if present, otherwise
+with the `ziglang` package, so no compiler has to be installed by hand. It
+uses AVX2/AVX-512 on x86-64 and a portable path elsewhere (Apple Silicon
+builds but is untested).
 """
 from __future__ import annotations
 

@@ -12,17 +12,19 @@ command that reproduces it. Where something failed, it says so.
 
 ## Try it on your computer
 
+Download the zip from the [README](README.md#run-it-yourself-one-download-one-double-click),
+unzip, and double-click `Start-SUPERFLY-Windows.bat` (Windows),
+`Start-SUPERFLY-Mac.command` (macOS) or run `./start-superfly.sh` (Linux).
+Only Python 3.10+ must be installed first; the launcher sets up everything
+else (including a C compiler for the simulation core, via the `ziglang`
+package) and opens the Lab. By hand:
+
 ```bash
-git clone -b claude/trusting-newton-ip3rl0 https://github.com/gondwanagenesis/fly-brain
-cd fly-brain
-python -m venv .venv            # then activate it (Windows: .venv\Scripts\activate)
+python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activate
 python -m pip install -r requirements-superfly.txt
-python -m superfly.quickstart   # prepares the male CNS fly, fetches the LM, opens the Lab
+python -m superfly.quickstart                     # --small-lm, --no-lm, --flywire
 ```
 
-Needs an x86-64 machine (Windows, Linux or Intel Mac; Apple Silicon is not
-supported by the native kernel yet), a C compiler (Windows: Visual Studio
-Build Tools with C++), ~10 GB disk. The first run downloads ~6.5 GB.
 Screenshot of the live Lab: [research/lab_live_male_cns.png](research/lab_live_male_cns.png).
 
 ---

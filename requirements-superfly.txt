@@ -1,4 +1,6 @@
 # SUPERFLY (superfly/): python -m pip install -r requirements-superfly.txt
+# CPU builds of PyTorch (no GPU needed; much smaller download on Linux)
+--extra-index-url https://download.pytorch.org/whl/cpu
 numpy>=2.0
 pandas>=2.2
 pyarrow>=15
