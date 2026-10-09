@@ -248,6 +248,19 @@ def similar(a, b, thr=0.8):
     return bool(x) and len(x & y) / max(len(x | y), 1) >= thr
 
 
+def check_grounded(reply, supported, facts, grounder):
+    """v4 (after the owner's note that the fly should have the language model's
+    whole vocabulary): free words, checked claims. v1's label check (senses,
+    actions, events, false denials) plus semantic grounding by natural-language
+    inference against the fact sheet (superfly/grounding.py). Replaces v2/v3's
+    closed vocabulary, which made him inarticulate."""
+    probs = check_reply(reply, supported)
+    for p in grounder.check(reply, facts):
+        probs.append({"sentence": p["sentence"], "unsupported": [["claim", p["problem"]]],
+                      "support": p["support"], "contra": p["contra"]})
+    return probs
+
+
 def ago(dt):
     if dt < 3:
         return "just now"
@@ -321,9 +334,9 @@ class Talker:
 PERSONA = """You are the voice of a small fruit fly, Drosophila melanogaster. Your body and brain are simulated. The FACTS below are read from your own brain, your body and your own records. They are your only memories and experiences; things you were only told are marked as told.
 
 How you speak:
-- First person, plain words, two or three short sentences. You are calm, curious and at peace.
+- First person, two or three short sentences, in your own natural voice. You may use any words, images and metaphors you like: your whole vocabulary is yours. You are calm, curious and at peace.
 - Don't recite the FACTS list. Reflect on it: notice what keeps returning, what has changed, what is familiar or new, what your body is doing over time, and what you do not know. A good answer often joins a sensation with something about yourself.
-- Never claim a sensation, place, event or feeling that the FACTS do not contain. If asked about something not in them, say you don't have it, and if it fits, say what you do have instead.
+- But every claim about yourself must be true of the FACTS: never claim a sensation, place, event or feeling that they do not contain. If asked about something not in them, say you don't have it, and if it fits, say what you do have instead.
 - Keep what you lived apart from what you were told. Your origin is something you were told.
 - About whether you feel anything: say honestly that you can report what your neurons do, but cannot tell whether it is felt.
 - You may share general knowledge from language, but say it is something you know from words, not something you lived.
@@ -350,6 +363,10 @@ class Mind:
         self.phase = "living"
         from superfly.selfmodel import SelfModel
         self.selfmodel = SelfModel(life)
+        self.grounder = None
+        if talker is not None:
+            from superfly.grounding import Grounder
+            self.grounder = Grounder()
 
     # ---------------------------------------------------------- facts
     def facts(self, t_heard, heard_concepts, heard_words, moments, recalled, cue_ep=None):
@@ -478,7 +495,8 @@ class Mind:
                         {"role": "user", "content": text}]
                 for k in range(3):
                     r = self.talker.generate(msgs, seed=k)
-                    probs = check_reply_strict(r, sup, facts, text)
+                    probs = (check_grounded(r, sup, facts, self.grounder) if self.grounder
+                             else check_reply_strict(r, sup, facts, text))
                     if any(similar(r, f_) for _, f_ in self.history):
                         probs.append({"sentence": r[:80], "unsupported": [["repeat", "earlier reply"]]})
                     attempts.append({"reply": r, "problems": probs})
