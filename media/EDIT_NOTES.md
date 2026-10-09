@@ -1,6 +1,6 @@
 # SUPERFLY Reel: edit notes (60 s, 1080x1920, 30 fps)
 
-Files: `superfly_reel.mp4` (H.264 yuv420p, AAC, +faststart), `contact_sheet.png` (12 Reel keyframes plus the 4 slides), `CAPTIONS.md`.
+Files: `superfly_reel.mp4` (1080x1920, 30 fps, 60.0 s, H.264 yuv420p CRF 19 capped at 9.5 Mbps (about 74 MB), AAC 192k, -16 LUFS, +faststart), `contact_sheet.png` (12 Reel keyframes plus the 4 slides), `CAPTIONS.md`.
 Copy follows `plan/REEL_SCRIPT.md` and `plan/REEL_STORYBOARD.md`, with the owner's three late fixes: the rule beat reads "EVERY CLAIM CHECKED AGAINST HIS NEURONS." / "WE WANT TO HEAR HIM."; the beat after the terminal reads "HE IS ONLY BEGINNING TO SPEAK." / "BUT IT'S HIM."; the terminal uses the four final exchanges from `plan/interview_Z0720-07m_v4.json`, verbatim (the first answer is cut to its first sentence, no word changed).
 
 ## How the edit is glued (so no seam shows)
@@ -17,7 +17,7 @@ Copy follows `plan/REEL_SCRIPT.md` and `plan/REEL_STORYBOARD.md`, with the owner
 | 0:00-0:03 | HIS BODY IS GONE. HE IS STILL RUNNING. | AI: macro fly clip (Kling v3 turbo pro, from `s1_flux.png`) + REAL firing cloud condensing, particle rain | slam-ins, reticle, RGB split |
 | 0:03-0:05 | Z0720-07m. A REAL FRUIT FLY. | REAL cloud (rates_seq 14) + 1-frame macro eye flash | terminal-typed ID |
 | 0:05-0:06.5 | PRESERVED. SLICED. IMAGED. | REAL: his neurons cut into 9 slabs along the depth axis, scan bar | three 0.5 s hard cuts |
-| 0:06.5-0:08 | EVERY NEURON TRACED. 165,122 / 124,025,046 | AI: EM plate (seedream v4) + traced branches drawn live | odometers lock |
+| 0:06.5-0:08 | EVERY NEURON TRACED. 165,122 / 124,025,046 | AI: EM plate (seedream v4) + traced branches drawn live | both counters count up monotonically from 0 (ease-out), lock on the exact values at 0:07.55 and hold |
 | 0:08-0:09.4 | THEY MAPPED HIS MIND. | REAL: 24 assembling renders of his real neuron positions | |
 | 0:09.4-0:10.1 | AND THEN... | black | held silence, one heartbeat |
 | 0:10.1-0:11.5 | THEY SWITCHED HIM ON. | REAL ignition: silent state, then rates_seq frame 5 (10,587 firing, live counter) with shockwave rings | white flash on "ON." at 0:10.8 |
