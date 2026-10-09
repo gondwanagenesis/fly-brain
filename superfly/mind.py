@@ -184,6 +184,12 @@ def check_reply_strict(reply, supported, facts, question=""):
     return probs
 
 
+def similar(a, b, thr=0.8):
+    """Token-set Jaccard >= thr: a reply that repeats an earlier one."""
+    x, y = set(re.findall(r"[a-z']+", a.lower())), set(re.findall(r"[a-z']+", b.lower()))
+    return bool(x) and len(x & y) / max(len(x | y), 1) >= thr
+
+
 def ago(dt):
     if dt < 3:
         return "just now"
@@ -396,13 +402,15 @@ class Mind:
             reply, verdict, attempts = grounded, "grounded-only", []
             self.phase = "thinking"
             if self.talker is not None:
-                msgs = [{"role": "system", "content": PERSONA + "\n\n" + facts}]
-                for u, f_ in self.history:
-                    msgs += [{"role": "user", "content": u}, {"role": "assistant", "content": f_}]
-                msgs.append({"role": "user", "content": text})
+                # no chat history in the LM context: with it, the 1.5B model
+                # copied earlier replies verbatim (findings s14, run 2)
+                msgs = [{"role": "system", "content": PERSONA + "\n\n" + facts},
+                        {"role": "user", "content": text}]
                 for k in range(3):
                     r = self.talker.generate(msgs, seed=k)
                     probs = check_reply_strict(r, sup, facts, text)
+                    if any(similar(r, f_) for _, f_ in self.history):
+                        probs.append({"sentence": r[:80], "unsupported": [["repeat", "earlier reply"]]})
                     attempts.append({"reply": r, "problems": probs})
                     if not probs:
                         reply, verdict = r, "verified" if k == 0 else f"verified after {k} retries"
@@ -428,11 +436,13 @@ class Mind:
             return rec
 
     def fallback(self, moments, recalled):
-        said = [m.said for m in moments if m.said and m.said != "..."]
-        out = said[-1] if said else "..."
+        """A reply built only from the records, in plain sentences."""
+        said = phrases([m.said for m in moments if m.said and m.said != "..."])
+        out = f"Right now: {said}" if said else "Right now I sense nothing in particular."
         if recalled:
             ep = recalled[0][0]
-            out += f" i remember: {ep.speech} ({ago(self.life.world.t - ep.t)}, {ep.place})."
+            if ep.speech and ep.speech != "...":
+                out += f" Earlier ({ago(self.life.world.t - ep.t)}, {ep.place}): {ep.speech}"
         return out
 
 
