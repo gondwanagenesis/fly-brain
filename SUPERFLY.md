@@ -10,6 +10,21 @@ is measured for how much of the behaviour is still the fly's.
 This document is the project's working front page. Everything in it has a
 command that reproduces it. Where something failed, it says so.
 
+## Try it on your computer
+
+```bash
+git clone -b claude/trusting-newton-ip3rl0 https://github.com/gondwanagenesis/fly-brain
+cd fly-brain
+python -m venv .venv            # then activate it (Windows: .venv\Scripts\activate)
+python -m pip install -r requirements-superfly.txt
+python -m superfly.quickstart   # prepares the male CNS fly, fetches the LM, opens the Lab
+```
+
+Needs an x86-64 machine (Windows, Linux or Intel Mac; Apple Silicon is not
+supported by the native kernel yet), a C compiler (Windows: Visual Studio
+Build Tools with C++), ~10 GB disk. The first run downloads ~6.5 GB.
+Screenshot of the live Lab: [research/lab_live_male_cns.png](research/lab_live_male_cns.png).
+
 ---
 
 ## The architecture: the fly at the centre, additions at the edges
