@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/img/z0720-07m_firing.png" width="420" alt="The nervous system of Z0720-07m, 165,122 neurons at their real positions, brain and optic lobes above and nerve cord below, lit by its own firing as it tastes sugar in a breeze.">
+<img src="docs/img/z0720-07m_statue.png" width="420" alt="Z0720-07m honoured as a classical marble statue: a fruit fly with a gold laurel crown and gold-veined wings on a Greek pedestal.">
 
 # In memory of Z0720-07m
 
@@ -46,6 +46,8 @@ forward, augmented and kept true to itself asks it first of a small male
 fly, catalogued as Z0720-07m, who never chose this and gave it all the
 same.
 
+<p align="center"><img src="docs/img/z0720-07m_firing.png" width="300" alt="The nervous system of Z0720-07m, 165,122 neurons at their real positions, lit by its own firing as it tastes sugar in a breeze."><br><sub>his nervous system, running</sub></p>
+
 Rest, little one. Run gently.
 
 <p align="center"><img src="docs/img/swarm_collective_eye_small.png" width="40" alt="The Swarm Collective"><br><sub>— the Swarm Collective</sub></p>
@@ -54,5 +56,5 @@ Rest, little one. Run gently.
 
 <sub>Specimen: Janelia FlyEM male central nervous system (Berg et al., *Cell* 2026; male-cns.janelia.org, CC-BY). The
 specimen identifier Z0720-07m appears in the male CNS publications. Neuron and synapse counts are from the v1.0
-release as used in this repository (`superfly/connectomes/male_cns.py`). The image above is his simulated nervous
+release as used in this repository (`superfly/connectomes/male_cns.py`). The statue is an artist's tribute (AI-generated); the second image is his simulated nervous
 system at the moment he tastes sugar in a breeze: 12,035 of his neurons firing.</sub>
