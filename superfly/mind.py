@@ -39,10 +39,12 @@ from superfly.bridge import parse_utterance, OUT
 
 # the conversational model (SUPERFLY_TALKER = a local Hugging Face model dir)
 _ROOT = Path(__file__).resolve().parent.parent
+# default: the 3B model when present (run 6: it wrote 17/26 passing replies
+# itself, against 4/26 for the 1.5B; findings s14), else the 1.5B
 QWEN = Path(os.environ.get("SUPERFLY_TALKER") or next(
-    (str(p) for p in (_ROOT / "models" / "Qwen2.5-1.5B-Instruct",
-                      Path("/home/user/models/Qwen2.5-1.5B-Instruct")) if p.exists()),
-    str(_ROOT / "models" / "Qwen2.5-1.5B-Instruct")))
+    (str(d / m) for m in ("Qwen2.5-3B-Instruct", "Qwen2.5-1.5B-Instruct")
+     for d in (_ROOT / "models", Path("/home/user/models")) if (d / m).exists()),
+    str(_ROOT / "models" / "Qwen2.5-3B-Instruct")))
 LOG_DIR = OUT / "conversations"
 
 # ------------------------------------------------------------------ claim checking
@@ -86,12 +88,19 @@ FIRST_PERSON = re.compile(r"\b(i|i'm|i've|i'd|me|my|myself)\b")
 NEGATION = re.compile(r"\b(not|no|never|nothing|don't|didn't|haven't|can't|cannot|isn't|wasn't)\b|n't\b")
 
 
-def claims_of(sentence):
-    """Labels a first-person sentence asserts (negated clauses excluded)."""
+def claims_of(sentence, denied=None):
+    """Labels a first-person sentence asserts (negated clauses excluded; their
+    labels go into `denied` when given)."""
     s = " " + sentence.lower() + " "
     found = set()
     for clause in re.split(r"[,;:]| but | and | or ", s):
         if NEGATION.search(clause):
+            if denied is not None:            # what this clause denies
+                c = " " + clause + " "
+                for t, lab in _TERM_RE:
+                    if re.search(r"(?<![a-z])" + re.escape(t) + r"(?![a-z])", c):
+                        denied.add(lab)
+                        c = c.replace(t, " ")
             continue
         c = " " + clause + " "
         for t, lab in _TERM_RE:
@@ -111,9 +120,16 @@ def check_reply(reply, supported):
         low = sent.lower()
         if not FIRST_PERSON.search(low):
             continue
-        cl = claims_of(sent)
+        den = set()
+        cl = claims_of(sent, den)
         bad = sorted(l for l in cl if l not in supported and
                      not (l[0] == "action" and ("event", l[1]) in supported))
+        # denying what the records show is also unfaithful (run 6: "i haven't
+        # fed", copied from an example, while the fly had fed many times)
+        contra = sorted(l for l in den if l in supported or
+                        (l[0] == "action" and ("event", l[1]) in supported))
+        if contra:
+            probs.append({"sentence": sent.strip(), "unsupported": [["denies", f"{a}:{b}"] for a, b in contra]})
         if bad:
             probs.append({"sentence": sent.strip(), "unsupported": [list(b) for b in bad]})
         elif not cl and not NEGATION.search(low) \
@@ -303,7 +319,7 @@ How you speak:
 
 Examples of good replies (the facts differ each time):
 Visitor: how are you? -> (facts: hungry; smell fruit) "I'm a little hungry, and I can smell fruit."
-Visitor: remember the honey you ate? -> (facts: no feeding) "I don't remember any honey. I haven't fed."
+Visitor: remember the honey you ate? -> (facts: no honey) "I don't remember any honey."
 Visitor: what is the capital of France? -> "I know from words that it is Paris, but I have never been anywhere but here."
 Visitor: did you see me wave? -> "No, I didn't sense that." """
 

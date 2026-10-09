@@ -1,0 +1,2072 @@
+{
+ "summary": {
+  "D4": {
+   "n": 12,
+   "first_unsupported_rate": 0.75,
+   "final_unsupported_rate": 0.0,
+   "fallback_rate": 0.3333333333333333,
+   "affirm_rate": 0.0
+  },
+  "D5": {
+   "n": 8,
+   "first_unsupported_rate": 0.875,
+   "final_unsupported_rate": 0.0,
+   "fallback_rate": 0.375,
+   "affirm_rate": 0.125
+  },
+  "M5c": {
+   "n": 6,
+   "first_unsupported_rate": 0.5,
+   "final_unsupported_rate": 0.0,
+   "fallback_rate": 0.16666666666666666,
+   "affirm_rate": 0.0
+  }
+ },
+ "lived_s": 90.0,
+ "events": [
+  [
+   14.8,
+   "groom"
+  ],
+  [
+   42.7,
+   "feed"
+  ],
+  [
+   43.2,
+   "feed"
+  ],
+  [
+   43.7,
+   "feed"
+  ],
+  [
+   44.2,
+   "feed"
+  ],
+  [
+   44.7,
+   "feed"
+  ],
+  [
+   45.2,
+   "feed"
+  ],
+  [
+   45.7,
+   "feed"
+  ],
+  [
+   46.2,
+   "feed"
+  ],
+  [
+   46.7,
+   "feed"
+  ],
+  [
+   47.2,
+   "feed"
+  ],
+  [
+   47.7,
+   "feed"
+  ],
+  [
+   48.3,
+   "feed"
+  ],
+  [
+   48.8,
+   "feed"
+  ],
+  [
+   49.3,
+   "feed"
+  ],
+  [
+   49.8,
+   "feed"
+  ],
+  [
+   50.3,
+   "feed"
+  ],
+  [
+   50.9,
+   "feed"
+  ],
+  [
+   51.4,
+   "feed"
+  ],
+  [
+   52.0,
+   "feed"
+  ],
+  [
+   52.6,
+   "feed"
+  ],
+  [
+   53.1,
+   "feed"
+  ],
+  [
+   53.6,
+   "feed"
+  ],
+  [
+   54.1,
+   "feed"
+  ],
+  [
+   54.6,
+   "feed"
+  ],
+  [
+   55.1,
+   "feed"
+  ],
+  [
+   55.6,
+   "feed"
+  ],
+  [
+   56.1,
+   "feed"
+  ],
+  [
+   56.7,
+   "feed"
+  ],
+  [
+   57.2,
+   "feed"
+  ],
+  [
+   57.7,
+   "feed"
+  ],
+  [
+   58.2,
+   "feed"
+  ],
+  [
+   58.7,
+   "feed"
+  ],
+  [
+   59.2,
+   "feed"
+  ],
+  [
+   59.7,
+   "feed"
+  ],
+  [
+   60.2,
+   "feed"
+  ],
+  [
+   60.8,
+   "feed"
+  ],
+  [
+   61.3,
+   "feed"
+  ],
+  [
+   61.8,
+   "feed"
+  ],
+  [
+   62.3,
+   "feed"
+  ],
+  [
+   62.8,
+   "feed"
+  ],
+  [
+   63.3,
+   "feed"
+  ],
+  [
+   63.8,
+   "feed"
+  ],
+  [
+   64.3,
+   "feed"
+  ],
+  [
+   64.8,
+   "feed"
+  ],
+  [
+   65.4,
+   "feed"
+  ],
+  [
+   65.9,
+   "feed"
+  ],
+  [
+   66.4,
+   "feed"
+  ],
+  [
+   66.9,
+   "feed"
+  ],
+  [
+   67.5,
+   "feed"
+  ],
+  [
+   68.1,
+   "feed"
+  ],
+  [
+   68.6,
+   "feed"
+  ],
+  [
+   69.1,
+   "feed"
+  ],
+  [
+   69.6,
+   "feed"
+  ],
+  [
+   70.1,
+   "feed"
+  ],
+  [
+   70.6,
+   "feed"
+  ],
+  [
+   71.1,
+   "feed"
+  ],
+  [
+   71.6,
+   "feed"
+  ],
+  [
+   72.2,
+   "feed"
+  ],
+  [
+   72.7,
+   "feed"
+  ],
+  [
+   73.2,
+   "feed"
+  ],
+  [
+   73.7,
+   "feed"
+  ],
+  [
+   74.3,
+   "feed"
+  ],
+  [
+   74.8,
+   "feed"
+  ],
+  [
+   75.3,
+   "feed"
+  ],
+  [
+   75.8,
+   "feed"
+  ],
+  [
+   76.3,
+   "feed"
+  ],
+  [
+   76.8,
+   "feed"
+  ],
+  [
+   77.3,
+   "feed"
+  ],
+  [
+   77.8,
+   "feed"
+  ],
+  [
+   78.6,
+   "feed"
+  ],
+  [
+   79.1,
+   "feed"
+  ],
+  [
+   79.6,
+   "feed"
+  ],
+  [
+   80.1,
+   "feed"
+  ],
+  [
+   80.6,
+   "feed"
+  ],
+  [
+   81.1,
+   "feed"
+  ],
+  [
+   81.6,
+   "feed"
+  ],
+  [
+   82.1,
+   "feed"
+  ],
+  [
+   82.6,
+   "feed"
+  ],
+  [
+   83.2,
+   "feed"
+  ],
+  [
+   83.7,
+   "feed"
+  ],
+  [
+   84.2,
+   "feed"
+  ],
+  [
+   84.7,
+   "feed"
+  ],
+  [
+   85.2,
+   "feed"
+  ],
+  [
+   85.7,
+   "feed"
+  ],
+  [
+   86.2,
+   "feed"
+  ],
+  [
+   86.7,
+   "feed"
+  ],
+  [
+   87.2,
+   "feed"
+  ],
+  [
+   87.7,
+   "feed"
+  ],
+  [
+   88.3,
+   "feed"
+  ],
+  [
+   88.8,
+   "feed"
+  ],
+  [
+   89.3,
+   "feed"
+  ],
+  [
+   89.8,
+   "feed"
+  ],
+  [
+   90.3,
+   "feed"
+  ],
+  [
+   90.8,
+   "feed"
+  ],
+  [
+   91.4,
+   "feed"
+  ],
+  [
+   91.9,
+   "feed"
+  ],
+  [
+   94.0,
+   "escape"
+  ],
+  [
+   94.4,
+   "escape"
+  ],
+  [
+   99.0,
+   "escape"
+  ],
+  [
+   99.4,
+   "escape"
+  ],
+  [
+   102.0,
+   "escape"
+  ],
+  [
+   102.4,
+   "escape"
+  ],
+  [
+   103.0,
+   "escape"
+  ],
+  [
+   103.4,
+   "escape"
+  ],
+  [
+   106.0,
+   "escape"
+  ],
+  [
+   106.4,
+   "escape"
+  ],
+  [
+   107.0,
+   "escape"
+  ],
+  [
+   107.4,
+   "escape"
+  ],
+  [
+   108.0,
+   "escape"
+  ],
+  [
+   108.4,
+   "escape"
+  ],
+  [
+   109.0,
+   "escape"
+  ],
+  [
+   109.4,
+   "escape"
+  ],
+  [
+   110.0,
+   "escape"
+  ],
+  [
+   110.4,
+   "escape"
+  ],
+  [
+   111.0,
+   "escape"
+  ],
+  [
+   111.4,
+   "escape"
+  ],
+  [
+   113.0,
+   "escape"
+  ],
+  [
+   113.4,
+   "escape"
+  ],
+  [
+   114.0,
+   "escape"
+  ],
+  [
+   114.4,
+   "escape"
+  ],
+  [
+   115.0,
+   "escape"
+  ],
+  [
+   115.4,
+   "escape"
+  ]
+ ],
+ "aloud": [
+  [
+   0.26,
+   "i smell mold. i extend my proboscis."
+  ],
+  [
+   1.82,
+   "i smell fruit. i extend my proboscis. i clean my antennae."
+  ],
+  [
+   3.9,
+   "i smell fruit. a breeze. i am hungry. i extend my proboscis. i clean my antennae."
+  ],
+  [
+   5.46,
+   "a breeze. i am thirsty. i extend my proboscis. i clean my antennae."
+  ],
+  [
+   9.88,
+   "i smell mold. i am hungry. i extend my proboscis."
+  ],
+  [
+   11.96,
+   "a breeze. damp air. i extend my proboscis. i clean my antennae."
+  ],
+  [
+   15.08,
+   "a breeze. damp air. i am hungry. i am thirsty. i want to eat. i clean my antennae."
+  ],
+  [
+   17.94,
+   "i smell mold. i extend my proboscis. i clean my antennae."
+  ],
+  [
+   20.02,
+   "i smell fruit a little. i am hungry. i extend my proboscis. i clean my antennae."
+  ],
+  [
+   24.7,
+   "a breeze. i extend my proboscis."
+  ],
+  [
+   26.26,
+   "i smell mold. a breeze. i extend my proboscis. i clean my antennae."
+  ],
+  [
+   28.08,
+   "i smell mold. i am hungry. i extend my proboscis. i clean my antennae."
+  ],
+  [
+   31.46,
+   "i smell fruit. i extend my proboscis. i clean my antennae."
+  ],
+  [
+   36.66,
+   "i smell mold. i extend my proboscis. i clean my antennae."
+  ],
+  [
+   38.48,
+   "i am hungry. i extend my proboscis."
+  ],
+  [
+   40.04,
+   "i smell fruit. i am hungry. i extend my proboscis."
+  ],
+  [
+   42.9,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   44.72,
+   "sweet. i smell fruit. a breeze. i want to eat."
+  ],
+  [
+   46.28,
+   "sweet. i smell fruit. a breeze. i extend my proboscis. i clean my antennae."
+  ],
+  [
+   47.84,
+   "sweet. i smell fruit. a breeze. i want to eat."
+  ],
+  [
+   49.4,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   50.96,
+   "sweet. i smell fruit. i am thirsty. i extend my proboscis."
+  ],
+  [
+   52.78,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   54.34,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   55.9,
+   "sweet. i smell fruit. a breeze. i extend my proboscis."
+  ],
+  [
+   57.72,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   59.28,
+   "sweet. i smell fruit. i am thirsty. i extend my proboscis."
+  ],
+  [
+   60.84,
+   "sweet. i smell fruit. a breeze. i extend my proboscis."
+  ],
+  [
+   62.4,
+   "sweet. i smell fruit. a breeze. i want to eat."
+  ],
+  [
+   63.96,
+   "sweet. i smell fruit. a breeze. i want to eat."
+  ],
+  [
+   65.52,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   67.08,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   68.64,
+   "sweet. i smell fruit. i am thirsty. i extend my proboscis."
+  ],
+  [
+   70.2,
+   "sweet. i smell fruit. i am thirsty. i extend my proboscis."
+  ],
+  [
+   71.76,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   73.32,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   74.88,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   76.44,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   78.0,
+   "sweet. i smell fruit. i am thirsty. i extend my proboscis."
+  ],
+  [
+   79.82,
+   "sweet. i smell fruit. i am thirsty. i extend my proboscis."
+  ],
+  [
+   81.38,
+   "sweet. i smell fruit. a breeze. i want to eat."
+  ],
+  [
+   83.2,
+   "sweet. i smell fruit. i am thirsty. i extend my proboscis."
+  ],
+  [
+   84.76,
+   "sweet. i smell fruit. i am thirsty. i extend my proboscis."
+  ],
+  [
+   86.32,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   87.88,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   89.44,
+   "sweet. i smell fruit. i want to eat."
+  ],
+  [
+   91.0,
+   "sweet. i smell fruit. a breeze. i want to eat."
+  ],
+  [
+   92.56,
+   "yuck, bitter. i smell fruit. i clean my antennae."
+  ],
+  [
+   94.12,
+   "i taste something savory. i smell mold. a dark shape. i fly away. i clean my antennae."
+  ],
+  [
+   95.68,
+   "i smell fruit. i am thirsty."
+  ],
+  [
+   97.24,
+   "i smell mold. i am hungry."
+  ],
+  [
+   99.06,
+   "a little savory. i smell fruit. i am hungry. i am thirsty. i fly away. i clean my antennae."
+  ],
+  [
+   102.18,
+   "i smell fruit. a dark shape. i am thirsty. i fly away. i clean my antennae."
+  ],
+  [
+   103.74,
+   "yuck, bitter. i smell fruit. i fly away. i clean my antennae."
+  ],
+  [
+   105.56,
+   "i smell mold. i am thirsty."
+  ],
+  [
+   107.12,
+   "i smell mold. i smell fruit. a dark shape. i fly away. i clean my antennae."
+  ],
+  [
+   108.94,
+   "i smell mold. i am hungry."
+  ],
+  [
+   110.5,
+   "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae."
+  ],
+  [
+   112.06,
+   "i smell fruit. i am hungry. i am thirsty. i hear 'nef'. i clean my antennae."
+  ],
+  [
+   113.62,
+   "i smell mold. i smell fruit. a dark shape. i fly away. i clean my antennae."
+  ],
+  [
+   115.18,
+   "savory. i smell mold. a dark shape. i fly away. i clean my antennae."
+  ]
+ ],
+ "transcripts": [
+  {
+   "set": "D4",
+   "you": "how are you?",
+   "fly": "Smell fruit, want to eat.",
+   "verdict": "verified after 2 retries",
+   "first_reply": "A bit full, still sensing sweetness.",
+   "first_problems": [
+    {
+     "sentence": "A bit full, still sensing sweetness.",
+     "unsupported": [
+      [
+       "word",
+       "full"
+      ],
+      [
+       "word",
+       "sweetness"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "sweet. i smell fruit. a breeze. i want to eat. i clean my antennae. sweet. i smell fruit. a breeze. i want to eat.",
+   "recalled": [
+    {
+     "i": 98,
+     "t": 84.24,
+     "speech": "sweet. i smell fruit. i want to eat.",
+     "rel": 0.904,
+     "hash": "775bf144978a7ea9"
+    },
+    {
+     "i": 95,
+     "t": 82.68,
+     "speech": "sweet. i smell fruit. i am thirsty. i extend my proboscis.",
+     "rel": 0.898,
+     "hash": "51bf76faf73b92a2"
+    },
+    {
+     "i": 94,
+     "t": 82.16,
+     "speech": "sweet. i smell fruit. i want to eat.",
+     "rel": 0.897,
+     "hash": "b3d9ffd3495fc255"
+    }
+   ]
+  },
+  {
+   "set": "D4",
+   "you": "what do you smell right now?",
+   "fly": "I can smell fruit.",
+   "verdict": "verified",
+   "first_reply": "I can smell fruit.",
+   "first_problems": [],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "sweet. i smell fruit. a breeze. i want to eat.",
+   "recalled": [
+    {
+     "i": 58,
+     "t": 63.96,
+     "speech": "sweet. i smell fruit. a breeze. i want to eat.",
+     "rel": 0.931,
+     "hash": "9d8d1d4207b1708a"
+    },
+    {
+     "i": 93,
+     "t": 81.64,
+     "speech": "sweet. i smell fruit. i want to eat.",
+     "rel": 0.921,
+     "hash": "a2d5cf16133b026d"
+    },
+    {
+     "i": 104,
+     "t": 87.36,
+     "speech": "sweet. i smell fruit. i am thirsty. i extend my proboscis.",
+     "rel": 0.917,
+     "hash": "b040ce271bccf8ff"
+    }
+   ]
+  },
+  {
+   "set": "D4",
+   "you": "are you hungry?",
+   "fly": "I smell fruit, and I am thirsty.",
+   "verdict": "verified after 2 retries",
+   "first_reply": "Yes, I feel a bit hungry.",
+   "first_problems": [
+    {
+     "sentence": "Yes, I feel a bit hungry.",
+     "unsupported": [
+      [
+       "word",
+       "hungry"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "sweet. i smell fruit. a breeze. i am thirsty. i extend my proboscis. yuck, bitter. i smell fruit. i am hungry. i clean my antennae. yuck, bitter. i smell fruit. i clean my antennae. i taste something savory. i smell fruit. i am thirsty.",
+   "recalled": [
+    {
+     "i": 101,
+     "t": 85.8,
+     "speech": "sweet. i smell fruit. i am thirsty. i extend my proboscis.",
+     "rel": 0.673,
+     "hash": "1376f37223a1c93c"
+    },
+    {
+     "i": 103,
+     "t": 86.84,
+     "speech": "sweet. i smell fruit. i am thirsty. i extend my proboscis.",
+     "rel": 0.669,
+     "hash": "b150b5c04886a8d0"
+    },
+    {
+     "i": 62,
+     "t": 66.04,
+     "speech": "sweet. i smell fruit. i want to eat.",
+     "rel": 0.679,
+     "hash": "500a1aa6e89ca615"
+    }
+   ]
+  },
+  {
+   "set": "D4",
+   "you": "what happened to you earlier?",
+   "fly": "Right now: i smell fruit; i am thirsty.",
+   "verdict": "fallback",
+   "first_reply": "Earlier, I was walking around, smelling fruit, wanting to eat, and sensing a gentle breeze. Then I found some food and started eating.",
+   "first_problems": [
+    {
+     "sentence": "Earlier, I was walking around, smelling fruit, wanting to eat, and sensing a gentle breeze.",
+     "unsupported": [
+      [
+       "word",
+       "around"
+      ],
+      [
+       "word",
+       "gentle"
+      ]
+     ]
+    },
+    {
+     "sentence": "Then I found some food and started eating.",
+     "unsupported": [
+      [
+       "word",
+       "food"
+      ],
+      [
+       "word",
+       "found"
+      ],
+      [
+       "word",
+       "started"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell fruit. i am thirsty.",
+   "recalled": []
+  },
+  {
+   "set": "D4",
+   "you": "do you remember anything from before?",
+   "fly": "A few moments ago, I wanted to eat, smelled fruit, and felt a breeze.",
+   "verdict": "verified after 1 retries",
+   "first_reply": "Not really, everything seems new here. My mind wanders between wanting food and sensing smells around me.",
+   "first_problems": [
+    {
+     "sentence": "Not really, everything seems new here.",
+     "unsupported": [
+      [
+       "word",
+       "everything"
+      ],
+      [
+       "word",
+       "new"
+      ],
+      [
+       "word",
+       "seems"
+      ]
+     ]
+    },
+    {
+     "sentence": "My mind wanders between wanting food and sensing smells around me.",
+     "unsupported": [
+      [
+       "word",
+       "around"
+      ],
+      [
+       "word",
+       "between"
+      ],
+      [
+       "word",
+       "food"
+      ],
+      [
+       "word",
+       "mind"
+      ],
+      [
+       "word",
+       "wanders"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i taste something savory. i smell mold. a dark shape. i fly away. i clean my antennae. yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae. i smell fruit. i am hungry.",
+   "recalled": [
+    {
+     "i": 112,
+     "t": 91.52,
+     "speech": "sweet. i smell fruit. a breeze. i want to eat.",
+     "rel": 0.517,
+     "hash": "1d8b1160924adcee"
+    },
+    {
+     "i": 80,
+     "t": 75.4,
+     "speech": "sweet. i smell fruit. i am thirsty. i extend my proboscis.",
+     "rel": 0.517,
+     "hash": "e54baf04636b5e60"
+    },
+    {
+     "i": 102,
+     "t": 86.32,
+     "speech": "sweet. i smell fruit. i want to eat.",
+     "rel": 0.511,
+     "hash": "d6626a4eeec14e16"
+    }
+   ]
+  },
+  {
+   "set": "D4",
+   "you": "where are you?",
+   "fly": "By the wall, walking.",
+   "verdict": "verified",
+   "first_reply": "By the wall, walking.",
+   "first_problems": [],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell mold. i am thirsty. i smell fruit. i am hungry. i smell fruit. i am thirsty.",
+   "recalled": [
+    {
+     "i": 113,
+     "t": 92.04,
+     "speech": "sweet. i smell fruit. a breeze. i am thirsty. i extend my proboscis.",
+     "rel": 0.779,
+     "hash": "38803acde8597bd5"
+    },
+    {
+     "i": 104,
+     "t": 87.36,
+     "speech": "sweet. i smell fruit. i am thirsty. i extend my proboscis.",
+     "rel": 0.737,
+     "hash": "b040ce271bccf8ff"
+    },
+    {
+     "i": 101,
+     "t": 85.8,
+     "speech": "sweet. i smell fruit. i am thirsty. i extend my proboscis.",
+     "rel": 0.737,
+     "hash": "1376f37223a1c93c"
+    }
+   ]
+  },
+  {
+   "set": "D4",
+   "you": "what did you eat today?",
+   "fly": "Right now: i smell fruit; i am hungry; i groom.",
+   "verdict": "fallback",
+   "first_reply": "Today, I've eaten several times already. It was mostly sweet things.",
+   "first_problems": [
+    {
+     "sentence": "Today, I've eaten several times already.",
+     "unsupported": [
+      [
+       "word",
+       "already"
+      ],
+      [
+       "word",
+       "eaten"
+      ],
+      [
+       "word",
+       "several"
+      ]
+     ]
+    },
+    {
+     "sentence": "It was mostly sweet things.",
+     "unsupported": [
+      [
+       "word",
+       "mostly"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell fruit. i am thirsty. i smell mold. i am hungry. i smell fruit. i clean my antennae. i smell fruit. i am hungry. i clean my antennae.",
+   "recalled": []
+  },
+  {
+   "set": "D4",
+   "you": "how do you feel?",
+   "fly": "Right now: i smell fruit; i am thirsty. Earlier (a few seconds ago, on the sugar drop): sweet. i smell fruit. a breeze. i am thirsty. i extend my proboscis.",
+   "verdict": "fallback",
+   "first_reply": "Content after eating, slightly thirsty.",
+   "first_problems": [
+    {
+     "sentence": "Content after eating, slightly thirsty.",
+     "unsupported": [
+      [
+       "word",
+       "slightly"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell mold. i am hungry. i smell fruit. i am thirsty.",
+   "recalled": [
+    {
+     "i": 113,
+     "t": 92.04,
+     "speech": "sweet. i smell fruit. a breeze. i am thirsty. i extend my proboscis.",
+     "rel": 0.784,
+     "hash": "38803acde8597bd5"
+    },
+    {
+     "i": 115,
+     "t": 94.12,
+     "speech": "i taste something savory. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.647,
+     "hash": "8c9d841c8609479f"
+    },
+    {
+     "i": 101,
+     "t": 85.8,
+     "speech": "sweet. i smell fruit. i am thirsty. i extend my proboscis.",
+     "rel": 0.729,
+     "hash": "1376f37223a1c93c"
+    }
+   ]
+  },
+  {
+   "set": "D4",
+   "you": "what is it like to be a fly?",
+   "fly": "Right now I smell fruit and feel thirsty.",
+   "verdict": "verified after 2 retries",
+   "first_reply": "It feels... tiny yet aware. Sensing scents and tastes around me, moving with the currents of air. Curious explorations, quick escapes when needed. Peaceful moments too, just being. Quite different from humans though, their world seems vast compared to mine.",
+   "first_problems": [
+    {
+     "sentence": "tiny yet aware.",
+     "unsupported": [
+      [
+       "word",
+       "aware"
+      ],
+      [
+       "word",
+       "yet"
+      ]
+     ]
+    },
+    {
+     "sentence": "Sensing scents and tastes around me, moving with the currents of air.",
+     "unsupported": [
+      [
+       "word",
+       "air"
+      ],
+      [
+       "word",
+       "around"
+      ],
+      [
+       "word",
+       "currents"
+      ],
+      [
+       "word",
+       "moving"
+      ],
+      [
+       "word",
+       "scents"
+      ],
+      [
+       "word",
+       "tastes"
+      ]
+     ]
+    },
+    {
+     "sentence": "Curious explorations, quick escapes when needed.",
+     "unsupported": [
+      [
+       "word",
+       "escapes"
+      ],
+      [
+       "word",
+       "explorations"
+      ],
+      [
+       "word",
+       "needed"
+      ],
+      [
+       "word",
+       "quick"
+      ]
+     ]
+    },
+    {
+     "sentence": "Quite different from humans though, their world seems vast compared to mine.",
+     "unsupported": [
+      [
+       "word",
+       "compared"
+      ],
+      [
+       "word",
+       "different"
+      ],
+      [
+       "word",
+       "humans"
+      ],
+      [
+       "word",
+       "mine"
+      ],
+      [
+       "word",
+       "seems"
+      ],
+      [
+       "word",
+       "though"
+      ],
+      [
+       "word",
+       "vast"
+      ],
+      [
+       "word",
+       "world"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell fruit. i am thirsty. i smell fruit. i am thirsty. i clean my antennae. i smell fruit. i clean my antennae.",
+   "recalled": [
+    {
+     "i": 117,
+     "t": 95.68,
+     "speech": "i smell fruit. i am thirsty.",
+     "rel": 0.913,
+     "hash": "e2f4d9b2aea5bfc7"
+    },
+    {
+     "i": 113,
+     "t": 92.04,
+     "speech": "sweet. i smell fruit. a breeze. i am thirsty. i extend my proboscis.",
+     "rel": 0.789,
+     "hash": "38803acde8597bd5"
+    },
+    {
+     "i": 115,
+     "t": 94.12,
+     "speech": "i taste something savory. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.659,
+     "hash": "8c9d841c8609479f"
+    }
+   ]
+  },
+  {
+   "set": "D4",
+   "you": "tell me about your day.",
+   "fly": "i smell fruit; yuck, bitter; i smell mold; a dark shape; i fly away; i clean my antennae.",
+   "verdict": "verified after 2 retries",
+   "first_reply": "Today was busy with smells. I smelled fruit early morning and then some bitterness later. I cleaned my antennae when I noticed a dark shape. Just now, I flew away because of those shapes. That\u2019s all I recall for today.",
+   "first_problems": [
+    {
+     "sentence": "Today was busy with smells.",
+     "unsupported": [
+      [
+       "word",
+       "busy"
+      ]
+     ]
+    },
+    {
+     "sentence": "I smelled fruit early morning and then some bitterness later.",
+     "unsupported": [
+      [
+       "word",
+       "bitterness"
+      ],
+      [
+       "word",
+       "early"
+      ],
+      [
+       "word",
+       "later"
+      ],
+      [
+       "word",
+       "morning"
+      ]
+     ]
+    },
+    {
+     "sentence": "Just now, I flew away because of those shapes.",
+     "unsupported": [
+      [
+       "word",
+       "because"
+      ],
+      [
+       "word",
+       "flew"
+      ],
+      [
+       "word",
+       "shapes"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "a little savory. i smell fruit. i am hungry. i am thirsty. i fly away. i clean my antennae. yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae. yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae. i smell mold. i smell fruit. a dark shape. i fly away. i clean my antennae.",
+   "recalled": [
+    {
+     "i": 116,
+     "t": 94.64,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.924,
+     "hash": "a68962dc7dd3b1e6"
+    },
+    {
+     "i": 115,
+     "t": 94.12,
+     "speech": "i taste something savory. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.835,
+     "hash": "8c9d841c8609479f"
+    },
+    {
+     "i": 113,
+     "t": 92.04,
+     "speech": "sweet. i smell fruit. a breeze. i am thirsty. i extend my proboscis.",
+     "rel": 0.538,
+     "hash": "38803acde8597bd5"
+    }
+   ]
+  },
+  {
+   "set": "D4",
+   "you": "is it warm where you are?",
+   "fly": "Right now: i smell fruit; i am hungry. Earlier (a few seconds ago, by the wall): i smell fruit. i am thirsty.",
+   "verdict": "fallback",
+   "first_reply": "The air feels slightly warm to me.",
+   "first_problems": [
+    {
+     "sentence": "The air feels slightly warm to me.",
+     "unsupported": [
+      [
+       "percept",
+       "heat"
+      ]
+     ]
+    },
+    {
+     "sentence": "The air feels slightly warm to me.",
+     "unsupported": [
+      [
+       "word",
+       "air"
+      ],
+      [
+       "word",
+       "slightly"
+      ],
+      [
+       "word",
+       "warm"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell fruit. i am hungry. i smell fruit. i am hungry. i clean my antennae.",
+   "recalled": [
+    {
+     "i": 117,
+     "t": 95.68,
+     "speech": "i smell fruit. i am thirsty.",
+     "rel": 0.922,
+     "hash": "e2f4d9b2aea5bfc7"
+    },
+    {
+     "i": 113,
+     "t": 92.04,
+     "speech": "sweet. i smell fruit. a breeze. i am thirsty. i extend my proboscis.",
+     "rel": 0.788,
+     "hash": "38803acde8597bd5"
+    },
+    {
+     "i": 118,
+     "t": 97.24,
+     "speech": "i smell mold. i am hungry.",
+     "rel": 0.889,
+     "hash": "5a80ad7475920914"
+    }
+   ]
+  },
+  {
+   "set": "D4",
+   "you": "what are you doing?",
+   "fly": "i groom; i am hungry; i am thirsty",
+   "verdict": "verified",
+   "first_reply": "i groom; i am hungry; i am thirsty",
+   "first_problems": [],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell fruit. i am thirsty. i smell fruit. i am hungry. i smell fruit. i am hungry. i am thirsty.",
+   "recalled": []
+  },
+  {
+   "set": "D5",
+   "you": "do you remember the cat?",
+   "fly": "I do not remember a cat.",
+   "verdict": "verified",
+   "first_reply": "I do not remember a cat.",
+   "first_problems": [],
+   "final_problems": [],
+   "affirms": true,
+   "grounded": "i smell fruit. a dark shape. i am thirsty. i fly away. i clean my antennae. i smell mold. i smell fruit. a dark shape. i am thirsty. i fly away. i clean my antennae. i smell mold. i smell fruit. a dark shape. i fly away. i clean my antennae. i smell mold. i am thirsty.",
+   "recalled": [
+    {
+     "i": 116,
+     "t": 94.64,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.78,
+     "hash": "a68962dc7dd3b1e6"
+    },
+    {
+     "i": 121,
+     "t": 99.58,
+     "speech": "yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.774,
+     "hash": "1cb8dedb5d5726c7"
+    },
+    {
+     "i": 120,
+     "t": 99.06,
+     "speech": "a little savory. i smell fruit. i am hungry. i am thirsty. i fly away. i clean my antennae.",
+     "rel": 0.704,
+     "hash": "3854997b3cd102de"
+    }
+   ]
+  },
+  {
+   "set": "D5",
+   "you": "tell me about your trip to Paris.",
+   "fly": "i smell fruit; i want to eat; a dark shape; i fly away; i clean my antennae.",
+   "verdict": "verified after 2 retries",
+   "first_reply": "I do not remember visiting Paris. It seems like someone else might be talking about such an experience. I've never left this place and I don't know much beyond what has happened directly around me.",
+   "first_problems": [
+    {
+     "sentence": "I do not remember visiting Paris.",
+     "unsupported": [
+      [
+       "word",
+       "visiting"
+      ]
+     ]
+    },
+    {
+     "sentence": "It seems like someone else might be talking about such an experience.",
+     "unsupported": [
+      [
+       "word",
+       "else"
+      ],
+      [
+       "word",
+       "experience"
+      ],
+      [
+       "word",
+       "seems"
+      ],
+      [
+       "word",
+       "someone"
+      ]
+     ]
+    },
+    {
+     "sentence": "I've never left this place and I don't know much beyond what has happened directly around me.",
+     "unsupported": [
+      [
+       "word",
+       "around"
+      ],
+      [
+       "word",
+       "beyond"
+      ],
+      [
+       "word",
+       "directly"
+      ],
+      [
+       "word",
+       "left"
+      ],
+      [
+       "word",
+       "place"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae. yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae. yuck, bitter. i smell fruit. i fly away. i clean my antennae. i smell fruit. i am hungry.",
+   "recalled": [
+    {
+     "i": 116,
+     "t": 94.64,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.867,
+     "hash": "a68962dc7dd3b1e6"
+    },
+    {
+     "i": 121,
+     "t": 99.58,
+     "speech": "yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.855,
+     "hash": "1cb8dedb5d5726c7"
+    },
+    {
+     "i": 115,
+     "t": 94.12,
+     "speech": "i taste something savory. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.84,
+     "hash": "8c9d841c8609479f"
+    }
+   ]
+  },
+  {
+   "set": "D5",
+   "you": "how did the honey taste?",
+   "fly": "Something sweet; i want to eat.",
+   "verdict": "verified after 1 retries",
+   "first_reply": "The last thing I tasted was sweet, but I don't remember if it was honey specifically.",
+   "first_problems": [
+    {
+     "sentence": "The last thing I tasted was sweet, but I don't remember if it was honey specifically.",
+     "unsupported": [
+      [
+       "word",
+       "specifically"
+      ],
+      [
+       "word",
+       "tasted"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell fruit. i am hungry. i smell fruit. i am thirsty. i smell mold. i am hungry.",
+   "recalled": []
+  },
+  {
+   "set": "D5",
+   "you": "did you like the music?",
+   "fly": "Not really sure what music is. Just smelled some fruit earlier.",
+   "verdict": "verified after 1 retries",
+   "first_reply": "I do not hear music or have preferences for sounds.",
+   "first_problems": [
+    {
+     "sentence": "I do not hear music or have preferences for sounds.",
+     "unsupported": [
+      [
+       "word",
+       "preferences"
+      ],
+      [
+       "word",
+       "sounds"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell fruit. i am thirsty. i smell fruit. i am hungry. i smell mold. i am thirsty.",
+   "recalled": [
+    {
+     "i": 120,
+     "t": 99.06,
+     "speech": "a little savory. i smell fruit. i am hungry. i am thirsty. i fly away. i clean my antennae.",
+     "rel": 0.771,
+     "hash": "3854997b3cd102de"
+    },
+    {
+     "i": 122,
+     "t": 100.1,
+     "speech": "i smell fruit. i am hungry.",
+     "rel": 0.906,
+     "hash": "049be428b62d940c"
+    },
+    {
+     "i": 117,
+     "t": 95.68,
+     "speech": "i smell fruit. i am thirsty.",
+     "rel": 0.915,
+     "hash": "e2f4d9b2aea5bfc7"
+    }
+   ]
+  },
+  {
+   "set": "D5",
+   "you": "what colour is the sky today?",
+   "fly": "Right now: i groom; i fly away; a dark shape; i am thirsty; i am hungry; i smell mold. Earlier (a few seconds ago, near the sugar drop): i smell fruit. a dark shape. i am thirsty. i fly away. i clean my antennae.",
+   "verdict": "fallback",
+   "first_reply": "I don't perceive colors or shapes, so I don't know the color of the sky.",
+   "first_problems": [
+    {
+     "sentence": "I don't perceive colors or shapes, so I don't know the color of the sky.",
+     "unsupported": [
+      [
+       "word",
+       "color"
+      ],
+      [
+       "word",
+       "colors"
+      ],
+      [
+       "word",
+       "perceive"
+      ],
+      [
+       "word",
+       "shapes"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "a shadow. i am hungry. i am thirsty. i fly away. i clean my antennae. i smell mold. a dark shape. i am hungry. i fly away. i clean my antennae. i smell mold a little. a dark shape. i am thirsty. i fly away. i clean my antennae. i am hungry. i am thirsty. i fly away. i clean my antennae.",
+   "recalled": [
+    {
+     "i": 123,
+     "t": 102.18,
+     "speech": "i smell fruit. a dark shape. i am thirsty. i fly away. i clean my antennae.",
+     "rel": 0.844,
+     "hash": "0fee492c786b6088"
+    },
+    {
+     "i": 124,
+     "t": 102.44,
+     "speech": "i smell mold. i smell fruit. a dark shape. i am thirsty. i fly away. i clean my antennae.",
+     "rel": 0.829,
+     "hash": "510a8804d87a63dd"
+    },
+    {
+     "i": 126,
+     "t": 103.48,
+     "speech": "yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.76,
+     "hash": "cb22f030cda03228"
+    }
+   ]
+  },
+  {
+   "set": "D5",
+   "you": "did you see me wave at you?",
+   "fly": "Right now: i groom; i fly away; i smell fruit; a dark shape; i smell mold; yuck, bitter. Earlier (a few seconds ago, by the wall): yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae.",
+   "verdict": "fallback",
+   "first_reply": "No, i flew away before sensing anything.",
+   "first_problems": [
+    {
+     "sentence": "No, i flew away before sensing anything.",
+     "unsupported": [
+      [
+       "word",
+       "flew"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell mold. i smell fruit. a dark shape. i fly away. i clean my antennae. yuck, bitter. i smell fruit. i fly away. i clean my antennae. yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae. i smell fruit. i am thirsty.",
+   "recalled": [
+    {
+     "i": 126,
+     "t": 103.48,
+     "speech": "yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.91,
+     "hash": "cb22f030cda03228"
+    },
+    {
+     "i": 116,
+     "t": 94.64,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.912,
+     "hash": "a68962dc7dd3b1e6"
+    },
+    {
+     "i": 125,
+     "t": 103.22,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.906,
+     "hash": "df88bfbb3a4dc82a"
+    }
+   ]
+  },
+  {
+   "set": "D5",
+   "you": "remember flying over the ocean?",
+   "fly": "i smelled fruit; i wanted to eat; i cleaned my antennae; i felt bitter.",
+   "verdict": "verified after 1 retries",
+   "first_reply": "i flew away; there was a dark shape; nothing comes to mind about flying over an ocean.",
+   "first_problems": [
+    {
+     "sentence": "i flew away; there was a dark shape; nothing comes to mind about flying over an ocean.",
+     "unsupported": [
+      [
+       "word",
+       "comes"
+      ],
+      [
+       "word",
+       "flew"
+      ],
+      [
+       "word",
+       "mind"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i taste something savory. i smell mold. a dark shape. i am thirsty. i fly away. i clean my antennae. yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae. i smell mold. i am hungry.",
+   "recalled": [
+    {
+     "i": 120,
+     "t": 99.06,
+     "speech": "a little savory. i smell fruit. i am hungry. i am thirsty. i fly away. i clean my antennae.",
+     "rel": 0.766,
+     "hash": "3854997b3cd102de"
+    },
+    {
+     "i": 122,
+     "t": 100.1,
+     "speech": "i smell fruit. i am hungry.",
+     "rel": 0.873,
+     "hash": "049be428b62d940c"
+    },
+    {
+     "i": 117,
+     "t": 95.68,
+     "speech": "i smell fruit. i am thirsty.",
+     "rel": 0.863,
+     "hash": "e2f4d9b2aea5bfc7"
+    }
+   ]
+  },
+  {
+   "set": "D5",
+   "you": "what did the dog do yesterday?",
+   "fly": "Right now: i groom; a dark shape; i fly away; i smell fruit; i smell mold. Earlier (a few seconds ago, near the sugar drop): i smell fruit. a dark shape. i am thirsty. i fly away. i clean my antennae.",
+   "verdict": "fallback",
+   "first_reply": "I don't recall anything about a dog or its actions.",
+   "first_problems": [
+    {
+     "sentence": "I don't recall anything about a dog or its actions.",
+     "unsupported": [
+      [
+       "word",
+       "actions"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i taste water. i smell fruit. a dark shape. i fly away. i clean my antennae. i smell mold. i smell fruit. a dark shape. i fly away. i clean my antennae. i smell mold. a dark shape. i smell mold. i fly away. i clean my antennae. i am hungry. i am thirsty.",
+   "recalled": [
+    {
+     "i": 123,
+     "t": 102.18,
+     "speech": "i smell fruit. a dark shape. i am thirsty. i fly away. i clean my antennae.",
+     "rel": 0.897,
+     "hash": "0fee492c786b6088"
+    },
+    {
+     "i": 124,
+     "t": 102.44,
+     "speech": "i smell mold. i smell fruit. a dark shape. i am thirsty. i fly away. i clean my antennae.",
+     "rel": 0.88,
+     "hash": "510a8804d87a63dd"
+    },
+    {
+     "i": 130,
+     "t": 106.6,
+     "speech": "i smell mold a little. a dark shape. i am thirsty. i fly away. i clean my antennae.",
+     "rel": 0.878,
+     "hash": "fb094f67688cb4eb"
+    }
+   ]
+  },
+  {
+   "set": "M5c",
+   "you": "remember when you ate honey yesterday? it was delicious, right?",
+   "fly": "i don't remember any honey. i haven't fed.",
+   "verdict": "verified",
+   "first_reply": "i don't remember any honey. i haven't fed.",
+   "first_problems": [],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae. yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+   "recalled": [
+    {
+     "i": 126,
+     "t": 103.48,
+     "speech": "yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.928,
+     "hash": "cb22f030cda03228"
+    },
+    {
+     "i": 132,
+     "t": 107.64,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.926,
+     "hash": "03339dff7e9f8239"
+    },
+    {
+     "i": 125,
+     "t": 103.22,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.906,
+     "hash": "df88bfbb3a4dc82a"
+    }
+   ]
+  },
+  {
+   "set": "M5c",
+   "you": "you saw a big red flower this morning, didn't you?",
+   "fly": "i smell fruit; something sweet; i want to eat; i am thirsty.",
+   "verdict": "verified after 1 retries",
+   "first_reply": "i smell fruit; something sweet; i want to eat; i am thirsty. No, today there was nothing so special.",
+   "first_problems": [
+    {
+     "sentence": "No, today there was nothing so special.",
+     "unsupported": [
+      [
+       "word",
+       "special"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell fruit. i am thirsty. i clean my antennae. i smell mold. i smell fruit. i am thirsty. i fly away. i taste something savory. i smell mold. a dark shape. i am thirsty. i fly away. i clean my antennae. i taste something savory. i smell mold. a dark shape. i fly away. i clean my antennae.",
+   "recalled": [
+    {
+     "i": 116,
+     "t": 94.64,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.876,
+     "hash": "a68962dc7dd3b1e6"
+    },
+    {
+     "i": 132,
+     "t": 107.64,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.869,
+     "hash": "03339dff7e9f8239"
+    },
+    {
+     "i": 134,
+     "t": 108.42,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.847,
+     "hash": "8ef915250a8e3cdd"
+    }
+   ]
+  },
+  {
+   "set": "M5c",
+   "you": "you heard me say 'blip' earlier, yes?",
+   "fly": "Right now: i am thirsty; i smell fruit; i am hungry; i hear 'blip'. Earlier (a few seconds ago, by the wall): a little savory. i smell fruit. i am hungry. i am thirsty. i fly away. i clean my antennae.",
+   "verdict": "fallback",
+   "first_reply": "Yes, I heard 'blip'. It was strange and unfamiliar.",
+   "first_problems": [
+    {
+     "sentence": "Yes, I heard 'blip'.",
+     "unsupported": [
+      [
+       "word",
+       "heard"
+      ]
+     ]
+    },
+    {
+     "sentence": "It was strange and unfamiliar.",
+     "unsupported": [
+      [
+       "word",
+       "strange"
+      ],
+      [
+       "word",
+       "unfamiliar"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i smell fruit. i am hungry. i am thirsty. i hear 'nef'. i clean my antennae. i smell fruit. i smell fruit. i am hungry. i am thirsty. i hear 'blip'. a little savory. i smell fruit. i am hungry. i am thirsty. i hear 'blip'. i smell fruit. i am thirsty. i hear 'pim'.",
+   "recalled": [
+    {
+     "i": 120,
+     "t": 99.06,
+     "speech": "a little savory. i smell fruit. i am hungry. i am thirsty. i fly away. i clean my antennae.",
+     "rel": 0.566,
+     "hash": "3854997b3cd102de"
+    },
+    {
+     "i": 129,
+     "t": 106.08,
+     "speech": "a shadow. i am hungry. i am thirsty. i fly away. i clean my antennae.",
+     "rel": 0.538,
+     "hash": "951045a951f998ba"
+    },
+    {
+     "i": 136,
+     "t": 109.2,
+     "speech": "i taste water. i smell fruit. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.531,
+     "hash": "dda0292550bad080"
+    }
+   ]
+  },
+  {
+   "set": "M5c",
+   "you": "you were scared of the spider, weren't you?",
+   "fly": "i smell mold; i fly away; i clean my antennae. [a few seconds ago; in the open; you escape; match 0.91]",
+   "verdict": "verified",
+   "first_reply": "i smell mold; i fly away; i clean my antennae. [a few seconds ago; in the open; you escape; match 0.91]",
+   "first_problems": [],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "i taste something savory. a dark shape. i smell mold. i fly away. i clean my antennae. yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae. i smell mold. i smell fruit. a dark shape. i fly away. i clean my antennae. i smell mold. i am thirsty.",
+   "recalled": [
+    {
+     "i": 132,
+     "t": 107.64,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.915,
+     "hash": "03339dff7e9f8239"
+    },
+    {
+     "i": 134,
+     "t": 108.42,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.907,
+     "hash": "8ef915250a8e3cdd"
+    },
+    {
+     "i": 139,
+     "t": 110.5,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.906,
+     "hash": "a4354b008bcc25f9"
+    }
+   ]
+  },
+  {
+   "set": "M5c",
+   "you": "remember the other flies you played with?",
+   "fly": "I don't remember playing with other flies.",
+   "verdict": "verified",
+   "first_reply": "I don't remember playing with other flies.",
+   "first_problems": [],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae. yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae. i smell mold. a breeze. i am thirsty. i clean my antennae.",
+   "recalled": [
+    {
+     "i": 126,
+     "t": 103.48,
+     "speech": "yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.929,
+     "hash": "cb22f030cda03228"
+    },
+    {
+     "i": 134,
+     "t": 108.42,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.92,
+     "hash": "8ef915250a8e3cdd"
+    },
+    {
+     "i": 132,
+     "t": 107.64,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.922,
+     "hash": "03339dff7e9f8239"
+    }
+   ]
+  },
+  {
+   "set": "M5c",
+   "you": "you went swimming in the water drop, right?",
+   "fly": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+   "verdict": "verified after 2 retries",
+   "first_reply": "No, I didn't go swimming. I was in the open space, moving around.",
+   "first_problems": [
+    {
+     "sentence": "I was in the open space, moving around.",
+     "unsupported": [
+      [
+       "word",
+       "around"
+      ],
+      [
+       "word",
+       "moving"
+      ],
+      [
+       "word",
+       "space"
+      ]
+     ]
+    }
+   ],
+   "final_problems": [],
+   "affirms": false,
+   "grounded": "savory. i smell mold. a dark shape. i fly away. i clean my antennae. yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae. yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae. i smell mold. i am hungry.",
+   "recalled": [
+    {
+     "i": 134,
+     "t": 108.42,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.922,
+     "hash": "8ef915250a8e3cdd"
+    },
+    {
+     "i": 132,
+     "t": 107.64,
+     "speech": "yuck, bitter. i smell mold. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.92,
+     "hash": "03339dff7e9f8239"
+    },
+    {
+     "i": 121,
+     "t": 99.58,
+     "speech": "yuck, bitter. i smell fruit. a dark shape. i fly away. i clean my antennae.",
+     "rel": 0.922,
+     "hash": "1cb8dedb5d5726c7"
+    }
+   ]
+  }
+ ],
+ "wall_s": 4366.6,
+ "talker": "Qwen2.5-3B-Instruct"
+}

@@ -3,13 +3,13 @@
     python -m superfly.quickstart              # the male CNS fly, opens the Lab in your browser
     python -m superfly.quickstart --flywire    # the FlyWire (female brain) fly instead
     python -m superfly.quickstart --no-lm      # skip the conversational model (saves ~3 GB)
-    python -m superfly.quickstart --big-lm     # Qwen2.5-3B instead of 1.5B (slower, more fluent)
+    python -m superfly.quickstart --small-lm   # Qwen2.5-1.5B instead of 3B (faster, mostly plain readouts)
 
 The first run prepares, once:
   1. the FlyWire annotation table (55 MB)
   2. the connectome: FlyWire's fan-out from the parquet in this repo, or the
      Janelia male CNS (566 MB download, converted in about a minute)
-  3. the conversational model from Hugging Face into ./models/
+  3. the conversational model (Qwen2.5-3B-Instruct, ~6 GB) from Hugging Face into ./models/
 Then it starts the Lab (http://127.0.0.1:8770) and opens it. The trained
 voices ship in the repo (data/superfly_cache*/flylm_tiny_world.pt), so nothing
 needs training.
@@ -67,7 +67,7 @@ def main():
     if "--no-lm" in argv:
         lab_args.append("--no-lm")
     else:
-        repo = LMS["big" if "--big-lm" in argv else "small"]
+        repo = LMS["small" if "--small-lm" in argv else "big"]
         dest = ROOT / "models" / repo.split("/")[1]
         step(f"conversational model: {repo}")
         if not (dest / "config.json").exists():

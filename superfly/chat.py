@@ -70,8 +70,15 @@ class TinyVoice:
         from superfly.language import _intensity
         inten = _intensity(" " + text.lower() + " ")
         from superfly.language import CONCEPT
+        low = " " + re.sub(r"[^a-z' ]", " ", text.lower()) + " "
+        # the hearing head proposes; a word for that sense must be present
+        # (unseen words such as 'yesterday' or 'cat' made the head misfire)
         concepts = {k: inten for k, v in zip(self.keys, c[0])
-                    if v > 0.5 and k in CONCEPT}
+                    if v > 0.5 and k in CONCEPT
+                    and any(f" {w} " in low for w in (k.replace("_", " "),) + tuple(CONCEPT[k].words))}
+        # a question or a reminder is a mention, not an offer: a faint cue
+        if concepts and ("?" in text or re.search(r"\b(remember|recall)\b", low)):
+            concepts = {k: round(0.4 * x, 3) for k, x in concepts.items()}
         words = re.findall(r"'([a-z]+)'", text.lower())
         return concepts, words, float(r[0])
 
